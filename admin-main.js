@@ -42,6 +42,83 @@ const selectedRegistrationApplicationKeys = new Set();
 let visibleRegistrationApplicationKeys = [];
 let expandedRegistrationEventId = "";
 let finalEntryAddState = { eventId: '', team: '', selectedIds: [], query: '' };
+const paginationState = {
+    students: { page: 1, limit: 25 },
+    applications: { page: 1, limit: 25 },
+    finalEntries: { page: 1, limit: 25 },
+    downloads: { page: 1, limit: 25 }
+};
+
+function paginateList(items, stateKey) {
+    const state = paginationState[stateKey] || { page: 1, limit: 25 };
+    const limitVal = state.limit;
+    const limit = limitVal === 'all' ? (items.length || 1) : (Number(limitVal) || 25);
+    const total = items.length;
+    const totalPages = limitVal === 'all' ? 1 : Math.max(1, Math.ceil(total / limit));
+    if (state.page > totalPages) state.page = totalPages;
+    if (state.page < 1) state.page = 1;
+    const start = limitVal === 'all' ? 0 : (state.page - 1) * limit;
+    const end = limitVal === 'all' ? total : Math.min(total, start + limit);
+    const pagedItems = limitVal === 'all' ? items : items.slice(start, end);
+    return {
+        pagedItems,
+        total,
+        totalPages,
+        page: state.page,
+        limit: limitVal,
+        start: total === 0 ? 0 : start + 1,
+        end
+    };
+}
+
+function renderPaginationBar(containerId, pagedResult, stateKey, itemLabel = 'items') {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    if (!pagedResult || pagedResult.total === 0) {
+        el.innerHTML = '';
+        return;
+    }
+    const { start, end, total, page, totalPages, limit } = pagedResult;
+    const isPrevDisabled = page <= 1;
+    const isNextDisabled = page >= totalPages;
+
+    el.innerHTML = `
+        <div class="px-5 py-3 border-t border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-600">
+            <div class="flex items-center gap-2 font-medium">
+                <span>Showing <strong class="text-slate-800">${start}–${end}</strong> of <strong class="text-slate-800">${total}</strong> ${escapeHtml(itemLabel)}</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex items-center gap-1.5 font-medium">
+                    <label for="limit-select-${stateKey}" class="text-slate-500 whitespace-nowrap">Rows per page:</label>
+                    <select id="limit-select-${stateKey}" data-admin-change="paginate-limit" data-pagination-key="${stateKey}" class="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm cursor-pointer">
+                        <option value="25" ${String(limit) === '25' ? 'selected' : ''}>25</option>
+                        <option value="50" ${String(limit) === '50' ? 'selected' : ''}>50</option>
+                        <option value="100" ${String(limit) === '100' ? 'selected' : ''}>100</option>
+                        <option value="all" ${String(limit) === 'all' ? 'selected' : ''}>All</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-1">
+                    <button data-admin-action="paginate-prev" data-pagination-key="${stateKey}" ${isPrevDisabled ? 'disabled' : ''} class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none transition shadow-sm active:scale-95">
+                        <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i> Previous
+                    </button>
+                    <span class="px-2.5 py-1 rounded-md bg-slate-200/60 font-black text-[11px] text-slate-700">
+                        ${page} / ${totalPages}
+                    </span>
+                    <button data-admin-action="paginate-next" data-pagination-key="${stateKey}" ${isNextDisabled ? 'disabled' : ''} class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none transition shadow-sm active:scale-95">
+                        Next <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>`;
+    window.lucide?.createIcons?.();
+}
+
+function triggerPaginationRender(key) {
+    if (key === 'students') window.renderStudentTable(true);
+    else if (key === 'applications') window.renderRegistrationRequests?.();
+    else if (key === 'finalEntries') window.renderRegList(true);
+    else if (key === 'downloads') window.renderStudentParticipationReport?.();
+}
 const alphaSequence = index => { let n = Number(index) + 1, out = ''; while(n > 0) { n--; out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26); } return out; };
 const teamCodePattern = /^Team [A-Z]+$/;
 const categoryCodePattern = /^Category \d+$/;
@@ -344,16 +421,39 @@ window.promptAction = (title, defaultVal = '') => {
 
 
 const adminInputActions = {
-    'render-registration-requests': () => window.renderRegistrationRequests(),
+    'paginate-limit': (target) => {
+        const key = target.dataset.paginationKey;
+        if (paginationState[key]) {
+            paginationState[key].limit = target.value;
+            paginationState[key].page = 1;
+            triggerPaginationRender(key);
+        }
+    },
+    'render-registration-requests': () => {
+        paginationState.applications.page = 1;
+        window.renderRegistrationRequests();
+    },
     'toggle-registration-application-selection': (target) => window.toggleRegistrationApplicationSelection(target),
     'render-registration-downloads': () => window.renderRegistrationDownloads(),
-    'render-student-participation-report': () => window.renderStudentParticipationReport(),
+    'render-student-participation-report': () => {
+        paginationState.downloads.page = 1;
+        window.renderStudentParticipationReport();
+    },
     'render-final-entries-download-preview': () => window.renderFinalEntriesDownloadPreview(),
-    'populate-reg-events': () => window.populateRegEvents(),
-    'render-reg-list': () => window.renderRegList(true),
+    'populate-reg-events': () => {
+        paginationState.finalEntries.page = 1;
+        window.populateRegEvents();
+    },
+    'render-reg-list': () => {
+        paginationState.finalEntries.page = 1;
+        window.renderRegList(true);
+    },
     'render-final-entry-add': (target) => { finalEntryAddState.query = target.value || ''; window.renderFinalEntryAddModal(); },
     'preview-chest-no': () => window.previewChestNo(),
-    'render-student-table': () => window.renderStudentTable(true),
+    'render-student-table': () => {
+        paginationState.students.page = 1;
+        window.renderStudentTable(true);
+    },
     'render-participants': () => window.renderParticipants(),
     'filter-event-field-rules': () => window.filterEventFieldRules(),
     'toggle-event-config': (target) => window.toggleEventConfig(target),
@@ -556,7 +656,21 @@ document.addEventListener('click', (event) => {
         'set-access-list-filter': () => window.setAccessListFilter(d.filter),
         'edit-access-user': () => window.editAccessUser(d.uid),
         'delete-access-user': () => window.deleteAccessUser(d.uid),
-        'toggle-access-active': () => window.toggleAccessActive(d.uid)
+        'toggle-access-active': () => window.toggleAccessActive(d.uid),
+        'paginate-prev': () => {
+            const key = d.paginationKey;
+            if (paginationState[key] && paginationState[key].page > 1) {
+                paginationState[key].page--;
+                triggerPaginationRender(key);
+            }
+        },
+        'paginate-next': () => {
+            const key = d.paginationKey;
+            if (paginationState[key]) {
+                paginationState[key].page++;
+                triggerPaginationRender(key);
+            }
+        }
     };
     actions[d.adminAction]?.();
 });
@@ -1872,7 +1986,7 @@ window.renderRegList = (force = false) => {
     const container = document.getElementById('registrations-container');
     if(!container) return;
     const visibleRegistrations = uniqueRegistrationRows();
-    const currentHash = generateHash(visibleRegistrations) + generateHash(events) + evId + cat + stage + gender + participation + expandedRegistrationEventId + generateHash(students);
+    const currentHash = generateHash(visibleRegistrations) + generateHash(events) + evId + cat + stage + gender + participation + expandedRegistrationEventId + generateHash(students) + paginationState.finalEntries.page + paginationState.finalEntries.limit;
     if(!force && lastRenderHash.regs === currentHash) return;
     lastRenderHash.regs = currentHash;
 
@@ -1901,8 +2015,18 @@ window.renderRegList = (force = false) => {
     };
 
     const eventsToRender = evId && evId !== 'all' ? events.filter(e => e.id === evId) : finalEntryFilteredEvents({ cat, stage, gender, participation });
-    if(evId && evId !== 'all' && !eventsToRender.length) { container.innerHTML = '<p class="py-10 text-center text-sm font-bold text-slate-400">Event not found.</p>'; return; }
-    container.innerHTML = eventsToRender.length ? eventsToRender.map(eventInfo => {
+    if(evId && evId !== 'all' && !eventsToRender.length) {
+        container.innerHTML = '<p class="py-10 text-center text-sm font-bold text-slate-400">Event not found.</p>';
+        renderPaginationBar('pagination-final-entries', { total: 0 }, 'finalEntries', 'events');
+        return;
+    }
+    const paged = paginateList(eventsToRender, 'finalEntries');
+    if (eventsToRender.length === 0) {
+        container.innerHTML = '<div class="py-12 text-center text-sm font-bold text-slate-400">No events found for the selected filters.</div>';
+        renderPaginationBar('pagination-final-entries', { total: 0 }, 'finalEntries', 'events');
+        return;
+    }
+    container.innerHTML = paged.pagedItems.map(eventInfo => {
         const eventRegs = visibleRegistrations.filter(r => r.eventId === eventInfo.id);
         const registeredTeams = sortedTeams.filter(teamName => eventRegs.some(r => r.team === teamName));
         const entryTotal = eventInfo.type === 'Group' ? eventRegs.length : eventRegs.reduce((sum, registration) => sum + registrationPersonIds(registration).length, 0);
@@ -1914,7 +2038,8 @@ window.renderRegList = (force = false) => {
         const cancelButton = cancelled ? `<button data-admin-action="cancel-registration-event" data-id="${escapeHtml(eventInfo.id)}" class="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">Edit Cancel</button><button data-admin-action="undo-registration-event-cancel" data-id="${escapeHtml(eventInfo.id)}" class="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white">Undo</button>` : `<button data-admin-action="cancel-registration-event" data-id="${escapeHtml(eventInfo.id)}" class="rounded-xl bg-red-600 px-3 py-2 text-xs font-black text-white">Cancel Event</button>`;
         const teamsForExpandedEvent = expanded ? sortedTeams : registeredTeams;
         return `<section class="mb-3 overflow-hidden rounded-2xl border ${cancelled?'border-red-300 bg-red-50':'border-slate-200 bg-white'} shadow-sm"><button type="button" data-admin-action="toggle-final-entry-event" data-id="${escapeHtml(eventInfo.id)}" class="flex w-full flex-col gap-3 p-4 text-left md:flex-row md:items-center md:justify-between"><div class="min-w-0"><div class="flex flex-wrap items-center gap-2"><h3 class="font-black ${cancelled?'text-red-900':'text-slate-800'}">${escapeHtml(eventInfo.name)}</h3><span class="rounded-full bg-slate-100 px-2 py-1 text-[9px] font-black uppercase text-slate-600">${entryTypeLabel}</span>${cancelled?'<span class="rounded-full bg-red-600 px-2 py-1 text-[9px] font-black uppercase text-white">Cancelled</span>':''}</div><p class="text-[11px] font-bold uppercase text-slate-400">${escapeHtml(categoryLabel(eventInfo.category || 'General'))} • ${escapeHtml(eventInfo.stage || 'Off-Stage')} • ${escapeHtml(genderLabel(eventInfo))}${cancelled&&eventInfo.cancelReason?` • Reason: ${escapeHtml(eventInfo.cancelReason)}`:''}</p></div><div class="flex flex-wrap items-center gap-2"><span class="rounded-full bg-indigo-50 px-3 py-1 text-[11px] font-black text-indigo-700">${registeredTeams.length}/${sortedTeams.length} teams</span><span class="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-black text-blue-700">${entryCountLabel}</span><span class="rounded-full ${state==='none'?'bg-red-100 text-red-700':state==='complete'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'} px-3 py-1 text-[11px] font-black">${stateLabel}</span><i data-lucide="${expanded?'chevron-up':'chevron-down'}" class="h-5 w-5 text-slate-400"></i></div></button><div class="${expanded?'':'hidden'} border-t border-slate-100 p-4"><div class="mb-4 flex flex-wrap items-center justify-between gap-2"><span class="text-xs font-black uppercase text-slate-500">All teams are shown so admins can add entries even before applications are submitted.</span><span class="flex flex-wrap gap-2">${cancelButton}</span></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">${teamsForExpandedEvent.map(teamName => renderTeamCard(teamName, eventInfo, true)).join('') || '<p class="col-span-full py-8 text-center text-sm font-bold text-slate-400">No teams configured yet.</p>'}</div></div></section>`;
-    }).join('') : '<div class="py-12 text-center text-sm font-bold text-slate-400">No events found for the selected filters.</div>';
+    }).join('');
+    renderPaginationBar('pagination-final-entries', paged, 'finalEntries', 'events');
     window.lucide?.createIcons?.();
 };
 
@@ -2003,7 +2128,7 @@ window.renderStudentTable = (force = false) => {
     const catFilter = document.getElementById('filter-std-cat').value;
     const genderFilter = document.getElementById('filter-std-gender').value;
     const searchQuery = document.getElementById('inp-search-std').value.toLowerCase();
-    const currentHash = generateHash(students) + teamFilter + catFilter + genderFilter + searchQuery;
+    const currentHash = generateHash(students) + teamFilter + catFilter + genderFilter + searchQuery + paginationState.students.page + paginationState.students.limit;
     if(!force && lastRenderHash.students === currentHash) return;
     lastRenderHash.students = currentHash;
 
@@ -2018,19 +2143,22 @@ window.renderStudentTable = (force = false) => {
     const sorted = [...filteredStudents].sort((a,b) => String(a.chestNo ?? '').localeCompare(String(b.chestNo ?? ''), undefined, {numeric:true, sensitivity:'case'}));
     document.getElementById('count-students').innerText = sorted.length;
 
-    if(sorted.length===0) { const emptyMsg = `<div class="p-8 text-center text-slate-400 italic">No students found</div>`; desktopBody.innerHTML = `<tr><td colspan="6">${emptyMsg}</td></tr>`; mobileList.innerHTML = emptyMsg; return; }
+    if(sorted.length===0) { const emptyMsg = `<div class="p-8 text-center text-slate-400 italic">No students found</div>`; desktopBody.innerHTML = `<tr><td colspan="6">${emptyMsg}</td></tr>`; mobileList.innerHTML = emptyMsg; renderPaginationBar('pagination-students', { total: 0 }, 'students', 'students'); return; }
 
-    desktopBody.innerHTML = sorted.map(s => `
+    const paged = paginateList(sorted, 'students');
+
+    desktopBody.innerHTML = paged.pagedItems.map(s => `
         <tr class="hover:bg-slate-50 border-b border-slate-100 last:border-0 group animate-enter">
             <td class="px-6 py-4 font-mono text-indigo-600 font-bold">${escapeHtml(s.chestNo || '-')}</td><td class="px-6 py-4 font-medium text-slate-800"><div class="flex items-center gap-3">${studentAvatar(s)}<span>${escapeHtml(studentDisplayName(s))}</span></div></td><td class="px-6 py-4"><span class="bg-white border border-slate-200 px-2.5 py-1 rounded-md text-xs font-bold text-slate-600 shadow-sm">${escapeHtml(s.team)}</span></td><td class="px-6 py-4 text-xs uppercase font-bold text-slate-500">${escapeHtml(s.category)}</td><td class="px-6 py-4 text-xs uppercase font-bold text-slate-500">${escapeHtml(studentGender(s))}</td>
             <td class="px-6 py-4 text-right"><div class="flex justify-end gap-1 opacity-100 transition-opacity"><button data-admin-action="edit-student" data-id="${escapeHtml(s.id)}" class="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button data-admin-action="delete-student" data-id="${escapeHtml(s.id)}" class="text-red-400 hover:bg-red-50 p-2 rounded-lg transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td>
         </tr>`).join('');
 
-    mobileList.innerHTML = sorted.map(s => `
+    mobileList.innerHTML = paged.pagedItems.map(s => `
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center animate-enter">
             <div class="flex min-w-0 items-center gap-3">${studentAvatar(s)}<div><div class="flex items-center gap-2 mb-1"><span class="font-mono text-indigo-600 font-bold text-xs bg-indigo-50 px-2 py-0.5 rounded">${escapeHtml(s.chestNo || '-')}</span><span class="font-bold text-slate-800 text-sm">${escapeHtml(studentDisplayName(s))}</span></div><div class="text-[10px] text-slate-500 font-bold uppercase tracking-wide flex gap-2"><span>${escapeHtml(s.team)}</span><span class="text-slate-300">•</span><span>${escapeHtml(s.category)}</span><span class="text-slate-300">•</span><span>${escapeHtml(studentGender(s))}</span></div></div></div>
             <div class="flex gap-2"><button data-admin-action="edit-student" data-id="${escapeHtml(s.id)}" class="p-2 bg-slate-50 border border-slate-100 rounded-lg text-indigo-600 active:bg-indigo-50"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button data-admin-action="delete-student" data-id="${escapeHtml(s.id)}" class="p-2 bg-red-50 border border-red-100 rounded-lg text-red-500 active:bg-red-100"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>
         </div>`).join('');
+    renderPaginationBar('pagination-students', paged, 'students', 'students');
     window.lucide?.createIcons?.();
 };
 
@@ -2486,7 +2614,19 @@ const registrationPresenceMatches=(filter,hasValue)=>!filter||(filter==='has'?ha
 window.renderRegistrationBulkBar=()=>{const bar=document.getElementById('registration-application-bulk-bar'),count=document.getElementById('registration-application-selected-count'),selectAll=document.getElementById('registration-application-select-all');if(!bar||!count)return;const selected=[...selectedRegistrationApplicationKeys],visibleSelected=visibleRegistrationApplicationKeys.filter(key=>selectedRegistrationApplicationKeys.has(key)).length;bar.classList.toggle('hidden',!selected.length);bar.classList.toggle('flex',!!selected.length);count.textContent=`${selected.length} selected${visibleSelected!==selected.length?` • ${visibleSelected} visible`:''}`;if(selectAll){selectAll.checked=visibleRegistrationApplicationKeys.length>0&&visibleSelected===visibleRegistrationApplicationKeys.length;selectAll.indeterminate=visibleSelected>0&&visibleSelected<visibleRegistrationApplicationKeys.length;}};
 window.toggleRegistrationApplicationSelection=target=>{if(target.id==='registration-application-select-all'){visibleRegistrationApplicationKeys.forEach(key=>target.checked?selectedRegistrationApplicationKeys.add(key):selectedRegistrationApplicationKeys.delete(key));document.querySelectorAll('[data-registration-application-select]').forEach(input=>{input.checked=selectedRegistrationApplicationKeys.has(input.dataset.selectionKey)});}else if(target.dataset.registrationApplicationSelect!==undefined){target.checked?selectedRegistrationApplicationKeys.add(target.dataset.selectionKey):selectedRegistrationApplicationKeys.delete(target.dataset.selectionKey);}window.renderRegistrationBulkBar();};
 window.clearRegistrationApplicationSelection=()=>{selectedRegistrationApplicationKeys.clear();document.querySelectorAll('[data-registration-application-select]').forEach(input=>input.checked=false);window.renderRegistrationBulkBar();};
-window.renderRegistrationRequests = () => {const box=document.getElementById('registration-requests-list');if(!box)return;const rowsAll=window.registrationApplicationRows(),typeFilter=document.getElementById('application-filter-type'),teamFilter=document.getElementById('application-filter-team'),categoryFilter=document.getElementById('application-filter-category'),definitions=normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions);if(typeFilter&&typeFilter.options.length<=1)typeFilter.innerHTML='<option value="">All participant types</option>'+festSetup.participantTypes.map(key=>`<option value="${key}">${escapeHtml(definitions.find(item=>item.key===key)?.label||key)}</option>`).join('');if(teamFilter&&teamFilter.options.length<=1)teamFilter.innerHTML='<option value="">All teams</option>'+teams.map(team=>`<option>${escapeHtml(team)}</option>`).join('');if(categoryFilter&&categoryFilter.options.length<=1)categoryFilter.innerHTML='<option value="">All event categories</option>'+[...new Set(events.map(item=>item.category).filter(Boolean))].map(value=>`<option>${escapeHtml(value)}</option>`).join('');const search=(document.getElementById('application-filter-search')?.value||'').toLowerCase(),type=typeFilter?.value||'',team=teamFilter?.value||'',category=categoryFilter?.value||'',status=document.getElementById('application-filter-status')?.value||'',noteFilter=document.getElementById('application-filter-note')?.value||'',youtubeFilter=document.getElementById('application-filter-youtube')?.value||'',referenceFilter=document.getElementById('application-filter-reference')?.value||'',imageFilter=document.getElementById('application-filter-image')?.value||'',rows=rowsAll.filter(item=>{const event=events.find(row=>row.id===(item.eventId||(item.eventIds||[])[0]))||item.eventSnapshot||{};return(!search||`${item.name||''} ${item.eventName||''} ${item.team||''}`.toLowerCase().includes(search))&&(!type||item.participantType===type)&&(!team||item.team===team)&&(!category||event.category===category)&&(!status||item.status===status)&&registrationPresenceMatches(noteFilter,registrationApplicationHas(item,'note'))&&registrationPresenceMatches(youtubeFilter,registrationApplicationHas(item,'youtube'))&&registrationPresenceMatches(referenceFilter,registrationApplicationHas(item,'reference'))&&registrationPresenceMatches(imageFilter,registrationApplicationHas(item,'image'))}).sort((a,b)=>(b.submittedAt||0)-(a.submittedAt||0));visibleRegistrationApplicationKeys=rows.map(registrationApplicationKey);box.innerHTML=`<table class="min-w-[1250px] w-full text-left text-xs"><thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-500"><tr><th class="p-3"><input id="registration-application-select-all" data-admin-change="toggle-registration-application-selection" type="checkbox" class="h-4 w-4"></th>${['Student','Chest','Event','Team','Category','Stage / Type','Status','Description','YouTube','Reference','Image','Applied','Actions'].map(value=>`<th class="p-3">${value}</th>`).join('')}</tr></thead><tbody class="divide-y">${rows.map(item=>{const event=events.find(row=>row.id===(item.eventId||(item.eventIds||[])[0]))||item.eventSnapshot||{},image=(item.images||[])[0],youtube=item.links?.youtube||item.youtubeUrl,reference=item.links?.reference||item.referenceUrl;return`<tr><td class="p-3"><input data-admin-change="toggle-registration-application-selection" data-registration-application-select data-selection-key="${escapeHtml(registrationApplicationKey(item))}" type="checkbox" class="h-4 w-4" ${selectedRegistrationApplicationKeys.has(registrationApplicationKey(item))?'checked':''}></td>${(()=>{const person=resolveRegistrationApplicationPerson(item);return `<td class="p-3 font-black">${escapeHtml(person.name)}</td><td class="p-3 font-mono">${escapeHtml(person.chestNo||'—')}</td>`})()}<td class="p-3 font-bold">${escapeHtml(item.eventName||event.name||'Event')}</td><td class="p-3">${escapeHtml(item.team||'—')}</td><td class="p-3">${escapeHtml(event.category||item.category||'General')}</td><td class="p-3">${escapeHtml(event.stage||'Off-Stage')}<br>${escapeHtml(event.type||'Single')}</td><td class="p-3">${(()=>{const visual=adminRegistrationStatusVisual(item.status);return `<span class="inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-black uppercase ${visual.className}"><i data-lucide="${visual.icon}" class="h-3 w-3"></i>${escapeHtml(visual.label)}</span>`})()}</td><td class="max-w-36 p-3"><button data-admin-action="view-registration-application" data-id="${item.id}" data-source="${item.recordSource}" class="block max-w-32 truncate text-indigo-600">${escapeHtml(item.note||'—')}</button></td><td class="p-3">${youtube?`<a href="${escapeHtml(youtube)}" target="_blank" rel="noopener" class="font-black text-red-600">▶</a>`:'—'}</td><td class="p-3">${reference?`<a href="${escapeHtml(reference)}" target="_blank" rel="noopener" class="font-black text-indigo-600">↗</a>`:'—'}</td><td class="p-3">${image?`<button data-admin-action="view-registration-application" data-id="${item.id}" data-source="${item.recordSource}"><img src="${image.data}" class="h-10 w-10 rounded object-cover" alt=""></button>`:'—'}</td><td class="p-3 whitespace-nowrap">${item.submittedAt?new Date(item.submittedAt).toLocaleString():'—'}</td><td class="p-3"><div class="flex gap-1"><button data-admin-action="view-registration-application" data-id="${item.id}" data-source="${item.recordSource}" class="rounded-lg bg-indigo-50 p-2 text-indigo-700" aria-label="View"><i data-lucide="eye" class="h-4 w-4"></i></button><button data-admin-action="decide-registration-application" data-id="${item.id}" data-status="selected" class="rounded-lg bg-emerald-50 p-2 text-emerald-700" aria-label="Select"><i data-lucide="check" class="h-4 w-4"></i></button><button data-admin-action="decide-registration-application" data-id="${item.id}" data-status="not_selected" class="rounded-lg bg-red-50 p-2 text-red-700" aria-label="Reject"><i data-lucide="x" class="h-4 w-4"></i></button><button data-admin-action="delete-registration-application" data-id="${item.id}" data-source="${item.recordSource}" class="rounded-lg bg-rose-100 p-2 text-rose-700" aria-label="Delete application"><i data-lucide="trash-2" class="h-4 w-4"></i></button></div></td></tr>`}).join('')}</tbody></table>`;window.lucide?.createIcons?.();window.renderRegistrationBulkBar?.()};
+window.renderRegistrationRequests = () => {const box=document.getElementById('registration-requests-list');if(!box)return;const rowsAll=window.registrationApplicationRows(),typeFilter=document.getElementById('application-filter-type'),teamFilter=document.getElementById('application-filter-team'),categoryFilter=document.getElementById('application-filter-category'),definitions=normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions);if(typeFilter&&typeFilter.options.length<=1)typeFilter.innerHTML='<option value="">All participant types</option>'+festSetup.participantTypes.map(key=>`<option value="${key}">${escapeHtml(definitions.find(item=>item.key===key)?.label||key)}</option>`).join('');if(teamFilter&&teamFilter.options.length<=1)teamFilter.innerHTML='<option value="">All teams</option>'+teams.map(team=>`<option>${escapeHtml(team)}</option>`).join('');if(categoryFilter&&categoryFilter.options.length<=1)categoryFilter.innerHTML='<option value="">All event categories</option>'+[...new Set(events.map(item=>item.category).filter(Boolean))].map(value=>`<option>${escapeHtml(value)}</option>`).join('');const search=(document.getElementById('application-filter-search')?.value||'').toLowerCase(),type=typeFilter?.value||'',team=teamFilter?.value||'',category=categoryFilter?.value||'',status=document.getElementById('application-filter-status')?.value||'',noteFilter=document.getElementById('application-filter-note')?.value||'',youtubeFilter=document.getElementById('application-filter-youtube')?.value||'',referenceFilter=document.getElementById('application-filter-reference')?.value||'',imageFilter=document.getElementById('application-filter-image')?.value||'',rows=rowsAll.filter(item=>{const event=events.find(row=>row.id===(item.eventId||(item.eventIds||[])[0]))||item.eventSnapshot||{};return(!search||`${item.name||''} ${item.eventName||''} ${item.team||''}`.toLowerCase().includes(search))&&(!type||item.participantType===type)&&(!team||item.team===team)&&(!category||event.category===category)&&(!status||item.status===status)&&registrationPresenceMatches(noteFilter,registrationApplicationHas(item,'note'))&&registrationPresenceMatches(youtubeFilter,registrationApplicationHas(item,'youtube'))&&registrationPresenceMatches(referenceFilter,registrationApplicationHas(item,'reference'))&&registrationPresenceMatches(imageFilter,registrationApplicationHas(item,'image'))}).sort((a,b)=>(b.submittedAt||0)-(a.submittedAt||0));visibleRegistrationApplicationKeys=rows.map(registrationApplicationKey);
+    const paged = paginateList(rows, 'applications');
+    if (rows.length === 0) {
+        box.innerHTML = '<p class="py-10 text-center text-sm font-bold text-slate-400 italic">No registration applications found.</p>';
+        renderPaginationBar('pagination-applications', { total: 0 }, 'applications', 'applications');
+        window.renderRegistrationBulkBar?.();
+        return;
+    }
+    box.innerHTML=`<table class="min-w-[1250px] w-full text-left text-xs"><thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-500"><tr><th class="p-3"><input id="registration-application-select-all" data-admin-change="toggle-registration-application-selection" type="checkbox" class="h-4 w-4"></th>${['Student','Chest','Event','Team','Category','Stage / Type','Status','Description','YouTube','Reference','Image','Applied','Actions'].map(value=>`<th class="p-3">${value}</th>`).join('')}</tr></thead><tbody class="divide-y">${paged.pagedItems.map(item=>{const event=events.find(row=>row.id===(item.eventId||(item.eventIds||[])[0]))||item.eventSnapshot||{},image=(item.images||[])[0],youtube=item.links?.youtube||item.youtubeUrl,reference=item.links?.reference||item.referenceUrl;return`<tr><td class="p-3"><input data-admin-change="toggle-registration-application-selection" data-registration-application-select data-selection-key="${escapeHtml(registrationApplicationKey(item))}" type="checkbox" class="h-4 w-4" ${selectedRegistrationApplicationKeys.has(registrationApplicationKey(item))?'checked':''}></td>${(()=>{const person=resolveRegistrationApplicationPerson(item);return `<td class="p-3 font-black">${escapeHtml(person.name)}</td><td class="p-3 font-mono">${escapeHtml(person.chestNo||'—')}</td>`})()}<td class="p-3 font-bold">${escapeHtml(item.eventName||event.name||'Event')}</td><td class="p-3">${escapeHtml(item.team||'—')}</td><td class="p-3">${escapeHtml(event.category||item.category||'General')}</td><td class="p-3">${escapeHtml(event.stage||'Off-Stage')}<br>${escapeHtml(event.type||'Single')}</td><td class="p-3">${(()=>{const visual=adminRegistrationStatusVisual(item.status);return `<span class="inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-black uppercase ${visual.className}"><i data-lucide="${visual.icon}" class="h-3 w-3"></i>${escapeHtml(visual.label)}</span>`})()}</td><td class="max-w-36 p-3"><button data-admin-action="view-registration-application" data-id="${item.id}" data-source="${item.recordSource}" class="block max-w-32 truncate text-indigo-600">${escapeHtml(item.note||'—')}</button></td><td class="p-3">${youtube?`<a href="${escapeHtml(youtube)}" target="_blank" rel="noopener" class="font-black text-red-600">▶</a>`:'—'}</td><td class="p-3">${reference?`<a href="${escapeHtml(reference)}" target="_blank" rel="noopener" class="font-black text-indigo-600">↗</a>`:'—'}</td><td class="p-3">${image?`<button data-admin-action="view-registration-application" data-id="${item.id}" data-source="${item.recordSource}"><img src="${image.data}" class="h-10 w-10 rounded object-cover" alt=""></button>`:'—'}</td><td class="p-3 whitespace-nowrap">${item.submittedAt?new Date(item.submittedAt).toLocaleString():'—'}</td><td class="p-3"><div class="flex gap-1"><button data-admin-action="view-registration-application" data-id="${item.id}" data-source="${item.recordSource}" class="rounded-lg bg-indigo-50 p-2 text-indigo-700" aria-label="View"><i data-lucide="eye" class="h-4 w-4"></i></button><button data-admin-action="decide-registration-application" data-id="${item.id}" data-status="selected" class="rounded-lg bg-emerald-50 p-2 text-emerald-700" aria-label="Select"><i data-lucide="check" class="h-4 w-4"></i></button><button data-admin-action="decide-registration-application" data-id="${item.id}" data-status="not_selected" class="rounded-lg bg-red-50 p-2 text-red-700" aria-label="Reject"><i data-lucide="x" class="h-4 w-4"></i></button><button data-admin-action="delete-registration-application" data-id="${item.id}" data-source="${item.recordSource}" class="rounded-lg bg-rose-100 p-2 text-rose-700" aria-label="Delete application"><i data-lucide="trash-2" class="h-4 w-4"></i></button></div></td></tr>`}).join('')}</tbody></table>`;
+    renderPaginationBar('pagination-applications', paged, 'applications', 'applications');
+    window.lucide?.createIcons?.();
+    window.renderRegistrationBulkBar?.();
+};
 window.viewRegistrationApplication=(id,source)=>{const item=window.registrationApplicationRows().find(row=>row.id===id&&(!source||row.recordSource===source));if(!item)return;const event=events.find(row=>row.id===(item.eventId||(item.eventIds||[])[0]))||item.eventSnapshot||{},image=(item.images||[])[0],youtube=item.links?.youtube||item.youtubeUrl,reference=item.links?.reference||item.referenceUrl;document.getElementById('admin-application-detail-body').innerHTML=`<div class="space-y-3"><div class="grid grid-cols-2 gap-2 text-xs">${[['Student',resolveRegistrationApplicationPerson(item).name],['Chest',resolveRegistrationApplicationPerson(item).chestNo],['Team',item.team],['Event',item.eventName||event.name],['Category',event.category||item.category],['Status',item.status]].map(([a,b])=>`<div class="rounded-xl bg-slate-50 p-3"><small class="font-black uppercase text-slate-400">${a}</small><b class="block">${escapeHtml(b||'—')}</b></div>`).join('')}</div>${item.note?`<section><b class="text-xs">Description</b><p class="mt-1 whitespace-pre-line rounded-xl bg-slate-50 p-3 text-sm">${escapeHtml(item.note)}</p></section>`:''}${youtube?`<a href="${escapeHtml(youtube)}" target="_blank" rel="noopener" class="block rounded-xl bg-red-50 p-3 text-xs font-black text-red-700">Open YouTube ↗</a>`:''}${reference?`<a href="${escapeHtml(reference)}" target="_blank" rel="noopener" class="block rounded-xl bg-indigo-50 p-3 text-xs font-black text-indigo-700">Open Reference ↗</a>`:''}${image?`<img src="${image.data}" class="max-h-96 w-full rounded-xl object-contain" alt="Application image">`:''}</div>`;const dialog=document.getElementById('admin-application-detail-dialog');dialog.classList.remove('hidden');dialog.classList.add('grid')};window.closeRegistrationApplicationDetail=()=>{const dialog=document.getElementById('admin-application-detail-dialog');dialog.classList.add('hidden');dialog.classList.remove('grid')};
 window.decideRegistrationApplication=async(id,status,options={})=>{const app=registrationApplications.find(item=>item.id===id),request=registrationRequests.find(item=>item.id===id);if(app){await updateDoc(doc(db,'registrationApplications',id),{status,decisionByUid:auth.currentUser?.uid||'',decisionAt:Date.now(),updatedAt:Date.now()})}else if(request){if(status==='selected')return window.approveRegistrationRequest(id);await updateDoc(doc(db,'registrationRequests',id),{status:'rejected',reviewedAt:Date.now(),reviewedByUid:auth.currentUser?.uid||''})}if(!options.silent)window.showToast(status==='selected'?'Application selected':'Application rejected')};window.deleteRegistrationApplication=async(id,source='application',options={})=>{const collectionName=source==='request'?'registrationRequests':'registrationApplications',rows=source==='request'?registrationRequests:registrationApplications,item=rows.find(row=>row.id===id);if(!item)return options.silent?false:window.showToast('Application was not found','error');const label=item.eventName||((item.eventIds||[]).map(eventId=>events.find(event=>event.id===eventId)?.name||eventId).join(' • '))||'this application';if(!options.skipConfirm&&!window.confirm(`Delete ${label}? This permanently removes the submitted entry.`))return false;await deleteDoc(doc(db,collectionName,id));if(!options.silent){window.showToast('Application deleted');window.renderRegistrationRequests?.();window.renderAdvancedRegistration?.();}return true;};window.selectedRegistrationApplicationRows=()=>window.registrationApplicationRows().filter(item=>selectedRegistrationApplicationKeys.has(registrationApplicationKey(item)));window.bulkRegistrationApplicationAction=async(action)=>{const rows=window.selectedRegistrationApplicationRows();if(!rows.length)return window.showToast('Select at least one application','error');const labels={approve:'approve',reject:'reject',delete:'delete'},danger=action==='delete'?' This cannot be undone.':'';if(!window.confirm(`${labels[action]||'Update'} ${rows.length} selected application(s)?${danger}`))return;let done=0;for(const item of rows){if(action==='approve'){await window.decideRegistrationApplication(item.id,'selected',{silent:true});done++;}else if(action==='reject'){await window.decideRegistrationApplication(item.id,'not_selected',{silent:true});done++;}else if(action==='delete'){if(await window.deleteRegistrationApplication(item.id,item.recordSource,{silent:true,skipConfirm:true}))done++;}}selectedRegistrationApplicationKeys.clear();window.renderRegistrationRequests?.();window.renderAdvancedRegistration?.();window.showToast(`${done} application(s) ${action==='approve'?'approved':action==='reject'?'rejected':'deleted'}`);};
 
@@ -2557,7 +2697,23 @@ function sortStudentReportRows(rows,sortBy){return [...rows].sort((a,b)=>{if(sor
 window.sortStudentReportRows=sortStudentReportRows;
 function groupStudentReportRows(rows,groupBy=studentReportValue('student-report-group-by')||'category'){const keys=groupBy==='none'?[]:groupBy.split('-');const map={};rows.forEach(row=>{const label=keys.map(k=>`${k[0].toUpperCase()+k.slice(1)}: ${row[k==='class'?'className':k]||'—'}`).join(' / ')||'All Students';(map[label]||=[]).push(row)});return Object.entries(map).map(([label,items])=>({label,rows:items}))}
 window.groupStudentReportRows=groupStudentReportRows;
-window.renderStudentParticipationReport=()=>{renderStudentReportColumnChooser();const setOptions=(id,values,label)=>{const el=document.getElementById(id);if(!el)return;const old=el.value;el.innerHTML=`<option value="">All ${label}</option>`+values.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');if(values.includes(old))el.value=old};setOptions('student-report-category',[...new Set(students.map(s=>s.category||s.details?.category).filter(Boolean))].sort(),'Categories');setOptions('student-report-class',[...new Set(students.map(studentReportClassName).filter(Boolean))].sort((a,b)=>classSortRank(a)-classSortRank(b)||String(a).localeCompare(String(b))),'Classes');setOptions('student-report-team',[...teams].sort(),'Teams');const rows=studentParticipationReportRows(),groups=groupStudentReportRows(rows),cols=selectedStudentReportColumns();const summary=document.getElementById('student-report-summary');if(summary)summary.innerHTML=[['Students',rows.length],['Events',rows.reduce((sum,row)=>sum+row.totalEvents,0)],['Points',rows.reduce((sum,row)=>sum+row.totalPoints,0)],['Warnings',`${rows.warnings?.resultOnly||0} result-only / ${rows.warnings?.missing||0} missing ids`]].map(([label,value])=>`<article class="rounded-2xl border bg-slate-50 p-4"><b class="block text-2xl font-black">${value}</b><span class="text-[10px] font-black uppercase text-slate-500">${label}</span></article>`).join('');const host=document.getElementById('student-report-preview');if(host)host.innerHTML=`<table class="min-w-[900px] w-full text-left text-xs"><thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-500"><tr>${cols.map(key=>`<th class="p-3 ${studentReportColumnClass(key)}">${escapeHtml(studentReportColumnLabel(key))}</th>`).join('')}</tr></thead><tbody class="divide-y">${groups.map(group=>`<tr class="bg-indigo-50"><td colspan="${cols.length}" class="p-3 font-black text-indigo-800">${escapeHtml(group.label)}</td></tr>${group.rows.map((row,index)=>`<tr>${cols.map(key=>`<td class="p-3 ${studentReportColumnClass(key)} ${['name','totalPoints'].includes(key)?'font-black':''} ${key==='chestNo'?'font-mono':''}">${escapeHtml(studentReportColumnValue(row,key,index))}</td>`).join('')}</tr>`).join('')}`).join('')}</tbody></table>`;window.lucide?.createIcons?.();};
+window.renderStudentParticipationReport=()=>{renderStudentReportColumnChooser();const setOptions=(id,values,label)=>{const el=document.getElementById(id);if(!el)return;const old=el.value;el.innerHTML=`<option value="">All ${label}</option>`+values.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');if(values.includes(old))el.value=old};setOptions('student-report-category',[...new Set(students.map(s=>s.category||s.details?.category).filter(Boolean))].sort(),'Categories');setOptions('student-report-class',[...new Set(students.map(studentReportClassName).filter(Boolean))].sort((a,b)=>classSortRank(a)-classSortRank(b)||String(a).localeCompare(String(b))),'Classes');setOptions('student-report-team',[...teams].sort(),'Teams');const rows=studentParticipationReportRows(),cols=selectedStudentReportColumns();
+const summary=document.getElementById('student-report-summary');
+if(summary)summary.innerHTML=[['Students',rows.length],['Events',rows.reduce((sum,row)=>sum+row.totalEvents,0)],['Points',rows.reduce((sum,row)=>sum+row.totalPoints,0)],['Warnings',`${rows.warnings?.resultOnly||0} result-only / ${rows.warnings?.missing||0} missing ids`]].map(([label,value])=>`<article class="rounded-2xl border bg-slate-50 p-4"><b class="block text-2xl font-black">${value}</b><span class="text-[10px] font-black uppercase text-slate-500">${label}</span></article>`).join('');
+
+const paged = paginateList(rows, 'downloads');
+const groups = groupStudentReportRows(paged.pagedItems);
+const host=document.getElementById('student-report-preview');
+if(host){
+    if(paged.total === 0){
+        host.innerHTML = '<p class="py-10 text-center text-sm font-bold text-slate-400">No student participation records found.</p>';
+    } else {
+        host.innerHTML=`<table class="min-w-[900px] w-full text-left text-xs"><thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-500"><tr>${cols.map(key=>`<th class="p-3 ${studentReportColumnClass(key)}">${escapeHtml(studentReportColumnLabel(key))}</th>`).join('')}</tr></thead><tbody class="divide-y">${groups.map(group=>`<tr class="bg-indigo-50"><td colspan="${cols.length}" class="p-3 font-black text-indigo-800">${escapeHtml(group.label)}</td></tr>${group.rows.map((row,index)=>`<tr>${cols.map(key=>`<td class="p-3 ${studentReportColumnClass(key)} ${['name','totalPoints'].includes(key)?'font-black':''} ${key==='chestNo'?'font-mono':''}">${escapeHtml(studentReportColumnValue(row,key,index))}</td>`).join('')}</tr>`).join('')}`).join('')}</tbody></table>`;
+    }
+}
+renderPaginationBar('pagination-student-report', paged, 'downloads', 'students');
+window.lucide?.createIcons?.();
+};
 const studentReportPdfHtml=rows=>{const cols=selectedStudentReportColumns();return `${registrationPdfStyles()}<style>.registration-pdf-page{font-size:12px!important;padding:.75cm!important}.registration-pdf-table th,.registration-pdf-table td{font-size:12px!important}.sr-col-sl{width:1.1cm;max-width:1.1cm;text-align:center}.sr-col-chest{width:1.7cm;max-width:1.7cm;text-align:center}.sr-col-count,.sr-col-rank{width:1.25cm;max-width:1.25cm;text-align:center;white-space:nowrap}</style>${registrationPdfHeaderHtml('STUDENT PARTICIPATION SUMMARY')}<div class="registration-export-meta">${studentReportFilterSummary().map(([key,value])=>`${registrationEscape(key)}: ${registrationEscape(value)}`).join(' • ')}</div>${groupStudentReportRows(rows).map((group,groupIndex)=>`<section class="registration-student-section ${groupIndex&&studentReportChecked('student-report-page-break')?'registration-student-page-break':''}"><div class="registration-student-head">${registrationEscape(group.label)}</div><table class="registration-pdf-table"><thead><tr>${cols.map(key=>`<th class="${studentReportColumnClass(key)}">${registrationEscape(studentReportColumnLabel(key))}</th>`).join('')}</tr></thead><tbody>${group.rows.map((row,index)=>`<tr>${cols.map(key=>`<td class="${studentReportColumnClass(key)}">${registrationEscape(studentReportColumnValue(row,key,index))}</td>`).join('')}</tr>`).join('')}</tbody></table></section>`).join('')}</div>`};
 function studentReportFilterSummary(){return [['Category',studentReportValue('student-report-category')||'All'],['Class',studentReportValue('student-report-class')||'All'],['Gender',studentReportValue('student-report-gender')||'All'],['Team',studentReportValue('student-report-team')||'All'],['Result mode',studentReportValue('student-report-result-status')||'published'],['Rank filter',studentReportValue('student-report-rank-filter')||'all'],['Participation',studentReportValue('student-report-participation-filter')||'participated'],['Orientation',studentReportValue('student-report-orientation')||'portrait'],['Group points',studentReportChecked('student-report-group-full-points')?'Full to each member':'Team only'],['Generated',new Date().toLocaleString()]]}
 let studentReportPdfBlob=null,studentReportPdfUrl='';
