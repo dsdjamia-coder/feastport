@@ -173,8 +173,8 @@ window.renderEventOptionalFilters = () => {
             <span class="block truncate text-[9px] font-black uppercase tracking-wide text-slate-400">${escapeHtml(filter.label)}</span>
             <select id="filter-ev-optional-${escapeHtml(filter.key)}" data-admin-change="render-event-table" class="mt-1 w-full rounded-lg border border-white bg-white px-2 py-1.5 text-[11px] font-black text-slate-600 outline-none focus:ring-2 focus:ring-purple-500">
                 <option value="">All</option>
-                <option value="has">ഉണ്ട്</option>
-                <option value="missing">ഇല്ല</option>
+                <option value="has">Present</option>
+                <option value="missing">Missing</option>
             </select>
         </label>`).join('');
     host.dataset.rendered = '1';
@@ -618,6 +618,9 @@ document.addEventListener('click', (event) => {
         'download-final-entries-pdf': () => window.downloadFinalEntriesPdf(),
         'save-advanced-registration': () => window.saveAdvancedRegistration(),
         'switch-registration-admin-tab': () => window.switchRegistrationAdminTab(d.subtab),
+        'switch-download-subtab': () => window.switchDownloadSubtab(d.downloadTab),
+        'export-points-excel': () => window.exportPointsExcel(),
+        'export-results-excel': () => window.exportResultsExcel(),
         'save-schedule-config': () => window.saveScheduleConfig(),
         'save-scoring': () => window.saveScoringRules(),
         'save-judge-assignment': () => window.saveJudgeAssignment(),
@@ -793,7 +796,7 @@ window.switchTab = (tab) => {
 
     const titles = { 'dashboard': 'Dashboard', 'registrations': 'Registrations', 'students': 'Students Directory', 'events': 'Events Management', 'schedule': 'Time Schedule', 'config': 'Team Setup', 'master-setup': 'Master Setup', 'access': 'Access Management', 'scoring': 'Scoring Settings', 'judge': 'Judgement Desk', 'public-content': 'Public Page Control & Contents', 'poster-certificate':'Poster & Certificate', 'tv-display': 'TV Display Settings', 'danger': 'Data Reset', 'downloads': 'Downloads', 'guide': 'User Guide' };
     document.getElementById('page-title').innerText = titles[tab] || 'Admin Panel';const masterActive=tab==='master-setup';document.getElementById('master-header-actions')?.classList.toggle('hidden',!masterActive);document.getElementById('master-header-actions')?.classList.toggle('flex',masterActive);if(!masterActive){document.getElementById('page-context')?.classList.add('hidden');document.getElementById('page-status')?.classList.add('hidden');}
-    if(tab === 'downloads') window.renderStudentParticipationReport?.(); if(tab === 'students') renderStudentTable(); if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.();renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') window.renderSchedule(); if(tab === 'registrations') renderRegList(); if(tab === 'access') window.renderAccessManagement?.(); if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
+    if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') renderStudentTable(); if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.();renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') window.renderSchedule(); if(tab === 'registrations') renderRegList(); if(tab === 'access') window.renderAccessManagement?.(); if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
     resetAdminContentScroll();
 };
 
@@ -2052,7 +2055,10 @@ const finalEntrySafe=value=>escapeHtml(String(value??''));
 const finalEntryPrintHtml=()=>{const selectedCategory=finalEntryDownloadValue('final-entry-download-category'),stage=finalEntryDownloadValue('final-entry-download-stage'),gender=finalEntryDownloadValue('final-entry-download-gender'),categoryList=selectedCategory?[selectedCategory]:[...new Set(finalEntryExportEvents('').map(event=>event.category||'General'))].sort(),logo=homeConfig.logoUrl?`<img class="final-entry-logo" src="${finalEntrySafe(homeConfig.logoUrl)}" alt="Fest logo">`:'';const styles=`<style>.final-entry-book{background:#fff;color:#000;font-family:Arial,'Noto Sans Malayalam','Noto Sans',sans-serif}.final-entry-sheet{box-sizing:border-box;width:794px;min-height:1123px;margin:0 auto 18px;background:#fff;padding:20px;break-after:page;page-break-after:always}.final-entry-sheet:last-child{break-after:auto;page-break-after:auto}.final-entry-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}.final-entry-title{font-size:20px;font-weight:700;line-height:1.1}.final-entry-sub{font-size:10px;font-weight:400;text-transform:uppercase}.final-entry-logo{max-width:112px;max-height:58px;object-fit:contain}.final-entry-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}.final-entry-event{break-inside:avoid;page-break-inside:avoid}.final-entry-event-title{font-size:12px;font-weight:700;line-height:1.15;margin:0 0 1px}.final-entry-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9px;line-height:1.08;font-weight:400}.final-entry-table th,.final-entry-table td{border:1px solid #111;padding:2px 3px;color:#000;vertical-align:middle;font-weight:400}.final-entry-table th{font-size:8px;font-weight:700;text-align:center}.final-entry-team-col,.final-entry-team{width:18px}.final-entry-no-col,.final-entry-no{width:20px}.final-entry-chest-col,.final-entry-chest{width:42px}.final-entry-remark-col,.final-entry-remark{width:42px}.final-entry-team{position:relative;padding:0;text-align:center;overflow:hidden}.final-entry-team span{position:absolute;left:50%;top:50%;display:block;white-space:nowrap;transform:translate(-50%,-50%) rotate(-90deg);transform-origin:center center;font-size:8px;font-weight:400;line-height:1}.final-entry-no,.final-entry-chest{text-align:center}.final-entry-name{text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.final-entry-empty{grid-column:1/-1;padding:24px;text-align:center;font-weight:400}</style>`;const pages=categoryList.map(category=>{const eventsList=finalEntryExportEvents(category);return `<section class="final-entry-sheet"><div class="final-entry-head"><div><div class="final-entry-title">${finalEntrySafe(categoryLabel(category))}</div>${[stage,gender].filter(Boolean).length?`<div class="final-entry-sub">${finalEntrySafe([stage,gender].filter(Boolean).join(' • '))}</div>`:''}</div>${logo}</div><div class="final-entry-grid">${eventsList.map(event=>{const groups=finalEntryRowsForEvent(event);return `<section class="final-entry-event"><h4 class="final-entry-event-title">ITEM : ${finalEntrySafe(event.name||'Program')}</h4><table class="final-entry-table"><colgroup><col class="final-entry-team-col"><col class="final-entry-no-col"><col class="final-entry-chest-col"><col><col class="final-entry-remark-col"></colgroup><thead><tr><th></th><th>NO</th><th>CH.NO</th><th>NAME OF PARTICIPANTS</th><th></th></tr></thead><tbody>${groups.map(group=>group.rows.map((row,index)=>`<tr>${index===0?`<td class="final-entry-team" rowspan="${group.rows.length}"><span>${finalEntrySafe(teamLabel(group.team))}</span></td>`:''}<td class="final-entry-no">${index+1}</td><td class="final-entry-chest">${finalEntrySafe(row.chestNo)}</td><td class="final-entry-name">${finalEntrySafe(row.name)}</td><td class="final-entry-remark"></td></tr>`).join('')).join('')}</tbody></table></section>`}).join('')||'<div class="final-entry-empty">No final entries for selected filters.</div>'}</div></section>`}).join('');return `${styles}<div class="final-entry-book">${pages||'<section class="final-entry-sheet"><div class="final-entry-empty">No final entries for selected filters.</div></section>'}</div>`;};
 const populateFinalEntryDownloadFilters=()=>{const setOptions=(id,values,label,display=value=>value)=>{const el=document.getElementById(id);if(!el)return;const old=el.value;el.innerHTML=`<option value="">All ${label}</option>`+values.map(value=>`<option value="${finalEntrySafe(value)}">${finalEntrySafe(display(value))}</option>`).join('');if(values.includes(old))el.value=old};setOptions('final-entry-download-category',[...new Set(events.map(event=>event.category).filter(Boolean))].sort(),'Categories',category=>categoryLabel(category));setOptions('final-entry-download-gender',[...new Set(events.map(event=>genderLabel(event)).filter(Boolean))].sort(),'Genders')};
 window.renderFinalEntriesDownloadPreview=()=>{const host=document.getElementById('final-entries-download-preview'),summary=document.getElementById('final-entries-download-summary');if(!host)return;host.innerHTML=finalEntryPrintHtml();const count=finalEntryExportEvents().length;if(summary)summary.textContent=`${count} active programme table(s) match the selected filters. Cancelled events are hidden.`;};
-window.openFinalEntriesDownload=()=>{populateFinalEntryDownloadFilters();const modal=document.getElementById('final-entries-download-modal');modal?.classList.remove('hidden');modal?.classList.add('flex');window.renderFinalEntriesDownloadPreview();};
+window.openFinalEntriesDownload=()=>{
+    window.switchTab('downloads');
+    window.switchDownloadSubtab('final-entries');
+};
 window.closeFinalEntriesDownload=()=>{const modal=document.getElementById('final-entries-download-modal');modal?.classList.add('hidden');modal?.classList.remove('flex');};
 window.downloadFinalEntriesPdf=async()=>{await window.ensureDep?.('html2pdf');const html=finalEntryPrintHtml();if(!window.html2pdf)return window.showToast('Malayalam PDF renderer is not loaded','error');const host=document.createElement('div');host.style.cssText='position:fixed;left:-10000px;top:0;background:#fff;z-index:-1';host.innerHTML=html;document.body.appendChild(host);const page=host.querySelector('.final-entry-book');const blob=await window.html2pdf().from(page).set({margin:0,image:{type:'jpeg',quality:.98},html2canvas:{scale:2,backgroundColor:'#ffffff',useCORS:true},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).outputPdf('blob');host.remove();const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Final_Entries.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 window.downloadFinalEntriesExcel=()=>{const html=`<html><head><meta charset="utf-8"></head><body>${finalEntryPrintHtml()}</body></html>`,blob=new Blob([html],{type:'application/vnd.ms-excel;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Final_Entries.xls';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
@@ -2604,7 +2610,18 @@ window.applyFestCapabilities = () => {
     if(!judgingEnabled(festSetup) && document.getElementById('view-judge')?.classList.contains('active')) window.switchTab('dashboard');
 };
 
-window.switchRegistrationAdminTab = name => {document.querySelectorAll('[data-registration-admin-panel]').forEach(el=>el.classList.toggle('hidden',el.dataset.registrationAdminPanel!==name));document.querySelectorAll('[data-registration-admin-tab]').forEach(el=>el.className=`rounded-xl px-4 py-2 text-xs font-black ${el.dataset.registrationAdminTab===name?'bg-indigo-600 text-white':'text-slate-600'}`);if(name==='applications')window.renderRegistrationRequests();if(name==='downloads')window.renderRegistrationDownloads();if(name==='entries')window.renderRegList(true);if(['overview','finalization'].includes(name))window.renderAdvancedRegistration();};
+window.switchRegistrationAdminTab = name => {
+    if (name === 'downloads') {
+        window.switchTab('downloads');
+        window.switchDownloadSubtab('registration-apps');
+        return;
+    }
+    document.querySelectorAll('[data-registration-admin-panel]').forEach(el => el.classList.toggle('hidden', el.dataset.registrationAdminPanel !== name));
+    document.querySelectorAll('[data-registration-admin-tab]').forEach(el => el.className = `rounded-xl px-4 py-2 text-xs font-black ${el.dataset.registrationAdminTab === name ? 'bg-indigo-600 text-white' : 'text-slate-600'}`);
+    if (name === 'applications') window.renderRegistrationRequests();
+    if (name === 'entries') window.renderRegList(true);
+    if (['overview', 'finalization'].includes(name)) window.renderAdvancedRegistration();
+};
 const resolveRegistrationApplicationPerson=item=>{const student=students.find(value=>value.id===(item.studentId||item.relatedStudentId||item.participantId));return{student,name:item.participantName||item.studentName||item.name||student?.name||'Applicant',chestNo:item.chestNo||student?.chestNo||item.profileSnapshot?.chestNo||''};};
 window.registrationApplicationRows=()=>[...registrationApplications.map(item=>({...item,name:item.participantName||item.studentName,submittedAt:item.appliedAt,recordSource:'application'})),...registrationRequests.map(item=>({...item,eventName:(item.eventIds||[]).map(id=>events.find(event=>event.id===id)?.name||id).join(' • '),recordSource:'request'}))];
 const adminRegistrationStatusVisual=status=>{if(['selected','finalized','approved'].includes(status))return{label:'Approved',icon:'badge-check',className:'border-emerald-200 bg-emerald-50 text-emerald-700'};if(['not_selected','rejected','removed'].includes(status))return{label:'Rejected',icon:'x-circle',className:'border-red-200 bg-red-50 text-red-700'};if(['applied','pending','under_review','pending_admin_approval','waitlisted'].includes(status||'pending'))return{label:'Pending',icon:'clock-3',className:'border-orange-200 bg-orange-50 text-orange-700'};return{label:String(status||'pending').replaceAll('_',' '),icon:'circle-help',className:'border-slate-200 bg-slate-50 text-slate-700'}};
@@ -2722,6 +2739,222 @@ window.previewStudentParticipationReportPdf=async()=>{const rows=studentParticip
 window.closeStudentParticipationReportPdf=()=>{document.getElementById('student-report-pdf-modal')?.classList.add('hidden');document.getElementById('student-report-pdf-frame')?.removeAttribute('src');if(studentReportPdfUrl)URL.revokeObjectURL(studentReportPdfUrl);studentReportPdfUrl='';studentReportPdfBlob=null};
 window.downloadStudentParticipationReportPdf=async()=>{if(!studentReportPdfBlob){await window.previewStudentParticipationReportPdf();if(!studentReportPdfBlob)return;}const a=document.createElement('a');a.href=studentReportPdfUrl;a.download='Student_Participation_Summary.pdf';a.click()};
 window.exportStudentParticipationReportExcel=async ()=>{await window.ensureDep?.('XLSX');if(!window.XLSX)return window.showToast('SheetJS 0.18.5 is not loaded','error');const rows=studentParticipationReportRows(),cols=selectedStudentReportColumns();if(!rows.length)return window.showToast('No student participation rows match the filters','error');const summary=rows.map((row,index)=>Object.fromEntries(cols.map(key=>[studentReportColumnLabel(key),studentReportColumnValue(row,key,index)])));const grouped=[];groupStudentReportRows(rows).forEach(group=>{grouped.push({Group:group.label});group.rows.forEach((row,index)=>grouped.push(Object.fromEntries(cols.map(key=>[studentReportColumnLabel(key),studentReportColumnValue(row,key,index)]))));grouped.push({});});const details=studentParticipationEventDetails({resultStatus:studentReportValue('student-report-result-status'),fullGroupPoints:studentReportChecked('student-report-group-full-points')}).map(d=>{const s=students.find(x=>x.id===d.studentId)||{};return{Chest:s.chestNo||'',Name:s.name||'',Event:d.eventName,Category:d.eventCategory,Stage:d.stage,Position:d.position,Points:d.points,Source:d.source}});const meta=studentReportFilterSummary().map(([Field,Value])=>({Field,Value}));meta.push({Field:'Selected columns',Value:cols.map(studentReportColumnLabel).join(', ')},{Field:'Total students',Value:rows.length},{Field:'Total registrations',Value:registrations.length},{Field:'Total result rows',Value:results.length},{Field:'Result-only students found',Value:rows.warnings?.resultOnly||0},{Field:'Missing result winner ids',Value:rows.warnings?.missing||0});const book=XLSX.utils.book_new();XLSX.utils.book_append_sheet(book,XLSX.utils.json_to_sheet(summary),'Summary');XLSX.utils.book_append_sheet(book,XLSX.utils.json_to_sheet(grouped),'Grouped Summary');XLSX.utils.book_append_sheet(book,XLSX.utils.json_to_sheet(details),'Event Details');XLSX.utils.book_append_sheet(book,XLSX.utils.json_to_sheet(meta),'Metadata');XLSX.writeFile(book,'Student_Participation_Summary.xlsx')};
+
+window.switchDownloadSubtab = (name = 'student-summary') => {
+    document.querySelectorAll('[data-download-panel]').forEach(el => {
+        el.classList.toggle('hidden', el.dataset.downloadPanel !== name);
+    });
+    document.querySelectorAll('[data-download-tab]').forEach(el => {
+        const active = el.dataset.downloadTab === name;
+        el.className = `rounded-xl px-4 py-2 text-xs font-black transition ${active ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-white'}`;
+    });
+    if (name === 'student-summary') window.renderStudentParticipationReport?.();
+    if (name === 'registration-apps') window.renderRegistrationDownloads?.();
+    if (name === 'final-entries') {
+        populateFinalEntryDownloadFilters?.();
+        window.renderFinalEntriesDownloadPreview?.();
+    }
+    if (name === 'results-points') window.renderResultsPointsDownloadPreview?.();
+};
+
+const resolveWinnerTeam = (w, result) => {
+    if (!w) return '';
+    if (typeof w === 'string' && teams.includes(w)) return w;
+    if (typeof w === 'object' && w.team && teams.includes(w.team)) return w.team;
+    const id = String(w?.id || w?.studentId || w || '');
+    const student = students.find(s => s.id === id);
+    if (student?.team) return student.team;
+    const participant = participants.find(p => p.id === id);
+    if (participant?.team) return participant.team;
+    const reg = registrations.find(r => r.id === id || (r.eventId === result.eventId && (String(r.slotIndex) === id || (r.studentIds || []).includes(id) || (r.participantIds || []).includes(id))));
+    return reg?.team || '';
+};
+
+const resolveWinnerName = (w, result) => {
+    if (!w) return '';
+    if (typeof w === 'string' && teams.includes(w)) return teamLabel(w);
+    if (typeof w === 'object' && w.name) return w.name;
+    const id = String(w?.id || w?.studentId || w || '');
+    const student = students.find(s => s.id === id);
+    if (student) return `${student.name}${student.chestNo ? ` (${student.chestNo})` : ''}`;
+    const participant = participants.find(p => p.id === id);
+    if (participant) return `${participant.name}${participant.chestNo ? ` (${participant.chestNo})` : ''}`;
+    const reg = registrations.find(r => r.id === id || (r.eventId === result.eventId && (String(r.slotIndex) === id || (r.studentIds || []).includes(id) || (r.participantIds || []).includes(id))));
+    if (reg) {
+        const studentNames = (reg.studentIds || []).map(sid => students.find(s => s.id === sid)?.name).filter(Boolean);
+        if (studentNames.length) return studentNames.join(', ');
+        return teamLabel(reg.team) || reg.team;
+    }
+    return String(w);
+};
+
+const calculateFestivalTeamStandings = () => {
+    const published = results.filter(r => r.status === 'published');
+    const standings = {};
+    teams.forEach(team => {
+        standings[team] = {
+            team,
+            teamLabel: teamLabel(team) || team,
+            totalPoints: 0,
+            first: 0,
+            second: 0,
+            third: 0,
+            eventCount: 0
+        };
+    });
+
+    published.forEach(result => {
+        const awards = resultAwardsForReport(result);
+        const teamsCreditedInEvent = new Set();
+        awards.forEach(award => {
+            const points = Number(award.points || 0);
+            const pos = normalizeReportPosition(award.label);
+            (award.winners || []).forEach(w => {
+                const team = resolveWinnerTeam(w, result);
+                if (team && standings[team]) {
+                    standings[team].totalPoints += points;
+                    if (pos === 'first') standings[team].first++;
+                    else if (pos === 'second') standings[team].second++;
+                    else if (pos === 'third') standings[team].third++;
+                    teamsCreditedInEvent.add(team);
+                }
+            });
+        });
+        teamsCreditedInEvent.forEach(team => {
+            if (standings[team]) standings[team].eventCount++;
+        });
+    });
+
+    return Object.values(standings).sort((a, b) => b.totalPoints - a.totalPoints || b.first - a.first || b.second - a.second || a.teamLabel.localeCompare(b.teamLabel));
+};
+
+window.renderResultsPointsDownloadPreview = () => {
+    const host = document.getElementById('results-points-download-preview');
+    if (!host) return;
+    const standings = calculateFestivalTeamStandings();
+    const published = results.filter(r => r.status === 'published');
+    
+    let html = `
+        <div class="space-y-6">
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="rounded-xl border bg-slate-50 p-4">
+                    <p class="text-[10px] font-black uppercase text-slate-500">Published Results</p>
+                    <b class="text-2xl font-black text-slate-900">${published.length}</b>
+                    <p class="text-xs text-slate-500">of ${events.length} total events</p>
+                </div>
+                <div class="rounded-xl border bg-slate-50 p-4">
+                    <p class="text-[10px] font-black uppercase text-slate-500">Leading Team</p>
+                    <b class="text-xl font-black text-indigo-600 truncate block">${standings[0]?.teamLabel || '—'}</b>
+                    <p class="text-xs text-slate-500">${standings[0]?.totalPoints || 0} Total Points</p>
+                </div>
+                <div class="rounded-xl border bg-slate-50 p-4">
+                    <p class="text-[10px] font-black uppercase text-slate-500">Competing Teams</p>
+                    <b class="text-2xl font-black text-slate-900">${teams.length}</b>
+                    <p class="text-xs text-slate-500">Active participating groups</p>
+                </div>
+                <div class="rounded-xl border bg-slate-50 p-4">
+                    <p class="text-[10px] font-black uppercase text-slate-500">Points Awarded</p>
+                    <b class="text-2xl font-black text-emerald-600">${standings.reduce((sum, s) => sum + s.totalPoints, 0)}</b>
+                    <p class="text-xs text-slate-500">Total cumulative points</p>
+                </div>
+            </div>
+
+            <div>
+                <h4 class="font-black text-slate-800 text-sm mb-3">Team Points Leaderboard Preview</h4>
+                <div class="overflow-x-auto rounded-xl border bg-white">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-600 border-b">
+                            <tr>
+                                <th class="px-4 py-3">Rank</th>
+                                <th class="px-4 py-3">Team Name</th>
+                                <th class="px-4 py-3 text-center">1st</th>
+                                <th class="px-4 py-3 text-center">2nd</th>
+                                <th class="px-4 py-3 text-center">3rd</th>
+                                <th class="px-4 py-3 text-center">Won Events</th>
+                                <th class="px-4 py-3 text-right">Total Points</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-bold">
+                            ${standings.map((team, idx) => `
+                                <tr class="hover:bg-slate-50/70 transition">
+                                    <td class="px-4 py-3">
+                                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-black ${idx === 0 ? 'bg-amber-100 text-amber-800' : idx === 1 ? 'bg-slate-200 text-slate-700' : idx === 2 ? 'bg-amber-50 text-amber-700' : 'text-slate-500'}">
+                                            ${idx + 1}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-slate-900">${escapeHtml(team.teamLabel)}</td>
+                                    <td class="px-4 py-3 text-center text-amber-600">${team.first}</td>
+                                    <td class="px-4 py-3 text-center text-slate-600">${team.second}</td>
+                                    <td class="px-4 py-3 text-center text-amber-800">${team.third}</td>
+                                    <td class="px-4 py-3 text-center text-slate-600">${team.eventCount}</td>
+                                    <td class="px-4 py-3 text-right font-black text-indigo-600 text-sm">${team.totalPoints}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+    host.innerHTML = html;
+};
+
+window.exportPointsExcel = async () => {
+    await window.ensureDep?.('XLSX');
+    if (!window.XLSX) return window.showToast('SheetJS is not loaded', 'error');
+    const standings = calculateFestivalTeamStandings();
+    if (!standings.length) return window.showToast('No team data available', 'error');
+    
+    const rows = standings.map((item, idx) => ({
+        'Rank': idx + 1,
+        'Team Name': item.teamLabel,
+        'Team Code': item.team,
+        'First Prize': item.first,
+        'Second Prize': item.second,
+        'Third Prize': item.third,
+        'Scoring Events': item.eventCount,
+        'Total Points': item.totalPoints
+    }));
+
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(rows), 'Leaderboard');
+    XLSX.writeFile(book, 'Festival_Points_Leaderboard.xlsx');
+    window.showToast('Points table exported successfully');
+};
+
+window.exportResultsExcel = async () => {
+    await window.ensureDep?.('XLSX');
+    if (!window.XLSX) return window.showToast('SheetJS is not loaded', 'error');
+    const published = results.filter(r => r.status === 'published');
+    if (!published.length) return window.showToast('No published results found', 'error');
+
+    const rows = [];
+    published.forEach((result) => {
+        const event = events.find(e => e.id === result.eventId) || {};
+        const awards = resultAwardsForReport(result);
+        awards.forEach(award => {
+            (award.winners || []).forEach(w => {
+                rows.push({
+                    'Event Code': event.code || '',
+                    'Event Name': event.name || result.eventName || 'Unnamed Event',
+                    'Category': event.category || 'General',
+                    'Stage': event.stage || 'Off-Stage',
+                    'Position / Award': award.label || '',
+                    'Points': Number(award.points || 0),
+                    'Team': teamLabel(resolveWinnerTeam(w, result)) || resolveWinnerTeam(w, result) || '—',
+                    'Winner Name / Chest': resolveWinnerName(w, result) || '—'
+                });
+            });
+        });
+    });
+
+    if (!rows.length) return window.showToast('No detailed results to export', 'error');
+
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(rows), 'Published Results');
+    XLSX.writeFile(book, 'Festival_Published_Results.xlsx');
+    window.showToast('Results exported successfully');
+};
 
 
 window.renderAdvancedRegistration = () => {
