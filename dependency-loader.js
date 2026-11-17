@@ -5,6 +5,7 @@ const dependencyCatalog = {
     jsPDF: { globalName: 'jspdf', label: 'jsPDF 2.5.1', fallback: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js' },
     jsPDFAutoTable: { globalName: 'jspdf', label: 'jsPDF AutoTable', fallback: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js', test: () => Boolean(window.jspdf?.jsPDF?.API?.autoTable) },
     html2canvas: { globalName: 'html2canvas', label: 'html2canvas', fallback: 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js' },
+    html2pdf: { globalName: 'html2pdf', label: 'html2pdf.js', fallback: 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js' },
     QRCode: { globalName: 'QRCode', label: 'QRCode.js', fallback: 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js' }
 };
 
@@ -50,6 +51,9 @@ window.ensureAdminDependencies = async (names = Object.keys(dependencyCatalog)) 
     for(const name of names) {
         const spec = dependencyCatalog[name];
         if(!spec) continue;
+        if(name === 'jsPDFAutoTable' && !hasDependency(dependencyCatalog.jsPDF) && dependencyCatalog.jsPDF.fallback) {
+            await loadFallback(dependencyCatalog.jsPDF.fallback);
+        }
         if(!hasDependency(spec) && spec.fallback) {
             await loadFallback(spec.fallback);
         }

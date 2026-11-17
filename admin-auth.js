@@ -48,6 +48,7 @@ export function initAdminAuth({ onReady } = {}) {
   const logout = byId('admin-logout-button');
 
   logout?.addEventListener('click', async () => {
+    try { sessionStorage.clear(); } catch (_) {}
     await signOut(auth);
     window.adminUnsubscribers?.forEach(unsub => unsub?.());
     window.adminUnsubscribers = [];
@@ -58,19 +59,47 @@ export function initAdminAuth({ onReady } = {}) {
   onAuthStateChanged(auth, async (user) => {
     if (adminAuthRedirecting || adminAuthReady) return;
     if (!user) {
+      try { sessionStorage.clear(); } catch (_) {}
       showLogin('');
       return;
     }
+
+    const cacheKey = `admin_profile_cache_${user.uid}`;
+    let cachedProfile = null;
+    try {
+      const stored = sessionStorage.getItem(cacheKey);
+      if (stored) cachedProfile = JSON.parse(stored);
+    } catch (_) {}
+
+    if (cachedProfile && cachedProfile.active === true && ADMIN_ROLES.has(cachedProfile.role)) {
+      showAdminApp(cachedProfile, user);
+      onReady?.(user, cachedProfile);
+      window.dispatchEvent(new CustomEvent('admin-auth-ready', { detail: { user, profile: cachedProfile } }));
+    }
+
     let profile = null;
     try { profile = await loadAdminProfile(user); }
-    catch (error) { console.error('Admin profile validation failed', error); await signOut(auth).catch(() => {}); showLogin('Unable to verify admin access. Check your connection and try again.'); return; }
+    catch (error) {
+      if (!cachedProfile) {
+        console.error('Admin profile validation failed', error);
+        await signOut(auth).catch(() => {});
+        showLogin('Unable to verify admin access. Check your connection and try again.');
+        return;
+      }
+    }
+
     if (!profile) {
+      try { sessionStorage.removeItem(cacheKey); } catch (_) {}
       await signOut(auth);
       showLogin('This Firebase user is not enabled as an admin.');
       return;
     }
-    showAdminApp(profile, user);
-    onReady?.(user, profile);
-    window.dispatchEvent(new CustomEvent('admin-auth-ready', { detail: { user, profile } }));
+
+    try { sessionStorage.setItem(cacheKey, JSON.stringify(profile)); } catch (_) {}
+    if (!cachedProfile) {
+      showAdminApp(profile, user);
+      onReady?.(user, profile);
+      window.dispatchEvent(new CustomEvent('admin-auth-ready', { detail: { user, profile } }));
+    }
   });
 }
