@@ -46,7 +46,9 @@ const paginationState = {
     students: { page: 1, limit: 25 },
     applications: { page: 1, limit: 25 },
     finalEntries: { page: 1, limit: 25 },
-    downloads: { page: 1, limit: 25 }
+    downloads: { page: 1, limit: 25 },
+    events: { page: 1, limit: 25 },
+    judges: { page: 1, limit: 25 }
 };
 
 function paginateList(items, stateKey) {
@@ -118,6 +120,8 @@ function triggerPaginationRender(key) {
     else if (key === 'applications') window.renderRegistrationRequests?.();
     else if (key === 'finalEntries') window.renderRegList(true);
     else if (key === 'downloads') window.renderStudentParticipationReport?.();
+    else if (key === 'events') window.renderEventTable(true);
+    else if (key === 'judges') window.renderJudgeAssignmentOptions?.();
 }
 const alphaSequence = index => { let n = Number(index) + 1, out = ''; while(n > 0) { n--; out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26); } return out; };
 const teamCodePattern = /^Team [A-Z]+$/;
@@ -459,14 +463,15 @@ const adminInputActions = {
     'filter-event-field-rules': () => window.filterEventFieldRules(),
     'toggle-event-config': (target) => window.toggleEventConfig(target),
     'update-event-method-fields': (target) => window.updateEventMethodFields(target),
-    'render-event-table': () => window.renderEventTable(true),
+    'render-event-table': () => { paginationState.events.page = 1; window.renderEventTable(true); },
     'schedule-filter': () => window.applyScheduleFilters(),
     'render-schedule-review': () => window.renderScheduleReview(),
     'select-schedule-version': (target) => window.selectScheduleVersion(target.value),
     'toggle-schedule-select-all': () => window.toggleScheduleSelectAll(),
     'render-scoring-config': () => window.renderScoringConfig(),
-    'render-judge-assignment-options': () => window.renderJudgeAssignmentOptions(),
+    'render-judge-assignment-options': () => { paginationState.judges.page = 1; window.renderJudgeAssignmentOptions(); },
     'render-judge-review': () => window.renderJudgeReview(),
+    'render-access-management': () => window.renderAccessManagement?.(),
     'update-promo': () => window.updatePromo(),
     'render-id-cards': () => window.renderIDCards(),
     'apply-template': (target) => window.applyTemplate(target.dataset.templateTarget, target),
@@ -797,7 +802,7 @@ window.switchTab = (tab) => {
 
     const titles = { 'dashboard': 'Dashboard', 'registrations': 'Registrations', 'students': 'Students Directory', 'events': 'Events Management', 'schedule': 'Time Schedule', 'config': 'Team Setup', 'master-setup': 'Master Setup', 'access': 'Access Management', 'scoring': 'Scoring Settings', 'judge': 'Judgement Desk', 'public-content': 'Public Page Control & Contents', 'poster-certificate':'Poster & Certificate', 'tv-display': 'TV Display Settings', 'danger': 'Data Reset', 'downloads': 'Downloads', 'guide': 'User Guide' };
     document.getElementById('page-title').innerText = titles[tab] || 'Admin Panel';const masterActive=tab==='master-setup';document.getElementById('master-header-actions')?.classList.toggle('hidden',!masterActive);document.getElementById('master-header-actions')?.classList.toggle('flex',masterActive);if(!masterActive){document.getElementById('page-context')?.classList.add('hidden');document.getElementById('page-status')?.classList.add('hidden');}
-    if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') { window.renderDropdowns?.(); renderStudentTable(); } if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.();renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') window.renderSchedule(); if(tab === 'registrations') renderRegList(); if(tab === 'config') { window.renderSetupLists?.(); window.renderChestGrid?.(); } if(tab === 'access') window.renderAccessManagement?.(); if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
+    if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].border-indigo-600')?.dataset?.downloadTab || document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') { window.renderDropdowns?.(); renderStudentTable(); } if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.();renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') window.renderSchedule(); if(tab === 'schedule-review') window.renderScheduleReview?.(); if(tab === 'registrations') renderRegList(); if(tab === 'config') { window.renderSetupLists?.(); window.renderChestGrid?.(); } if(tab === 'access') window.renderAccessManagement?.(); if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
     resetAdminContentScroll();
 };
 
@@ -1056,21 +1061,29 @@ async function createSchedulePdf(){
       noteElement.style.display='none';
     }
     const paperRect=paper.getBoundingClientRect();
-    const canvas=await window.html2canvas(paper,{scale:1.35,backgroundColor:'#fff',useCORS:true});
+    const canvas=await window.html2canvas(paper,{scale:1.35,backgroundColor:'#fff',useCORS:true,logging:false});
     if(noteElement)noteElement.style.display='';
+    if(!canvas.width || !canvas.height) throw new Error('Schedule preview container is empty or hidden');
     const pageWidth=docPdf.internal.pageSize.getWidth(),pageHeight=docPdf.internal.pageSize.getHeight(),contentWidth=pageWidth-(margin*2);
     const noteHeight=noteCanvas?Math.min(22,noteCanvas.height*contentWidth/noteCanvas.width):0,noteReserve=noteHeight?noteHeight+3:0;
-    const contentHeight=pageHeight-(margin*2)-noteReserve,scale=contentWidth/canvas.width,sourcePageHeight=Math.max(1,Math.floor(contentHeight/scale));
+    const contentHeight=Math.max(20, pageHeight-(margin*2)-noteReserve),scale=contentWidth/Math.max(1,canvas.width),sourcePageHeight=Math.max(50,Math.floor(contentHeight/scale));
     const domScale=canvas.height/Math.max(paper.scrollHeight,1);
     const safeBreaks=[...paper.querySelectorAll('.schedule-print-table tr, .schedule-print-table')].flatMap(node=>{const rect=node.getBoundingClientRect();return [rect.top-paperRect.top,rect.bottom-paperRect.top].map(point=>Math.round(point*domScale));}).filter(point=>point>0&&point<canvas.height).sort((a,b)=>a-b);
     let sourceY=0,pageIndex=0;
-    while(sourceY<canvas.height){
-      const desiredEnd=Math.min(sourceY+sourcePageHeight,canvas.height),safeEnd=safeBreaks.filter(point=>point<=desiredEnd&&point>sourceY+55).pop(),sourceEnd=desiredEnd<canvas.height&&safeEnd?safeEnd:desiredEnd,sliceHeight=Math.max(1,sourceEnd-sourceY),slice=document.createElement('canvas');
+    const maxPages=50,minSlice=Math.max(50,Math.floor(sourcePageHeight*0.2));
+    while(sourceY<canvas.height && pageIndex<maxPages){
+      let desiredEnd=Math.min(sourceY+sourcePageHeight,canvas.height);
+      let safeEnd=safeBreaks.filter(point=>point<=desiredEnd&&point>sourceY+55).pop();
+      let sourceEnd=(desiredEnd<canvas.height&&safeEnd)?safeEnd:desiredEnd;
+      if(sourceEnd<=sourceY) sourceEnd=Math.min(sourceY+Math.max(minSlice,sourcePageHeight),canvas.height);
+      if(sourceEnd<=sourceY) break;
+      const sliceHeight=Math.max(1,sourceEnd-sourceY),slice=document.createElement('canvas');
       slice.width=canvas.width;slice.height=sliceHeight;
       slice.getContext('2d').drawImage(canvas,0,sourceY,canvas.width,sliceHeight,0,0,canvas.width,sliceHeight);
       if(pageIndex++)docPdf.addPage();
       docPdf.addImage(slice.toDataURL('image/jpeg',0.88),'JPEG',margin,margin,contentWidth,sliceHeight*scale,undefined,'FAST');
       sourceY=sourceEnd;
+      if(pageIndex%2===0) await new Promise(r=>setTimeout(r,0));
     }
     if(noteCanvas&&note.text){
       const noteImage=noteCanvas.toDataURL('image/png');
@@ -1289,11 +1302,35 @@ window.toggleAccessTeamField = () => {
 
 function accessCard(user) {
     const docId = accessDocIdFor(user);
-    const roleLabel = user.role === 'teamLeader' ? `${escapeHtml(user.team || '-')} • ${escapeHtml(user.genderScope || 'Both')} • ${escapeHtml(user.title || 'Leader')}` : escapeHtml(user.title || user.role || '-');
+    const isTL = user.role === 'teamLeader';
+    const teamColor = isTL && user.team ? (teamColors[user.team] || '#4f46e5') : '';
+    const borderStyle = teamColor ? `style="border-left: 4px solid ${teamColor};"` : '';
+    const teamBadge = isTL && user.team ? `<span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase" style="background:${teamColor}18; color:${teamColor}; border: 1px solid ${teamColor}35;"><span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:${teamColor};"></span>${escapeHtml(teamLabel(user.team))}</span>` : '';
+    const roleLabel = isTL ? `${escapeHtml(user.genderScope || 'Both')} • ${escapeHtml(user.title || 'Leader')}` : escapeHtml(user.title || user.role || '-');
     const active = user.active !== false;
-    return `<div class="rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-sm">
-        <div class="flex justify-between gap-3"><div class="flex gap-3 min-w-0">${user.photoUrl?`<img src="${escapeHtml(user.photoUrl)}" alt="" class="w-10 h-10 rounded-full object-cover border border-slate-200 bg-slate-50 shrink-0">`:`<span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-indigo-100 text-xs font-black text-indigo-700">${escapeHtml((user.displayName||user.username||'U').charAt(0).toUpperCase())}</span>`}<div class="min-w-0"><p class="font-black text-slate-800 truncate">${escapeHtml(user.displayName || user.username || user.email || docId)}</p><p class="text-xs font-bold text-slate-500">${roleLabel}</p><p class="text-[11px] text-slate-400">${escapeHtml(user.username || '')} • ${escapeHtml(user.email || '')}</p></div></div><span class="text-[10px] font-black px-2 py-1 rounded-full h-fit ${active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}">${active ? 'Active' : 'Inactive'}</span></div>
-        <div class="flex flex-wrap gap-2 mt-3"><button data-admin-action="edit-access-user" data-uid="${escapeHtml(docId)}" class="px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold">Edit</button><button data-admin-action="toggle-access-active" data-uid="${escapeHtml(docId)}" class="px-3 py-1.5 rounded-lg ${active ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'} text-xs font-bold">${active ? 'Deactivate' : 'Activate'}</button><button data-admin-action="delete-access-user" data-uid="${escapeHtml(docId)}" class="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-bold">Delete</button></div>
+    const avatar = user.photoUrl
+        ? `<img src="${escapeHtml(user.photoUrl)}" alt="" class="w-10 h-10 rounded-full object-cover border border-slate-200 bg-slate-50 shrink-0">`
+        : `<span class="grid h-10 w-10 shrink-0 place-items-center rounded-full text-xs font-black" style="background:${teamColor ? teamColor + '20' : '#e0e7ff'}; color:${teamColor || '#4338ca'};">${escapeHtml((user.displayName||user.username||'U').charAt(0).toUpperCase())}</span>`;
+
+    return `<div class="rounded-xl border border-slate-200 bg-white p-3.5 text-sm shadow-sm transition hover:shadow-md flex flex-col justify-between" ${borderStyle}>
+        <div>
+            <div class="flex justify-between items-start gap-2">
+                <div class="flex gap-3 min-w-0">
+                    ${avatar}
+                    <div class="min-w-0">
+                        <p class="font-black text-slate-800 truncate">${escapeHtml(user.displayName || user.username || user.email || docId)}</p>
+                        <div class="flex flex-wrap items-center gap-1.5 mt-0.5">${teamBadge}<span class="text-xs font-bold text-slate-500">${roleLabel}</span></div>
+                        <p class="text-[11px] text-slate-400 mt-1 truncate">${escapeHtml(user.username || '')} • ${escapeHtml(user.email || '')}</p>
+                    </div>
+                </div>
+                <span class="text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}">${active ? 'Active' : 'Inactive'}</span>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-3 pt-2 border-t border-slate-100">
+            <button data-admin-action="edit-access-user" data-uid="${escapeHtml(docId)}" class="px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold hover:bg-indigo-100 transition">Edit</button>
+            <button data-admin-action="toggle-access-active" data-uid="${escapeHtml(docId)}" class="px-3 py-1.5 rounded-lg ${active ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'} text-xs font-bold transition">${active ? 'Deactivate' : 'Activate'}</button>
+            <button data-admin-action="delete-access-user" data-uid="${escapeHtml(docId)}" class="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-bold hover:bg-red-100 transition">Delete</button>
+        </div>
     </div>`;
 }
 
@@ -1308,9 +1345,11 @@ const visibleAccessUsers = () => {
 };
 
 const accessListFilterConfig = {
-    teamLeader: { title: 'Team Leaders', help: 'Team leader accounts only.', empty: 'No team leaders added', roles: ['teamLeader'] },
+    all: { title: 'All Accounts', help: 'All user accounts across all roles.', empty: 'No accounts found', roles: ['teamLeader', 'judge', 'publisher', 'admin', 'superAdmin'] },
+    teamLeader: { title: 'Team Leaders', help: 'Team leader accounts only. Distinctive team colors shown.', empty: 'No team leaders added', roles: ['teamLeader'] },
     judge: { title: 'Judges', help: 'Judge login accounts only.', empty: 'No judges added', roles: ['judge'] },
-    publisher: { title: 'Publish/Admin Access', help: 'Publisher, Admin and Super Admin accounts only.', empty: 'No publisher/admin access added', roles: ['publisher', 'admin', 'superAdmin'] }
+    publisher: { title: 'Publish Access', help: 'Publish role accounts only.', empty: 'No publisher accounts added', roles: ['publisher'] },
+    admin: { title: 'Admin Access', help: 'Administrator and Super Admin accounts.', empty: 'No admin accounts added', roles: ['admin', 'superAdmin'] }
 };
 
 window.setAccessListFilter = (filter = 'teamLeader') => {
@@ -1322,7 +1361,21 @@ window.renderAccessManagement = () => {
     const profiles = visibleAccessUsers();
     const config = accessListFilterConfig[selectedAccessListFilter] || accessListFilterConfig.teamLeader;
     const selectedRoles = new Set(config.roles);
-    const items = profiles.filter(user => selectedRoles.has(user.role)).sort((a,b) => (a.order || 999) - (b.order || 999));
+    const searchQuery = (document.getElementById('access-search-filter')?.value || '').trim().toLowerCase();
+    const teamFilter = document.getElementById('access-team-filter')?.value || '';
+
+    let items = profiles.filter(user => selectedRoles.has(user.role));
+    if (teamFilter) {
+        items = items.filter(user => user.team === teamFilter);
+    }
+    if (searchQuery) {
+        items = items.filter(user => [user.displayName, user.name, user.username, user.email, user.team, user.title, user.phone].some(v => String(v || '').toLowerCase().includes(searchQuery)));
+    }
+    items.sort((a,b) => {
+        if (a.team && b.team && a.team !== b.team) return String(a.team).localeCompare(String(b.team));
+        return (a.order || 999) - (b.order || 999);
+    });
+
     const list = document.getElementById('access-filtered-list');
     const title = document.getElementById('access-existing-title');
     const help = document.getElementById('access-existing-help');
@@ -2262,7 +2315,7 @@ window.renderEventTable = (force = false) => {
     const stageFilter = document.getElementById('filter-ev-stage')?.value || '';
     const typeFilter = document.getElementById('filter-ev-type')?.value || '';
     const optionalFilterHash = EVENT_OPTIONAL_FILTERS.map(filter => `${filter.key}:${eventOptionalFilterValue(filter.key)}`).join('|');
-    const currentHash = generateHash(events) + [search, catFilter, genderFilter, stageFilter, typeFilter, optionalFilterHash].join('|');
+    const currentHash = generateHash(events) + [search, catFilter, genderFilter, stageFilter, typeFilter, optionalFilterHash, paginationState.events.page, paginationState.events.limit].join('|');
     if(!force && lastRenderHash.events === currentHash) return;
     lastRenderHash.events = currentHash;
 
@@ -2281,7 +2334,9 @@ window.renderEventTable = (force = false) => {
         if(value === 'missing') filteredEvents = filteredEvents.filter(event => !filter.has(event));
     });
 
-    if(filteredEvents.length===0) { const emptyMsg = `<div class="p-8 text-center text-slate-400 italic">No events found</div>`; desktopBody.innerHTML = `<tr><td colspan="7">${emptyMsg}</td></tr>`; mobileList.innerHTML = emptyMsg; return; }
+    if(filteredEvents.length===0) { const emptyMsg = `<div class="p-8 text-center text-slate-400 italic">No events found</div>`; desktopBody.innerHTML = `<tr><td colspan="7">${emptyMsg}</td></tr>`; mobileList.innerHTML = emptyMsg; renderPaginationBar('pagination-events', { total: 0 }, 'events', 'events'); return; }
+
+    const paged = paginateList(filteredEvents, 'events');
 
     const eventMetaHtml = (e) => {
         const meta = [(e.rules||e.notes||e.description) && escapeHtml(e.rules||e.notes||e.description)].filter(Boolean).join(' • ');
@@ -2289,16 +2344,18 @@ window.renderEventTable = (force = false) => {
     };
     const configHtml = (e) => e.type === 'Group' ? `Groups/team: ${escapeHtml(e.limit || 1)}<div class="mt-1 text-[11px] font-bold text-purple-500">Members/group: ${escapeHtml(e.groupSize || '-')}</div>` : `Participants/team: ${escapeHtml(e.limit || 1)}`;
 
-    desktopBody.innerHTML = filteredEvents.map(e => `
+    desktopBody.innerHTML = paged.pagedItems.map(e => `
         <tr class="hover:bg-slate-50 border-b border-slate-100 animate-enter">
             <td class="px-6 py-4 font-bold text-slate-700"><div>${escapeHtml(e.name)} <span class="ml-2 rounded bg-violet-50 px-2 py-0.5 text-[9px] uppercase text-violet-700">${escapeHtml(e.status||'validated')}</span></div>${eventMetaHtml(e)}</td><td class="px-6 py-4 text-xs font-bold uppercase text-slate-500">${escapeHtml(e.stage || 'Off-Stage')}</td><td class="px-6 py-4 text-xs font-bold ${e.type==='Group'?'text-purple-600':'text-blue-600'}">${escapeHtml(e.type)}</td><td class="px-6 py-4 text-sm"><span class="${e.category==='General'?'bg-orange-100 text-orange-700':'bg-slate-100 text-slate-600'} px-2 py-1 rounded text-xs font-bold">${escapeHtml(e.category)}</span></td><td class="px-6 py-4 text-xs font-bold uppercase text-slate-500">${escapeHtml(genderLabel(e.gender))}</td><td class="px-6 py-4 text-xs text-slate-500">${configHtml(e)}</td>
             <td class="px-6 py-4 text-right"><div class="flex justify-end gap-1"><button data-admin-action="edit-event" data-id="${escapeHtml(e.id)}" class="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition" title="Edit event"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button data-admin-action="delete-event" data-id="${escapeHtml(e.id)}" class="text-red-400 hover:bg-red-50 p-2 rounded-lg transition" title="Delete event"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td>
         </tr>`).join('');
 
-    mobileList.innerHTML = filteredEvents.map(e => {
+    mobileList.innerHTML = paged.pagedItems.map(e => {
         const stageColor = e.stage === 'On-Stage' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700';
         return `<div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative group animate-enter"><div class="flex justify-between items-start mb-2"><h4 class="font-bold text-slate-800 pr-2">${escapeHtml(e.name)}</h4><span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded ${stageColor} whitespace-nowrap">${escapeHtml(e.stage || 'Off-Stage')}</span></div>${eventMetaHtml(e)}<div class="flex flex-wrap gap-2 text-[10px] font-bold text-slate-500 mb-3 mt-3"><span class="bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">${escapeHtml(e.category)}</span><span class="bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase ${e.type==='Group'?'text-purple-600':'text-blue-600'}">${escapeHtml(e.type)}</span><span class="bg-blue-50 px-2 py-1 rounded border border-blue-100 text-blue-700 uppercase">${escapeHtml(genderLabel(e.gender))}</span><span class="bg-slate-100 px-2 py-1 rounded border border-slate-200">${e.type==='Group' ? `Groups/team: ${escapeHtml(e.limit || 1)}` : `Participants/team: ${escapeHtml(e.limit || 1)}`}</span>${e.type==='Group' ? `<span class="bg-purple-50 px-2 py-1 rounded border border-purple-100 text-purple-700">Members/group: ${escapeHtml(e.groupSize || '-')}</span>` : ''}</div><div class="flex justify-end gap-2 border-t border-slate-100 pt-2 mt-2"><button data-admin-action="edit-event" data-id="${escapeHtml(e.id)}" class="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex items-center gap-1 active:bg-indigo-100"><i data-lucide="edit-3" class="w-3 h-3"></i> Edit</button><button data-admin-action="delete-event" data-id="${escapeHtml(e.id)}" class="px-3 py-1.5 bg-red-50 text-red-500 rounded-lg text-xs font-bold flex items-center gap-1 active:bg-red-100"><i data-lucide="trash-2" class="w-3 h-3"></i> Delete</button></div></div>`;
     }).join('');
+    renderPaginationBar('pagination-events', paged, 'events', 'events');
+    window.lucide?.createIcons?.();
     window.lucide?.createIcons?.();
 };
 
@@ -2708,7 +2765,7 @@ window.switchRegistrationAdminTab = name => {
         return;
     }
     document.querySelectorAll('[data-registration-admin-panel]').forEach(el => el.classList.toggle('hidden', el.dataset.registrationAdminPanel !== name));
-    document.querySelectorAll('[data-registration-admin-tab]').forEach(el => el.className = `rounded-xl px-4 py-2 text-xs font-black ${el.dataset.registrationAdminTab === name ? 'bg-indigo-600 text-white' : 'text-slate-600'}`);
+    document.querySelectorAll('[data-registration-admin-tab]').forEach(el => el.className = `border-b-2 font-black rounded-t-xl px-4 py-2.5 text-xs transition-all whitespace-nowrap ${el.dataset.registrationAdminTab === name ? 'border-indigo-600 text-indigo-700 bg-indigo-50/70' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`);
     if (name === 'applications') window.renderRegistrationRequests();
     if (name === 'entries') window.renderRegList(true);
     if (['overview', 'finalization'].includes(name)) window.renderAdvancedRegistration();
@@ -2837,7 +2894,7 @@ window.switchDownloadSubtab = (name = 'student-summary') => {
     });
     document.querySelectorAll('[data-download-tab]').forEach(el => {
         const active = el.dataset.downloadTab === name;
-        el.className = `rounded-xl px-4 py-2 text-xs font-black transition ${active ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-white'}`;
+        el.className = `border-b-2 font-black rounded-t-xl px-4 py-2.5 text-xs transition-all whitespace-nowrap ${active ? 'border-indigo-600 text-indigo-700 bg-indigo-50/70' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`;
     });
     if (name === 'student-summary') window.renderStudentParticipationReport?.();
     if (name === 'registration-apps') window.renderRegistrationDownloads?.();
@@ -3502,15 +3559,27 @@ window.renderJudgeAssignmentOptions = () => {
     const table = document.getElementById('judge-assignment-table');
     if(!table) return;
     const cat = document.getElementById('assign-category-filter')?.value || '';
+    const statusFilter = document.getElementById('assign-status-filter')?.value || '';
     const stageType = document.getElementById('assign-stage-type-filter')?.value || '';
     const date = document.getElementById('assign-date-filter')?.value || '';
     const stage = normalizeStageValue(document.getElementById('assign-stage-filter')?.value || '');
     let list = scheduledEventsForJudges();
     if(cat) list = list.filter(e => e.category === cat);
+    if(statusFilter === 'assigned') list = list.filter(e => Boolean(assignmentForEvent(e.id)?.judgeId));
+    if(statusFilter === 'unassigned') list = list.filter(e => !assignmentForEvent(e.id)?.judgeId);
     if(stageType) list = list.filter(e => eventStageType(e) === stageType);
     if(date) list = list.filter(e => eventScheduleDate(e) === date);
     if(stage) list = list.filter(e => normalizeStageValue(eventScheduleStage(e)).includes(stage));
-    table.innerHTML = `<table class="w-full min-w-[900px] text-left text-sm"><thead class="bg-slate-50 text-[11px] font-black uppercase tracking-wider text-slate-500"><tr><th class="px-4 py-3">Date & Day</th><th class="px-4 py-3">Time</th><th class="px-4 py-3">Program</th><th class="px-4 py-3">Gender</th><th class="px-4 py-3">Stage</th><th class="px-4 py-3">Assigned Judge</th></tr></thead><tbody class="divide-y divide-slate-100">${list.map(e => { const a = assignmentForEvent(e.id), cancelled=e.cancelled===true; return `<tr class="${cancelled?'bg-red-50 text-red-950':''}"><td class="px-4 py-3 font-bold">${escapeHtml(scheduleDateText(eventScheduleDate(e)))}</td><td class="px-4 py-3 font-black text-indigo-700">${escapeHtml(toAmPm(eventScheduleTime(e) || ''))}</td><td class="px-4 py-3"><div class="font-black">${escapeHtml(e.name || '')}${cancelled?'<span class="ml-2 rounded-full bg-red-600 px-2 py-0.5 text-[9px] font-black uppercase text-white">Cancelled</span>':''}</div><div class="text-xs ${cancelled?'text-red-600':'text-slate-400'} font-bold">${escapeHtml(e.category || '')} • ${escapeHtml(eventStageType(e))}${cancelled&&e.cancelReason?` • ${escapeHtml(e.cancelReason)}`:''}</div></td><td class="px-4 py-3 font-bold">${escapeHtml(genderLabel(e))}</td><td class="px-4 py-3 font-bold">${escapeHtml(eventScheduleStage(e) || '-')}</td><td class="px-4 py-3"><select data-assign-event-id="${escapeHtml(e.id)}" class="text-input min-w-[220px]">${judgeOptionsForAssignment(a?.judgeId || '')}</select></td></tr>`; }).join('') || '<tr><td colspan="6" class="px-4 py-10 text-center text-slate-400 font-bold">No scheduled programs.</td></tr>'}</tbody></table>`;
+
+    if(list.length === 0) {
+        table.innerHTML = `<table class="w-full min-w-[900px] text-left text-sm"><thead class="bg-slate-50 text-[11px] font-black uppercase tracking-wider text-slate-500"><tr><th class="px-4 py-3">Date & Day</th><th class="px-4 py-3">Time</th><th class="px-4 py-3">Program</th><th class="px-4 py-3">Gender</th><th class="px-4 py-3">Stage</th><th class="px-4 py-3">Assigned Judge</th></tr></thead><tbody class="divide-y divide-slate-100"><tr><td colspan="6" class="px-4 py-10 text-center text-slate-400 font-bold">No scheduled programs found.</td></tr></tbody></table>`;
+        renderPaginationBar('pagination-judge-assignments', { total: 0 }, 'judges', 'programs');
+        return;
+    }
+
+    const paged = paginateList(list, 'judges');
+    table.innerHTML = `<table class="w-full min-w-[900px] text-left text-sm"><thead class="bg-slate-50 text-[11px] font-black uppercase tracking-wider text-slate-500"><tr><th class="px-4 py-3">Date & Day</th><th class="px-4 py-3">Time</th><th class="px-4 py-3">Program</th><th class="px-4 py-3">Gender</th><th class="px-4 py-3">Stage</th><th class="px-4 py-3">Assigned Judge</th></tr></thead><tbody class="divide-y divide-slate-100">${paged.pagedItems.map(e => { const a = assignmentForEvent(e.id), cancelled=e.cancelled===true; return `<tr class="${cancelled?'bg-red-50 text-red-950':''}"><td class="px-4 py-3 font-bold">${escapeHtml(scheduleDateText(eventScheduleDate(e)))}</td><td class="px-4 py-3 font-black text-indigo-700">${escapeHtml(toAmPm(eventScheduleTime(e) || ''))}</td><td class="px-4 py-3"><div class="font-black">${escapeHtml(e.name || '')}${cancelled?'<span class="ml-2 rounded-full bg-red-600 px-2 py-0.5 text-[9px] font-black uppercase text-white">Cancelled</span>':''}</div><div class="text-xs ${cancelled?'text-red-600':'text-slate-400'} font-bold">${escapeHtml(e.category || '')} • ${escapeHtml(eventStageType(e))}${cancelled&&e.cancelReason?` • ${escapeHtml(e.cancelReason)}`:''}</div></td><td class="px-4 py-3 font-bold">${escapeHtml(genderLabel(e))}</td><td class="px-4 py-3 font-bold">${escapeHtml(eventScheduleStage(e) || '-')}</td><td class="px-4 py-3"><select data-assign-event-id="${escapeHtml(e.id)}" class="text-input min-w-[220px]">${judgeOptionsForAssignment(a?.judgeId || '')}</select></td></tr>`; }).join('')}</tbody></table>`;
+    renderPaginationBar('pagination-judge-assignments', paged, 'judges', 'programs');
 };
 
 window.saveJudgeAssignment = async () => {
