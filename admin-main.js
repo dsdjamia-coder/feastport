@@ -653,6 +653,7 @@ document.addEventListener('click', (event) => {
         'remove-judge-assignment': () => window.removeJudgeAssignment(d.id),
         'reopen-judge-score': () => window.reopenJudgeScore(d.id),
         'save-public-content': () => window.savePublicContentConfig(),
+        'switch-public-content-panel': () => window.switchPublicContentPanel(d.panel || btn.dataset.panel || btn.value),
         'save-tv-display': () => window.saveTVDisplaySettings(),
         'save-team-logo': () => window.saveTeamLogo(d.team),
         'save-team-id-header': () => window.saveTeamIdHeader(d.team),
@@ -662,6 +663,7 @@ document.addEventListener('click', (event) => {
         'add-custom-landing-link': () => window.addCustomLandingLink(),
         'remove-custom-landing-link': () => window.removeCustomLandingLink(d.index),
         'save-access-user': () => window.saveAccessUser(),
+        'clear-access-form': () => clearAccessForm(),
         'set-access-list-filter': () => window.setAccessListFilter(d.filter),
         'edit-access-user': () => window.editAccessUser(d.uid),
         'delete-access-user': () => window.deleteAccessUser(d.uid),
@@ -1357,6 +1359,58 @@ window.setAccessListFilter = (filter = 'teamLeader') => {
     window.renderAccessManagement?.();
 };
 
+function renderTeamLeadersGrouped(tlItems) {
+    if(!tlItems || !tlItems.length) return '';
+    const teamGroups = [];
+    const processedTeams = new Set();
+
+    teams.forEach(t => {
+        const forTeam = tlItems.filter(u => u.team === t);
+        if(forTeam.length) {
+            teamGroups.push({ team: t, items: forTeam });
+            processedTeams.add(t);
+        }
+    });
+
+    const unassigned = [];
+    tlItems.forEach(u => {
+        if(!u.team) {
+            unassigned.push(u);
+        } else if(!processedTeams.has(u.team)) {
+            let grp = teamGroups.find(g => g.team === u.team);
+            if(!grp) {
+                grp = { team: u.team, items: [] };
+                teamGroups.push(grp);
+            }
+            grp.items.push(u);
+        }
+    });
+    if(unassigned.length) {
+        teamGroups.push({ team: null, items: unassigned });
+    }
+
+    return teamGroups.map(grp => {
+        const isUnassigned = !grp.team;
+        const color = isUnassigned ? '#64748b' : (teamColors[grp.team] || '#4f46e5');
+        const name = isUnassigned ? 'Unassigned Team' : teamLabel(grp.team);
+        const count = grp.items.length;
+        const sortedItems = [...grp.items].sort((a,b) => (a.order || 999) - (b.order || 999));
+
+        return `<div class="rounded-2xl border border-slate-200/90 bg-slate-50/60 p-4 space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-200/70">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm" style="background:${color};"></span>
+                    <h5 class="text-xs font-black uppercase tracking-wider text-slate-800">${escapeHtml(name)}</h5>
+                    <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-slate-600">${count} ${count === 1 ? 'Leader' : 'Leaders'}</span>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                ${sortedItems.map(accessCard).join('')}
+            </div>
+        </div>`;
+    }).join('');
+}
+
 window.renderAccessManagement = () => {
     const profiles = visibleAccessUsers();
     const config = accessListFilterConfig[selectedAccessListFilter] || accessListFilterConfig.teamLeader;
@@ -1371,17 +1425,105 @@ window.renderAccessManagement = () => {
     if (searchQuery) {
         items = items.filter(user => [user.displayName, user.name, user.username, user.email, user.team, user.title, user.phone].some(v => String(v || '').toLowerCase().includes(searchQuery)));
     }
-    items.sort((a,b) => {
-        if (a.team && b.team && a.team !== b.team) return String(a.team).localeCompare(String(b.team));
-        return (a.order || 999) - (b.order || 999);
-    });
 
     const list = document.getElementById('access-filtered-list');
     const title = document.getElementById('access-existing-title');
     const help = document.getElementById('access-existing-help');
     if(title) title.textContent = config.title;
     if(help) help.textContent = config.help;
-    if(list) list.innerHTML = items.length ? items.map(accessCard).join('') : `<p class="col-span-full rounded-xl bg-slate-50 p-4 text-xs font-bold italic text-slate-400">${config.empty}</p>`;
+
+    if (!list) return;
+
+    if (!items.length) {
+        list.innerHTML = `<p class="rounded-xl bg-slate-50 p-6 text-center text-xs font-bold italic text-slate-400">${config.empty}</p>`;
+    } else if (selectedAccessListFilter === 'all') {
+        const teamLeaders = items.filter(u => u.role === 'teamLeader');
+        const judges = items.filter(u => u.role === 'judge').sort((a,b) => (a.order || 999) - (b.order || 999));
+        const publishers = items.filter(u => u.role === 'publisher').sort((a,b) => (a.order || 999) - (b.order || 999));
+        const admins = items.filter(u => ['admin', 'superAdmin'].includes(u.role)).sort((a,b) => (a.order || 999) - (b.order || 999));
+
+        const sections = [];
+
+        // 1. Team Leaders
+        if (teamLeaders.length) {
+            sections.push(`
+                <section class="space-y-3">
+                    <div class="flex items-center justify-between pb-2 border-b border-indigo-100">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="users" class="w-4 h-4 text-indigo-600"></i>
+                            <h5 class="text-sm font-black text-slate-800">1. Team Leaders</h5>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700">${teamLeaders.length}</span>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        ${renderTeamLeadersGrouped(teamLeaders)}
+                    </div>
+                </section>
+            `);
+        }
+
+        // 2. Judges
+        if (judges.length) {
+            sections.push(`
+                <section class="space-y-3">
+                    <div class="flex items-center justify-between pb-2 border-b border-indigo-100">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="scale" class="w-4 h-4 text-indigo-600"></i>
+                            <h5 class="text-sm font-black text-slate-800">2. Judges</h5>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700">${judges.length}</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                        ${judges.map(accessCard).join('')}
+                    </div>
+                </section>
+            `);
+        }
+
+        // 3. Publish Access
+        if (publishers.length) {
+            sections.push(`
+                <section class="space-y-3">
+                    <div class="flex items-center justify-between pb-2 border-b border-amber-100">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="globe-2" class="w-4 h-4 text-amber-600"></i>
+                            <h5 class="text-sm font-black text-slate-800">3. Publish Access</h5>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700">${publishers.length}</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                        ${publishers.map(accessCard).join('')}
+                    </div>
+                </section>
+            `);
+        }
+
+        // 4. Admin Access
+        if (admins.length) {
+            sections.push(`
+                <section class="space-y-3">
+                    <div class="flex items-center justify-between pb-2 border-b border-rose-100">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="shield" class="w-4 h-4 text-rose-600"></i>
+                            <h5 class="text-sm font-black text-slate-800">4. Admin Access</h5>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700">${admins.length}</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                        ${admins.map(accessCard).join('')}
+                    </div>
+                </section>
+            `);
+        }
+
+        list.innerHTML = sections.join('');
+    } else if (selectedAccessListFilter === 'teamLeader') {
+        list.innerHTML = `<div class="space-y-3">${renderTeamLeadersGrouped(items)}</div>`;
+    } else {
+        items.sort((a,b) => (a.order || 999) - (b.order || 999));
+        list.innerHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">${items.map(accessCard).join('')}</div>`;
+    }
+
     document.querySelectorAll('.access-list-filter').forEach(button => {
         const active = button.dataset.filter === selectedAccessListFilter;
         button.classList.toggle('bg-indigo-600', active);
@@ -1548,8 +1690,21 @@ const PUBLIC_CONTENT_PANELS = new Set(['home','next','results','team','social'])
 let activePublicContentPanel = 'home';
 window.switchPublicContentPanel = panel => {
     activePublicContentPanel = PUBLIC_CONTENT_PANELS.has(panel) ? panel : 'home';
-    document.querySelectorAll('[data-public-content-panel]').forEach(section => section.classList.toggle('hidden', section.dataset.publicContentPanel !== activePublicContentPanel));
+    document.querySelectorAll('[data-public-content-panel]').forEach(section => {
+        section.classList.toggle('hidden', section.dataset.publicContentPanel !== activePublicContentPanel);
+    });
+    document.querySelectorAll('#public-content-subtabs .public-tab-btn').forEach(button => {
+        const active = button.dataset.panel === activePublicContentPanel;
+        button.classList.toggle('bg-white', active);
+        button.classList.toggle('shadow-sm', active);
+        button.classList.toggle('border-blue-600', active);
+        button.classList.toggle('text-blue-700', active);
+        button.classList.toggle('border-transparent', !active);
+        button.classList.toggle('text-slate-600', !active);
+        button.setAttribute('aria-selected', String(active));
+    });
     document.querySelectorAll('input[name="public-content-panel"]').forEach(input => { input.checked = input.value === activePublicContentPanel; });
+    window.lucide?.createIcons?.();
 };
 
 window.renderPublicContentForm = () => {
@@ -2362,7 +2517,7 @@ window.renderEventTable = (force = false) => {
 // --- CHEST NO & MASTER SETUP ---
 const teamSetupActionButton=(label,action,team,classes,extra='')=>`<button data-admin-action="${action}" data-team="${escapeHtml(team)}" ${extra} class="min-h-10 rounded-xl px-3 py-2 text-xs font-black transition active:scale-95 ${classes}">${label}</button>`;
 const renderTeamMediaPanel=(team,teamIndex,type)=>{const isHeader=type==='header',stored=isHeader?teamIdCardHeaders[team]||'':teamLogos[team]||'',fieldId=`team-${isHeader?'id-header':'logo'}-edit-${teamIndex}`,previewId=`team-${isHeader?'id-header':'logo'}-preview-${teamIndex}`,errorId=`team-${isHeader?'id-header':'logo'}-error-${teamIndex}`,action=isHeader?'save-team-id-header':'save-team-logo',title=isHeader?'ID card header image':'Team image',tone=isHeader?'emerald':'indigo',panelClass=isHeader?'border-emerald-100 bg-emerald-50/40':'border-indigo-100 bg-indigo-50/40',titleClass=isHeader?'text-emerald-800':'text-indigo-800',inputClass=isHeader?'border-emerald-100':'border-indigo-100',saveClass=isHeader?'bg-emerald-600 text-white hover:bg-emerald-700':'bg-indigo-600 text-white hover:bg-indigo-700',preview=stored?`<img src="${escapeHtml(stored)}" class="${isHeader?'h-16 w-full rounded-2xl bg-black object-cover':'h-20 w-20 rounded-2xl bg-white object-cover'} border" alt="">`:'';
-return `<section class="rounded-2xl border ${panelClass} p-4"><div class="flex items-start justify-between gap-3"><div><h5 class="text-xs font-black uppercase tracking-wide ${titleClass}">${title}</h5><p class="mt-1 text-[10px] font-bold text-slate-500">${isHeader?'Long image crops into the top black band. When present, the fest logo is hidden on ID cards.':'Shown in team lists and used as ID fallback when no header image exists.'}</p></div>${stored?'<span class="rounded-full bg-white px-2 py-1 text-[9px] font-black text-emerald-700">Saved</span>':''}</div><input id="${fieldId}" type="hidden" value="${escapeHtml(stored)}"><input data-image-file data-image-value="${fieldId}" data-image-preview="${previewId}" data-image-error="${errorId}" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="mt-3 w-full rounded-xl border ${inputClass} bg-white p-2 text-xs"><p id="${errorId}" class="mt-1 text-xs font-bold text-red-600"></p><div id="${previewId}" class="mt-3 flex flex-wrap gap-2">${preview}</div><div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">${teamSetupActionButton(isHeader?'Save ID Header':'Save Image',action,team,saveClass)}${stored?teamSetupActionButton('Remove',action,team,'border border-red-100 bg-white text-red-600 hover:bg-red-50',`onclick="document.getElementById('${fieldId}').value=''"`):''}</div></section>`};
+return `<section class="rounded-2xl border ${panelClass} p-4"><div class="flex items-start justify-between gap-3"><div><h5 class="text-xs font-black uppercase tracking-wide ${titleClass}">${title}</h5></div>${stored?'<span class="rounded-full bg-white px-2 py-1 text-[9px] font-black text-emerald-700">Saved</span>':''}</div><input id="${fieldId}" type="hidden" value="${escapeHtml(stored)}"><input data-image-file data-image-value="${fieldId}" data-image-preview="${previewId}" data-image-error="${errorId}" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="mt-3 w-full rounded-xl border ${inputClass} bg-white p-2 text-xs"><p id="${errorId}" class="mt-1 text-xs font-bold text-red-600"></p><div id="${previewId}" class="mt-3 flex flex-wrap gap-2">${preview}</div><div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">${teamSetupActionButton(isHeader?'Save ID Header':'Save Image',action,team,saveClass)}${stored?teamSetupActionButton('Remove',action,team,'border border-red-100 bg-white text-red-600 hover:bg-red-50',`onclick="document.getElementById('${fieldId}').value=''"`):''}</div></section>`};
 const renderTeamChestRows=(team)=>categories.length ? categories.map(category=>{const boysKey=chestKey(team,category,'Boys'),girlsKey=chestKey(team,category,'Girls'),legacyVal=chestConfig[legacyChestKey(team,category)]||'',boysVal=chestConfig[boysKey]||legacyVal,girlsVal=chestConfig[girlsKey]||'';return `<div class="rounded-xl border border-slate-100 bg-slate-50 p-3"><div class="mb-2 flex items-center justify-between gap-2"><span class="truncate text-xs font-black uppercase tracking-wide text-slate-600">${escapeHtml(categoryLabel(category))}</span><span class="flex shrink-0 gap-1"><button data-admin-action="save-category-display-name" data-category="${escapeHtml(category)}" class="rounded-lg p-1 text-slate-400 hover:bg-white hover:text-indigo-600" title="Save display name"><i data-lucide="save" class="h-3.5 w-3.5"></i></button><button data-admin-action="remove-item" data-type="categories" data-value="${escapeHtml(category)}" class="rounded-lg p-1 text-slate-300 hover:bg-white hover:text-red-500" title="Delete"><i data-lucide="trash-2" class="h-3.5 w-3.5"></i></button></span></div><div class="grid grid-cols-2 gap-2"><label class="text-[10px] font-black uppercase text-blue-600">Boys<input type="number" data-key="${boysKey}" value="${boysVal}" class="chest-start-input mt-1 w-full rounded-xl border border-slate-200 bg-slate-100 px-2 py-2 text-center text-sm font-black outline-none transition focus:ring-2 focus:ring-teal-500" placeholder="#" readonly></label><label class="text-[10px] font-black uppercase text-pink-600">Girls<input type="number" data-key="${girlsKey}" value="${girlsVal}" class="chest-start-input mt-1 w-full rounded-xl border border-slate-200 bg-slate-100 px-2 py-2 text-center text-sm font-black outline-none transition focus:ring-2 focus:ring-teal-500" placeholder="#" readonly></label></div></div>`}).join('') : `<div class="col-span-full rounded-xl bg-slate-50 p-4 text-center text-xs font-bold text-slate-400">No categories added yet. Add a category above to set up chest number ranges for this team.</div>`;
 window.renderChestGrid = () => {
     const container = document.getElementById('chest-config-container');
@@ -2373,7 +2528,7 @@ window.renderChestGrid = () => {
         return;
     }
     container.className='p-5 grid grid-cols-1 xl:grid-cols-2 gap-6';
-    container.innerHTML=teams.map((team,teamIndex)=>{const color=teamColors[team]||'#4f46e5',logo=teamLogos[team]||'',header=teamIdCardHeaders[team]||'';return `<article class="animate-enter overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:shadow-lg"><header class="flex flex-col gap-4 border-b border-slate-100 bg-gradient-to-br from-slate-50 to-white p-5 sm:flex-row sm:items-center sm:justify-between"><div class="flex min-w-0 items-center gap-3"><div class="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 bg-white shadow-sm" style="border-color:${color}">${logo?`<img src="${escapeHtml(logo)}" class="h-full w-full object-cover" alt="${escapeHtml(teamLabel(team))} logo">`:`<span class="text-xl font-black" style="color:${color}">${escapeHtml(teamLabel(team).charAt(0)||team.charAt(0))}</span>`}</div><div class="min-w-0"><h4 class="truncate text-xl font-black text-slate-800">${escapeHtml(teamLabel(team))}</h4><p class="font-mono text-[10px] font-black uppercase text-slate-400">${escapeHtml(team)} • locked code</p><label class="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase text-slate-400">Team colour <input type="color" value="${color}" data-admin-change="save-team-color" data-team="${escapeHtml(team)}" class="h-8 w-14 cursor-pointer rounded-lg border border-slate-200 bg-white p-0.5"><span class="font-mono" style="color:${color}">${color}</span></label></div></div><div class="grid grid-cols-3 gap-2 sm:flex"><button data-admin-action="open-team-id-cards" data-team="${escapeHtml(team)}" class="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-50">Preview ID</button><button data-admin-action="save-team-display-name" data-team="${escapeHtml(team)}" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 hover:text-indigo-600">Save Name</button><button data-admin-action="remove-item" data-type="teams" data-value="${escapeHtml(team)}" class="rounded-xl border border-red-100 bg-white px-3 py-2 text-xs font-black text-red-600 hover:bg-red-50">Delete</button></div></header><div class="grid gap-4 p-5 lg:grid-cols-2"><section class="rounded-2xl border border-blue-100 bg-blue-50 p-4 lg:col-span-2"><label class="input-label">Display name for ${escapeHtml(team)}</label><input data-team-display-name="${escapeHtml(team)}" class="text-input" value="${escapeHtml(teamLabel(team))}" dir="auto"><p class="mt-1 text-[10px] font-bold text-blue-700">Internal code is locked; only this display name changes.</p></section>${renderTeamMediaPanel(team,teamIndex,'logo')}${renderTeamMediaPanel(team,teamIndex,'header')}<section class="rounded-2xl border border-slate-200 bg-white p-4 lg:col-span-2"><div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><h5 class="text-xs font-black uppercase tracking-wide text-slate-700">Chest number setup</h5><p class="text-[10px] font-bold text-slate-500">Read-only until Enable Edit is pressed. Saved with Save All.</p></div><div class="flex flex-wrap gap-2"><span class="rounded-full px-3 py-1 text-[9px] font-black uppercase" style="background:${color}22;color:${color}">${header?'Custom ID header':'Logo fallback'}</span><button data-admin-action="open-team-id-cards" data-team="${escapeHtml(team)}" class="rounded-full bg-slate-900 px-3 py-1 text-[9px] font-black uppercase text-white">Download ID Cards</button></div></div><div class="grid gap-3 sm:grid-cols-2">${renderTeamChestRows(team)}</div></section></div></article>`}).join('');
+    container.innerHTML=teams.map((team,teamIndex)=>{const color=teamColors[team]||'#4f46e5',logo=teamLogos[team]||'',header=teamIdCardHeaders[team]||'';return `<article class="animate-enter overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:shadow-lg"><header class="flex flex-col gap-4 border-b border-slate-100 bg-gradient-to-br from-slate-50 to-white p-5 sm:flex-row sm:items-center sm:justify-between"><div class="flex min-w-0 items-center gap-3"><div class="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 bg-white shadow-sm" style="border-color:${color}">${logo?`<img src="${escapeHtml(logo)}" class="h-full w-full object-cover" alt="${escapeHtml(teamLabel(team))} logo">`:`<span class="text-xl font-black" style="color:${color}">${escapeHtml(teamLabel(team).charAt(0)||team.charAt(0))}</span>`}</div><div class="min-w-0"><h4 class="truncate text-xl font-black text-slate-800">${escapeHtml(teamLabel(team))}</h4><p class="font-mono text-[10px] font-black uppercase text-slate-400">${escapeHtml(team)}</p><label class="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase text-slate-400">Team colour <input type="color" value="${color}" data-admin-change="save-team-color" data-team="${escapeHtml(team)}" class="h-8 w-14 cursor-pointer rounded-lg border border-slate-200 bg-white p-0.5"><span class="font-mono" style="color:${color}">${color}</span></label></div></div><div class="grid grid-cols-3 gap-2 sm:flex"><button data-admin-action="open-team-id-cards" data-team="${escapeHtml(team)}" class="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-50">Preview ID</button><button data-admin-action="save-team-display-name" data-team="${escapeHtml(team)}" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 hover:text-indigo-600">Save Name</button><button data-admin-action="remove-item" data-type="teams" data-value="${escapeHtml(team)}" class="rounded-xl border border-red-100 bg-white px-3 py-2 text-xs font-black text-red-600 hover:bg-red-50">Delete</button></div></header><div class="grid gap-4 p-5 lg:grid-cols-2"><section class="rounded-2xl border border-blue-100 bg-blue-50 p-4 lg:col-span-2"><label class="input-label">Display name for ${escapeHtml(team)}</label><input data-team-display-name="${escapeHtml(team)}" class="text-input" value="${escapeHtml(teamLabel(team))}" dir="auto"></section>${renderTeamMediaPanel(team,teamIndex,'logo')}${renderTeamMediaPanel(team,teamIndex,'header')}<section class="rounded-2xl border border-slate-200 bg-white p-4 lg:col-span-2"><div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><h5 class="text-xs font-black uppercase tracking-wide text-slate-700">Chest number setup</h5></div><div class="flex flex-wrap gap-2"><span class="rounded-full px-3 py-1 text-[9px] font-black uppercase" style="background:${color}22;color:${color}">${header?'Custom ID header':'Logo fallback'}</span><button data-admin-action="open-team-id-cards" data-team="${escapeHtml(team)}" class="rounded-full bg-slate-900 px-3 py-1 text-[9px] font-black uppercase text-white">Download ID Cards</button></div></div><div class="grid gap-3 sm:grid-cols-2">${renderTeamChestRows(team)}</div></section></div></article>`}).join('');
     initImageUploads(container);
     window.lucide?.createIcons?.();
 };
