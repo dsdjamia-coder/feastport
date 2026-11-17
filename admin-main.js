@@ -243,6 +243,7 @@ async function startAdminSession() {
     window.adminUnsubscribers.push(onSnapshot(collection(db, "students"), (snap) => {
         students = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         window.adminSharedState.update({ students });
+        window.renderDropdowns?.();
         if (isTabActive('students')) window.renderStudentTable();
         window.updateStats();
     }));
@@ -796,7 +797,7 @@ window.switchTab = (tab) => {
 
     const titles = { 'dashboard': 'Dashboard', 'registrations': 'Registrations', 'students': 'Students Directory', 'events': 'Events Management', 'schedule': 'Time Schedule', 'config': 'Team Setup', 'master-setup': 'Master Setup', 'access': 'Access Management', 'scoring': 'Scoring Settings', 'judge': 'Judgement Desk', 'public-content': 'Public Page Control & Contents', 'poster-certificate':'Poster & Certificate', 'tv-display': 'TV Display Settings', 'danger': 'Data Reset', 'downloads': 'Downloads', 'guide': 'User Guide' };
     document.getElementById('page-title').innerText = titles[tab] || 'Admin Panel';const masterActive=tab==='master-setup';document.getElementById('master-header-actions')?.classList.toggle('hidden',!masterActive);document.getElementById('master-header-actions')?.classList.toggle('flex',masterActive);if(!masterActive){document.getElementById('page-context')?.classList.add('hidden');document.getElementById('page-status')?.classList.add('hidden');}
-    if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') renderStudentTable(); if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.();renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') window.renderSchedule(); if(tab === 'registrations') renderRegList(); if(tab === 'access') window.renderAccessManagement?.(); if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
+    if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') { window.renderDropdowns?.(); renderStudentTable(); } if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.();renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') window.renderSchedule(); if(tab === 'registrations') renderRegList(); if(tab === 'access') window.renderAccessManagement?.(); if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
     resetAdminContentScroll();
 };
 
@@ -825,6 +826,9 @@ window.renderDropdowns = () => {
     updateSelect('.select-cat-filter-directory', '<option value="">All Categories</option>' + studentCatOpts);
     updateSelect('.select-team-filter', '<option value="">All Teams</option>' + teamOpts);
     updateSelect('.select-cat-create', '<option value="General" class="font-bold text-indigo-600">General</option>' + eventCatOpts);
+    const studentClasses = [...new Set(students.map(s => s.details?.class || s.class).filter(Boolean))].sort((a,b) => String(a).localeCompare(String(b), undefined, {numeric:true}));
+    const classOpts = studentClasses.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    updateSelect('.select-class-filter-directory', '<option value="">All Classes</option>' + classOpts);
 };
 
 
@@ -2048,20 +2052,99 @@ window.renderRegList = (force = false) => {
 
 
 const finalEntryDownloadValue=id=>document.getElementById(id)?.value||'';
-const finalEntryExportEvents=(category='')=>finalEntryFilteredEvents({cat:category||finalEntryDownloadValue('final-entry-download-category'),stage:finalEntryDownloadValue('final-entry-download-stage'),gender:finalEntryDownloadValue('final-entry-download-gender'),participation:'all'}).filter(event=>event.cancelled!==true&&uniqueRegistrationRows().some(reg=>reg.eventId===event.id));
+const finalEntryExportEvents=(category='')=>{
+    const selectedCategory = category || finalEntryDownloadValue('final-entry-download-category');
+    if (!selectedCategory) return [];
+    const catVal = selectedCategory === 'all' ? '' : selectedCategory;
+    const stageVal = finalEntryDownloadValue('final-entry-download-stage');
+    const stageFilter = (!stageVal || stageVal === 'all') ? '' : stageVal;
+    const genderVal = finalEntryDownloadValue('final-entry-download-gender');
+    const genderFilter = (!genderVal || genderVal === 'all') ? '' : genderVal;
+    return finalEntryFilteredEvents({cat:catVal,stage:stageFilter,gender:genderFilter,participation:'all'}).filter(event=>event.cancelled!==true&&uniqueRegistrationRows().some(reg=>reg.eventId===event.id));
+};
 const finalEntryParticipantInfo=(registration,id)=>{const meta=registration.participantMeta?.[id]||{},application=registrationApplications.find(item=>(item.studentId===id||item.participantId===id)&&item.eventId===registration.eventId),person=students.find(item=>item.id===id)||participants.find(item=>item.id===id)||{};return{name:person.name||meta.name||application?.studentName||application?.participantName||'Participant',chestNo:person.chestNo||meta.chestNo||application?.chestNo||''};};
 const finalEntryRowsForEvent=event=>[...teams].sort().map(team=>{const rows=uniqueRegistrationRows().filter(reg=>reg.eventId===event.id&&reg.team===team).sort((a,b)=>Number(a.slotIndex||0)-Number(b.slotIndex||0)).flatMap(reg=>[...(reg.studentIds||[]),...(reg.participantIds||[])].map(id=>finalEntryParticipantInfo(reg,id))).filter(row=>row.name);return{team,rows};}).filter(group=>group.rows.length);
 const finalEntrySafe=value=>escapeHtml(String(value??''));
-const finalEntryPrintHtml=()=>{const selectedCategory=finalEntryDownloadValue('final-entry-download-category'),stage=finalEntryDownloadValue('final-entry-download-stage'),gender=finalEntryDownloadValue('final-entry-download-gender'),categoryList=selectedCategory?[selectedCategory]:[...new Set(finalEntryExportEvents('').map(event=>event.category||'General'))].sort(),logo=homeConfig.logoUrl?`<img class="final-entry-logo" src="${finalEntrySafe(homeConfig.logoUrl)}" alt="Fest logo">`:'';const styles=`<style>.final-entry-book{background:#fff;color:#000;font-family:Arial,'Noto Sans Malayalam','Noto Sans',sans-serif}.final-entry-sheet{box-sizing:border-box;width:794px;min-height:1123px;margin:0 auto 18px;background:#fff;padding:20px;break-after:page;page-break-after:always}.final-entry-sheet:last-child{break-after:auto;page-break-after:auto}.final-entry-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}.final-entry-title{font-size:20px;font-weight:700;line-height:1.1}.final-entry-sub{font-size:10px;font-weight:400;text-transform:uppercase}.final-entry-logo{max-width:112px;max-height:58px;object-fit:contain}.final-entry-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}.final-entry-event{break-inside:avoid;page-break-inside:avoid}.final-entry-event-title{font-size:12px;font-weight:700;line-height:1.15;margin:0 0 1px}.final-entry-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9px;line-height:1.08;font-weight:400}.final-entry-table th,.final-entry-table td{border:1px solid #111;padding:2px 3px;color:#000;vertical-align:middle;font-weight:400}.final-entry-table th{font-size:8px;font-weight:700;text-align:center}.final-entry-team-col,.final-entry-team{width:18px}.final-entry-no-col,.final-entry-no{width:20px}.final-entry-chest-col,.final-entry-chest{width:42px}.final-entry-remark-col,.final-entry-remark{width:42px}.final-entry-team{position:relative;padding:0;text-align:center;overflow:hidden}.final-entry-team span{position:absolute;left:50%;top:50%;display:block;white-space:nowrap;transform:translate(-50%,-50%) rotate(-90deg);transform-origin:center center;font-size:8px;font-weight:400;line-height:1}.final-entry-no,.final-entry-chest{text-align:center}.final-entry-name{text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.final-entry-empty{grid-column:1/-1;padding:24px;text-align:center;font-weight:400}</style>`;const pages=categoryList.map(category=>{const eventsList=finalEntryExportEvents(category);return `<section class="final-entry-sheet"><div class="final-entry-head"><div><div class="final-entry-title">${finalEntrySafe(categoryLabel(category))}</div>${[stage,gender].filter(Boolean).length?`<div class="final-entry-sub">${finalEntrySafe([stage,gender].filter(Boolean).join(' • '))}</div>`:''}</div>${logo}</div><div class="final-entry-grid">${eventsList.map(event=>{const groups=finalEntryRowsForEvent(event);return `<section class="final-entry-event"><h4 class="final-entry-event-title">ITEM : ${finalEntrySafe(event.name||'Program')}</h4><table class="final-entry-table"><colgroup><col class="final-entry-team-col"><col class="final-entry-no-col"><col class="final-entry-chest-col"><col><col class="final-entry-remark-col"></colgroup><thead><tr><th></th><th>NO</th><th>CH.NO</th><th>NAME OF PARTICIPANTS</th><th></th></tr></thead><tbody>${groups.map(group=>group.rows.map((row,index)=>`<tr>${index===0?`<td class="final-entry-team" rowspan="${group.rows.length}"><span>${finalEntrySafe(teamLabel(group.team))}</span></td>`:''}<td class="final-entry-no">${index+1}</td><td class="final-entry-chest">${finalEntrySafe(row.chestNo)}</td><td class="final-entry-name">${finalEntrySafe(row.name)}</td><td class="final-entry-remark"></td></tr>`).join('')).join('')}</tbody></table></section>`}).join('')||'<div class="final-entry-empty">No final entries for selected filters.</div>'}</div></section>`}).join('');return `${styles}<div class="final-entry-book">${pages||'<section class="final-entry-sheet"><div class="final-entry-empty">No final entries for selected filters.</div></section>'}</div>`;};
-const populateFinalEntryDownloadFilters=()=>{const setOptions=(id,values,label,display=value=>value)=>{const el=document.getElementById(id);if(!el)return;const old=el.value;el.innerHTML=`<option value="">All ${label}</option>`+values.map(value=>`<option value="${finalEntrySafe(value)}">${finalEntrySafe(display(value))}</option>`).join('');if(values.includes(old))el.value=old};setOptions('final-entry-download-category',[...new Set(events.map(event=>event.category).filter(Boolean))].sort(),'Categories',category=>categoryLabel(category));setOptions('final-entry-download-gender',[...new Set(events.map(event=>genderLabel(event)).filter(Boolean))].sort(),'Genders')};
-window.renderFinalEntriesDownloadPreview=()=>{const host=document.getElementById('final-entries-download-preview'),summary=document.getElementById('final-entries-download-summary');if(!host)return;host.innerHTML=finalEntryPrintHtml();const count=finalEntryExportEvents().length;if(summary)summary.textContent=`${count} active programme table(s) match the selected filters. Cancelled events are hidden.`;};
+const finalEntryPrintHtml=()=>{
+    const selectedCategory=finalEntryDownloadValue('final-entry-download-category');
+    if(!selectedCategory){
+        return `<div class="flex flex-col items-center justify-center py-16 px-4 text-center">
+            <div class="h-14 w-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 mb-3 shadow-sm">
+                <i data-lucide="filter" class="w-7 h-7"></i>
+            </div>
+            <h4 class="text-base font-black text-slate-800">Select Category to Preview Final Entries</h4>
+            <p class="mt-1 text-xs font-bold text-slate-500 max-w-md">Choose a specific category or select 'All Categories' from the filter above to load printable team tables.</p>
+        </div>`;
+    }
+    const stage=finalEntryDownloadValue('final-entry-download-stage');
+    const gender=finalEntryDownloadValue('final-entry-download-gender');
+    const categoryList=selectedCategory==='all'?[...new Set(finalEntryExportEvents('all').map(event=>event.category||'General'))].sort():[selectedCategory];
+    const logo=homeConfig.logoUrl?`<img class="final-entry-logo" src="${finalEntrySafe(homeConfig.logoUrl)}" alt="Fest logo">`:'';
+    const styles=`<style>.final-entry-book{background:#fff;color:#000;font-family:Arial,'Noto Sans Malayalam','Noto Sans',sans-serif}.final-entry-sheet{box-sizing:border-box;width:794px;min-height:1123px;margin:0 auto 18px;background:#fff;padding:20px;break-after:page;page-break-after:always}.final-entry-sheet:last-child{break-after:auto;page-break-after:auto}.final-entry-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}.final-entry-title{font-size:20px;font-weight:700;line-height:1.1}.final-entry-sub{font-size:10px;font-weight:400;text-transform:uppercase}.final-entry-logo{max-width:112px;max-height:58px;object-fit:contain}.final-entry-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}.final-entry-event{break-inside:avoid;page-break-inside:avoid}.final-entry-event-title{font-size:12px;font-weight:700;line-height:1.15;margin:0 0 1px}.final-entry-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9px;line-height:1.08;font-weight:400}.final-entry-table th,.final-entry-table td{border:1px solid #111;padding:2px 3px;color:#000;vertical-align:middle;font-weight:400}.final-entry-table th{font-size:8px;font-weight:700;text-align:center}.final-entry-team-col,.final-entry-team{width:18px}.final-entry-no-col,.final-entry-no{width:20px}.final-entry-chest-col,.final-entry-chest{width:42px}.final-entry-remark-col,.final-entry-remark{width:42px}.final-entry-team{position:relative;padding:0;text-align:center;overflow:hidden}.final-entry-team span{position:absolute;left:50%;top:50%;display:block;white-space:nowrap;transform:translate(-50%,-50%) rotate(-90deg);transform-origin:center center;font-size:8px;font-weight:400;line-height:1}.final-entry-no,.final-entry-chest{text-align:center}.final-entry-name{text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.final-entry-empty{grid-column:1/-1;padding:24px;text-align:center;font-weight:400}</style>`;
+    const pages=categoryList.map(category=>{
+        const eventsList=finalEntryExportEvents(category);
+        return `<section class="final-entry-sheet"><div class="final-entry-head"><div><div class="final-entry-title">${finalEntrySafe(categoryLabel(category))}</div>${[stage,gender].filter(v=>v&&v!=='all').length?`<div class="final-entry-sub">${finalEntrySafe([stage,gender].filter(v=>v&&v!=='all').join(' • '))}</div>`:''}</div>${logo}</div><div class="final-entry-grid">${eventsList.map(event=>{
+            const groups=finalEntryRowsForEvent(event);
+            return `<section class="final-entry-event"><h4 class="final-entry-event-title">ITEM : ${finalEntrySafe(event.name||'Program')}</h4><table class="final-entry-table"><colgroup><col class="final-entry-team-col"><col class="final-entry-no-col"><col class="final-entry-chest-col"><col><col class="final-entry-remark-col"></colgroup><thead><tr><th></th><th>NO</th><th>CH.NO</th><th>NAME OF PARTICIPANTS</th><th></th></tr></thead><tbody>${groups.map(group=>group.rows.map((row,index)=>`<tr>${index===0?`<td class="final-entry-team" rowspan="${group.rows.length}"><span>${finalEntrySafe(teamLabel(group.team))}</span></td>`:''}<td class="final-entry-no">${index+1}</td><td class="final-entry-chest">${finalEntrySafe(row.chestNo)}</td><td class="final-entry-name">${finalEntrySafe(row.name)}</td><td class="final-entry-remark"></td></tr>`).join('')).join('')}</tbody></table></section>`;
+        }).join('')||'<div class="final-entry-empty">No final entries for selected filters.</div>'}</div></section>`;
+    }).join('');
+    return `${styles}<div class="final-entry-book">${pages||'<section class="final-entry-sheet"><div class="final-entry-empty">No final entries for selected filters.</div></section>'}</div>`;
+};
+const populateFinalEntryDownloadFilters=()=>{
+    const setOptions=(id,values,label,display=value=>value)=>{
+        const el=document.getElementById(id);
+        if(!el)return;
+        const old=el.value;
+        el.innerHTML=`<option value="">Select ${label}...</option><option value="all">All ${label}</option>`+values.map(value=>`<option value="${finalEntrySafe(value)}">${finalEntrySafe(display(value))}</option>`).join('');
+        if(values.includes(old) || old==='all')el.value=old;
+    };
+    setOptions('final-entry-download-category',[...new Set(events.map(event=>event.category).filter(Boolean))].sort(),'Categories',category=>categoryLabel(category));
+    setOptions('final-entry-download-gender',[...new Set(events.map(event=>genderLabel(event)).filter(Boolean))].sort(),'Genders');
+};
+window.renderFinalEntriesDownloadPreview=()=>{
+    const host=document.getElementById('final-entries-download-preview'),summary=document.getElementById('final-entries-download-summary');
+    if(!host)return;
+    const selectedCategory=finalEntryDownloadValue('final-entry-download-category');
+    host.innerHTML=finalEntryPrintHtml();
+    window.lucide?.createIcons?.();
+    if(!selectedCategory){
+        if(summary)summary.textContent='Select a category or choose "All Categories" to preview and export entries.';
+        return;
+    }
+    const count=finalEntryExportEvents().length;
+    if(summary)summary.textContent=`${count} active programme table(s) match the selected filters. Cancelled events are hidden.`;
+};
 window.openFinalEntriesDownload=()=>{
     window.switchTab('downloads');
     window.switchDownloadSubtab('final-entries');
 };
 window.closeFinalEntriesDownload=()=>{const modal=document.getElementById('final-entries-download-modal');modal?.classList.add('hidden');modal?.classList.remove('flex');};
-window.downloadFinalEntriesPdf=async()=>{await window.ensureDep?.('html2pdf');const html=finalEntryPrintHtml();if(!window.html2pdf)return window.showToast('Malayalam PDF renderer is not loaded','error');const host=document.createElement('div');host.style.cssText='position:fixed;left:-10000px;top:0;background:#fff;z-index:-1';host.innerHTML=html;document.body.appendChild(host);const page=host.querySelector('.final-entry-book');const blob=await window.html2pdf().from(page).set({margin:0,image:{type:'jpeg',quality:.98},html2canvas:{scale:2,backgroundColor:'#ffffff',useCORS:true},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).outputPdf('blob');host.remove();const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Final_Entries.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
-window.downloadFinalEntriesExcel=()=>{const html=`<html><head><meta charset="utf-8"></head><body>${finalEntryPrintHtml()}</body></html>`,blob=new Blob([html],{type:'application/vnd.ms-excel;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Final_Entries.xls';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+window.downloadFinalEntriesPdf=async()=>{
+    if(!finalEntryDownloadValue('final-entry-download-category')) return window.showToast('Please select a category or choose "All Categories" first','error');
+    await window.ensureDep?.('html2pdf');
+    const html=finalEntryPrintHtml();
+    if(!window.html2pdf)return window.showToast('Malayalam PDF renderer is not loaded','error');
+    const host=document.createElement('div');
+    host.style.cssText='position:fixed;left:-10000px;top:0;background:#fff;z-index:-1';
+    host.innerHTML=html;
+    document.body.appendChild(host);
+    const page=host.querySelector('.final-entry-book');
+    const blob=await window.html2pdf().from(page).set({margin:0,image:{type:'jpeg',quality:.98},html2canvas:{scale:2,backgroundColor:'#ffffff',useCORS:true},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).outputPdf('blob');
+    host.remove();
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;
+    a.download='Final_Entries.pdf';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+window.downloadFinalEntriesExcel=()=>{
+    if(!finalEntryDownloadValue('final-entry-download-category')) return window.showToast('Please select a category or choose "All Categories" first','error');
+    const html=`<html><head><meta charset="utf-8"></head><body>${finalEntryPrintHtml()}</body></html>`,blob=new Blob([html],{type:'application/vnd.ms-excel;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;
+    a.download='Final_Entries.xls';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
 
 
 window.cleanupDuplicateFinalEntries = async () => {
@@ -2132,9 +2215,10 @@ const studentDisplayName = student => `${student.name || 'Student'}${student.det
 window.renderStudentTable = (force = false) => {
     const teamFilter = document.getElementById('filter-std-team').value;
     const catFilter = document.getElementById('filter-std-cat').value;
+    const classFilter = document.getElementById('filter-std-class')?.value || '';
     const genderFilter = document.getElementById('filter-std-gender').value;
     const searchQuery = document.getElementById('inp-search-std').value.toLowerCase();
-    const currentHash = generateHash(students) + teamFilter + catFilter + genderFilter + searchQuery + paginationState.students.page + paginationState.students.limit;
+    const currentHash = generateHash(students) + teamFilter + catFilter + classFilter + genderFilter + searchQuery + paginationState.students.page + paginationState.students.limit;
     if(!force && lastRenderHash.students === currentHash) return;
     lastRenderHash.students = currentHash;
 
@@ -2144,6 +2228,7 @@ window.renderStudentTable = (force = false) => {
     let filteredStudents = students;
     if (teamFilter) filteredStudents = filteredStudents.filter(s => s.team === teamFilter);
     if (catFilter) { if(catFilter !== 'General') filteredStudents = filteredStudents.filter(s => s.category === catFilter); }
+    if (classFilter) filteredStudents = filteredStudents.filter(s => (s.details?.class || s.class) === classFilter);
     if (genderFilter) filteredStudents = filteredStudents.filter(s => studentGender(s) === genderFilter);
     if (searchQuery) filteredStudents = filteredStudents.filter(s => `${s.name} ${s.chestNo||''} ${Object.values(s.details||{}).join(' ')}`.toLowerCase().includes(searchQuery));
     const sorted = [...filteredStudents].sort((a,b) => String(a.chestNo ?? '').localeCompare(String(b.chestNo ?? ''), undefined, {numeric:true, sensitivity:'case'}));
@@ -2235,11 +2320,13 @@ window.renderChestGrid = () => {
 window.exportToCSV = () => {
     const teamFilter = document.getElementById('filter-std-team').value;
     const catFilter = document.getElementById('filter-std-cat').value;
+    const classFilter = document.getElementById('filter-std-class')?.value || '';
     const genderFilter = document.getElementById('filter-std-gender').value;
     const searchQuery = document.getElementById('inp-search-std').value.toLowerCase();
     let filteredStudents = students;
     if (teamFilter) filteredStudents = filteredStudents.filter(s => s.team === teamFilter);
     if (catFilter) { if(catFilter !== 'General') filteredStudents = filteredStudents.filter(s => s.category === catFilter); }
+    if (classFilter) filteredStudents = filteredStudents.filter(s => (s.details?.class || s.class) === classFilter);
     if (genderFilter) filteredStudents = filteredStudents.filter(s => studentGender(s) === genderFilter);
     if (searchQuery) filteredStudents = filteredStudents.filter(s => s.name.toLowerCase().includes(searchQuery) || (s.chestNo && s.chestNo.toString().includes(searchQuery)));
 
