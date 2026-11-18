@@ -568,10 +568,16 @@ document.addEventListener('click', (event) => {
         'move-public-view-item': () => window.movePublicViewItem(d.group, d.key, Number(d.direction)),
         'reset-public-view-order': () => window.resetPublicViewOrder(d.group),
         'add-participant-type': () => window.addMasterParticipantType(),
-        'edit-participant-type': () => window.editMasterParticipantType(d.key),
+        'edit-participant-type': () => window.openParticipantTypeModal(d.key),
         'remove-participant-type': () => window.removeMasterParticipantType(d.key),
+        'close-participant-type-modal': () => window.closeParticipantTypeModal(),
+        'save-participant-type-modal': () => window.saveParticipantTypeModal(),
         'add-tier-level': () => window.addMasterTierLevel(),
         'remove-tier-level': () => window.removeMasterTierLevel(d.tierId),
+        'add-domain-modal': () => window.addMasterDomain(),
+        'edit-domain': () => window.editMasterDomain(d.domainId),
+        'remove-domain': () => window.removeMasterDomain(d.domainId),
+        'edit-domain-segment': () => window.editMasterDomainSegment(d.domainId, d.segmentId),
         'add-domain-segment': () => window.addMasterDomainSegment(d.domainId),
         'remove-domain-segment': () => window.removeMasterDomainSegment(d.domainId, d.segmentId),
         'set-gender-preset': () => window.setMasterGenderPreset(d.preset),
@@ -3306,13 +3312,212 @@ window.showMasterInfo=(key,trigger)=>{const same=masterInfoOpen.has(key);closeMa
 window.closeMasterInfo=closeMasterInfo;window.clearMasterInfo=closeMasterInfo;
 document.addEventListener('keydown',event=>{if(event.key==='Escape')closeMasterInfo();});document.addEventListener('click',event=>{if(document.getElementById('master-help-popover')&&!event.target.closest('#master-help-popover,[data-admin-action="show-master-info"]'))closeMasterInfo();});
 const participantTypeUsage=key=>participants.filter(item=>item.participantType===key).length+events.filter(item=>(item.allowedParticipantTypes||[]).includes(key)).length+registrationRequests.filter(item=>item.participantType===key).length;
-window.addMasterParticipantType=()=>{const label=masterValue('master-new-participant-label').trim(),description=masterValue('master-new-participant-description').trim(),key=label.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');if(!label||!key)return window.showToast('Enter an English participant type name','error');const definitions=normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions);if(definitions.some(item=>item.key===key))return window.showToast('Participant type already exists','error');festSetup={...festSetup,preset:'custom',participantTypeDefinitions:[...definitions,{key,label,description,system:false}],participantTypes:[...new Set([...festSetup.participantTypes,key])]};document.getElementById('master-new-participant-label').value='';document.getElementById('master-new-participant-description').value='';window.renderMasterSetup();};
-window.editMasterParticipantType=async key=>{const definitions=normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions),item=definitions.find(value=>value.key===key);if(!item||item.system)return;const label=await window.promptAction('Participant type name',item.label);if(!label)return;const description=await window.promptAction('Short description',item.description||'');festSetup={...festSetup,preset:'custom',participantTypeDefinitions:definitions.map(value=>value.key===key?{...value,label,description:description??value.description}:value)};window.renderMasterSetup();};
-window.removeMasterParticipantType=async key=>{const definitions=normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions),item=definitions.find(value=>value.key===key);if(!item||item.system)return;const usage=participantTypeUsage(key);if(usage)return window.showToast(`${item.label} is used by ${usage} records; disable it instead of deleting`,'error');festSetup={...festSetup,preset:'custom',participantTypeDefinitions:definitions.filter(value=>value.key!==key),participantTypes:festSetup.participantTypes.filter(value=>value!==key)};window.renderMasterSetup();};
+window.addMasterParticipantType = () => {
+    const label = masterValue('master-new-participant-label').trim();
+    const description = masterValue('master-new-participant-description').trim();
+    const affiliation = masterValue('master-new-participant-affiliation') || (document.getElementById('master-new-participant-team')?.checked ? 'team' : 'open');
+    const key = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    if (!label || !key) return window.showToast('Enter an English participant type name', 'error');
+    const definitions = normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions);
+    if (definitions.some(item => item.key === key)) return window.showToast('Participant type already exists', 'error');
+    const isTeam = affiliation === 'team';
+    const newType = {
+        key,
+        label,
+        description,
+        teamAffiliated: isTeam,
+        system: false,
+        allowedGenders: festSetup.allowedGenders || ['Boys', 'Girls'],
+        registrationChannels: isTeam ? ['admin', 'teamLeader'] : ['admin', 'self', 'onSite']
+    };
+    festSetup = {
+        ...festSetup,
+        preset: 'custom',
+        participantTypeDefinitions: [...definitions, newType],
+        participantTypes: [...new Set([...festSetup.participantTypes, key])]
+    };
+    const labelInput = document.getElementById('master-new-participant-label');
+    const descInput = document.getElementById('master-new-participant-description');
+    if (labelInput) labelInput.value = '';
+    if (descInput) descInput.value = '';
+    window.renderMasterSetup();
+    window.showToast(`Participant type "${label}" added`);
+};
+
+window.openParticipantTypeModal = key => {
+    const definitions = normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions);
+    const item = definitions.find(d => d.key === key);
+    if (!item) return;
+    const modal = document.getElementById('participant-type-edit-modal');
+    if (!modal) return;
+    document.getElementById('edit-pt-key').value = item.key;
+    document.getElementById('edit-pt-label').value = item.label;
+    document.getElementById('edit-pt-description').value = item.description || '';
+    document.getElementById('edit-pt-affiliation').value = item.teamAffiliated !== false ? 'team' : 'open';
+    const titleEl = document.getElementById('participant-type-modal-title');
+    if (titleEl) titleEl.textContent = `Edit ${item.label} Configuration`;
+
+    const genderContainer = document.getElementById('edit-pt-genders');
+    if (genderContainer) {
+        const availableGenders = festSetup.allowedGenders || ['Boys', 'Girls'];
+        const selectedGenders = new Set(item.allowedGenders || availableGenders);
+        genderContainer.innerHTML = availableGenders.map(g => `
+            <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs font-bold cursor-pointer hover:bg-slate-100">
+                <input type="checkbox" name="edit-pt-gender-opt" value="${escapeHtml(g)}" ${selectedGenders.has(g) ? 'checked' : ''} class="h-4 w-4 rounded text-indigo-600">
+                <span>${escapeHtml(g)}</span>
+            </label>
+        `).join('');
+    }
+
+    const channelContainer = document.getElementById('edit-pt-channels');
+    if (channelContainer) {
+        const allChannels = [
+            { id: 'admin', label: 'Admin Registration' },
+            { id: 'teamLeader', label: 'Team Leader' },
+            { id: 'self', label: 'Self Registration' },
+            { id: 'onSite', label: 'On-Site Registration' }
+        ];
+        const selectedChannels = new Set(item.registrationChannels || ['admin', 'teamLeader']);
+        channelContainer.innerHTML = allChannels.map(c => `
+            <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs font-bold cursor-pointer hover:bg-slate-100">
+                <input type="checkbox" name="edit-pt-channel-opt" value="${c.id}" ${selectedChannels.has(c.id) ? 'checked' : ''} class="h-4 w-4 rounded text-indigo-600">
+                <span>${c.label}</span>
+            </label>
+        `).join('');
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    window.lucide?.createIcons?.();
+};
+
+window.closeParticipantTypeModal = () => {
+    const modal = document.getElementById('participant-type-edit-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+window.saveParticipantTypeModal = async () => {
+    const key = document.getElementById('edit-pt-key')?.value;
+    const label = (document.getElementById('edit-pt-label')?.value || '').trim();
+    const description = (document.getElementById('edit-pt-description')?.value || '').trim();
+    const affiliation = document.getElementById('edit-pt-affiliation')?.value || 'team';
+    if (!label) return window.showToast('Participant type name is required', 'error');
+
+    const selectedGenders = [...document.querySelectorAll('input[name="edit-pt-gender-opt"]:checked')].map(i => i.value);
+    if (!selectedGenders.length) return window.showToast('Select at least one eligible gender division', 'error');
+
+    const selectedChannels = [...document.querySelectorAll('input[name="edit-pt-channel-opt"]:checked')].map(i => i.value);
+    if (!selectedChannels.length) return window.showToast('Select at least one registration channel', 'error');
+
+    if (!await window.confirmAction(`Update configuration for "${label}"?`, { okText: 'Update', cancelText: 'Cancel' })) return;
+
+    const definitions = normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions);
+    festSetup = {
+        ...festSetup,
+        preset: 'custom',
+        participantTypeDefinitions: definitions.map(item => {
+            if (item.key === key) {
+                return {
+                    ...item,
+                    label,
+                    description,
+                    teamAffiliated: affiliation === 'team',
+                    allowedGenders: selectedGenders,
+                    registrationChannels: selectedChannels
+                };
+            }
+            return item;
+        })
+    };
+
+    window.closeParticipantTypeModal();
+    window.renderMasterSetup();
+    window.showToast(`Updated "${label}" configuration`);
+};
+
+window.editMasterParticipantType = async key => {
+    window.openParticipantTypeModal(key);
+};
+
+window.removeMasterParticipantType = async key => {
+    const definitions = normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions);
+    const item = definitions.find(value => value.key === key);
+    if (!item || item.system) return window.showToast('Built-in system type cannot be deleted', 'error');
+    const usage = participantTypeUsage(key);
+    if (usage) return window.showToast(`${item.label} is used by ${usage} records; disable it instead of deleting`, 'error');
+    if (!await window.confirmAction(`Delete participant type "${item.label}"?`)) return;
+    festSetup = {
+        ...festSetup,
+        preset: 'custom',
+        participantTypeDefinitions: definitions.filter(value => value.key !== key),
+        participantTypes: festSetup.participantTypes.filter(value => value !== key)
+    };
+    window.renderMasterSetup();
+    window.showToast(`Participant type "${item.label}" deleted`);
+};
+
 const MASTER_SCORING_PACK={school_team_fest:'points_grades',simple_direct_fest:'direct_rank',open_registration_fest:'standard_points',hybrid_community_fest:'advanced'};
 window.applyMasterPreset=value=>{if(value==='custom'){festSetup={...festSetup,preset:'custom'};window.renderMasterSetup();return;}const currentPolicies=festSetup.competitionPolicies,currentFields=festSetup.studentFields,currentDefinitions=festSetup.participantTypeDefinitions;festSetup={...setupForPreset(value),competitionPolicies:currentPolicies,studentFields:currentFields,participantTypeDefinitions:currentDefinitions};window.renderMasterSetup();window.applyScoringPolicyPack?.(MASTER_SCORING_PACK[value]||'custom');};
 const renderPresetGuide=setup=>{const guide=FEST_PRESET_GUIDES[setup.preset]||FEST_PRESET_GUIDES.custom,box=document.getElementById('master-preset-guide');if(!box)return;box.innerHTML=`<div class="flex flex-col gap-4 lg:flex-row lg:justify-between"><div><h4 class="text-lg font-black text-indigo-950">${escapeHtml(guide.label)}</h4><p class="mt-1 text-sm font-semibold text-indigo-800">${escapeHtml(guide.summary)}</p><p class="mt-3 text-xs font-black uppercase text-indigo-500">Workflow</p><p class="mt-1 text-xs font-bold text-indigo-800">${guide.workflow.map(escapeHtml).join(' → ')}</p></div><div class="lg:max-w-sm"><p class="text-xs font-black uppercase text-indigo-500">Available workspaces</p><div class="mt-2 flex flex-wrap gap-2">${guide.pages.map(page=>`<span class="rounded-full bg-white px-3 py-1 text-[10px] font-black text-indigo-700">${escapeHtml(page)}</span>`).join('')}</div></div></div>`;};
-const renderMasterParticipantTypes=setup=>{const box=document.getElementById('master-participant-types');if(!box)return;box.innerHTML=normalizeParticipantTypeDefinitions(setup.participantTypeDefinitions).map(item=>`<div class="flex items-center justify-between rounded-xl bg-slate-50 p-3"><label class="min-w-0 flex-1 text-sm font-bold capitalize"><input type="checkbox" name="master-participants" value="${item.key}" data-master-list="participantTypes" ${setup.participantTypes.includes(item.key)?'checked':''} class="mr-2">${escapeHtml(item.label)}</label><div class="flex"><button data-admin-action="show-master-info" data-info="${item.key}" class="rounded-lg p-1 text-indigo-600" aria-label="${escapeHtml(item.label)} help"><i data-lucide="info" class="h-4 w-4"></i></button>${item.system?'':`<button data-admin-action="edit-participant-type" data-key="${item.key}" class="rounded-lg p-1 text-slate-500"><i data-lucide="pencil" class="h-4 w-4"></i></button><button data-admin-action="remove-participant-type" data-key="${item.key}" class="rounded-lg p-1 text-red-500"><i data-lucide="trash-2" class="h-4 w-4"></i></button>`}</div></div>`).join('')+'<p class="rounded-xl bg-indigo-50 p-3 text-[10px] font-bold text-indigo-700">At least one participant type must remain enabled. To disable Student, enable another type first. Use Registration Policy to turn the public portal off.</p>';};
+const renderMasterParticipantTypes = setup => {
+    const box = document.getElementById('master-participant-types');
+    if (!box) return;
+    const definitions = normalizeParticipantTypeDefinitions(setup.participantTypeDefinitions);
+    const activeTypes = new Set(setup.participantTypes || []);
+
+    box.innerHTML = definitions.map(item => {
+        const isChecked = activeTypes.has(item.key);
+        const genders = item.allowedGenders || ['Boys', 'Girls'];
+        const channels = item.registrationChannels || ['admin', 'teamLeader'];
+        const isTeam = item.teamAffiliated !== false;
+
+        return `
+            <div class="rounded-2xl border ${isChecked ? 'border-indigo-200 bg-white shadow-2xs' : 'border-slate-200 bg-slate-50/70 opacity-70'} p-4 transition" data-participant-card="${escapeHtml(item.key)}">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-3">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="master-participants" value="${escapeHtml(item.key)}" data-master-list="participantTypes" ${isChecked ? 'checked' : ''} class="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500">
+                        </label>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <b class="text-sm font-black text-slate-800">${escapeHtml(item.label)}</b>
+                                ${item.system ? '<span class="rounded-md bg-indigo-100 px-1.5 py-0.5 text-[10px] font-black uppercase text-indigo-700">Built-in</span>' : '<span class="rounded-md bg-slate-200 px-1.5 py-0.5 text-[10px] font-black uppercase text-slate-700">Custom</span>'}
+                                <span class="rounded-md ${isTeam ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'} px-2 py-0.5 text-[10px] font-black">
+                                    ${isTeam ? 'Team Affiliated' : 'Open / Independent'}
+                                </span>
+                            </div>
+                            <p class="text-[11px] font-semibold text-slate-500 mt-0.5">${escapeHtml(item.description || 'No description provided.')}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" data-admin-action="show-master-info" data-info="${escapeHtml(item.key)}" class="rounded-lg p-1.5 text-slate-400 hover:text-indigo-600" aria-label="${escapeHtml(item.label)} help"><i data-lucide="info" class="h-4 w-4"></i></button>
+                        <button type="button" data-admin-action="edit-participant-type" data-key="${escapeHtml(item.key)}" class="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700 shadow-2xs flex items-center gap-1"><i data-lucide="pencil" class="h-3.5 w-3.5"></i> Edit</button>
+                        ${!item.system ? `<button type="button" data-admin-action="remove-participant-type" data-key="${escapeHtml(item.key)}" class="rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 px-2 py-1 text-xs font-bold text-rose-600 shadow-2xs" title="Delete Type"><i data-lucide="trash-2" class="h-3.5 w-3.5"></i></button>` : ''}
+                    </div>
+                </div>
+
+                <div class="mt-3 grid gap-3 sm:grid-cols-2 text-xs">
+                    <div>
+                        <span class="text-[10px] font-black uppercase text-slate-400 block mb-1">Eligible Genders:</span>
+                        <div class="flex flex-wrap gap-1">
+                            ${genders.map(g => `<span class="rounded-lg bg-blue-50 border border-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">${escapeHtml(g)}</span>`).join('')}
+                        </div>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-black uppercase text-slate-400 block mb-1">Registration Channels:</span>
+                        <div class="flex flex-wrap gap-1">
+                            ${channels.map(c => `<span class="rounded-lg bg-slate-100 border border-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-700">${escapeHtml(c === 'teamLeader' ? 'Team Leader' : c === 'self' ? 'Self Reg' : c === 'onSite' ? 'On-Site' : 'Admin')}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('') + '<p class="rounded-xl bg-indigo-50 p-3 text-[10px] font-bold text-indigo-700">At least one participant type must remain enabled. To disable Student, enable another type first. Use Registration Policy to turn the public portal off.</p>';
+    window.lucide?.createIcons?.();
+};
 const decorateMasterHelp=()=>{document.querySelectorAll('#view-master-setup [data-master-list],#view-master-setup [data-master-public],#view-master-setup [data-master-event-feature]').forEach(input=>{const label=input.closest('label');if(!label||label.closest('#master-participant-types')||label.querySelector('[data-auto-info]'))return;label.classList.add('flex','items-center','justify-between','gap-2');const button=document.createElement('button'),key=input.dataset.masterEventFeature||input.dataset.masterPublic||input.value;button.type='button';button.dataset.adminAction='show-master-info';button.dataset.info=key;button.dataset.autoInfo='true';button.className='master-info-trigger ml-auto';button.setAttribute('aria-label',`${masterInfoFor(key).title} information`);button.title='Show information';button.innerHTML='<i data-lucide="info" class="h-4 w-4"></i>';label.append(button);});document.querySelectorAll('#view-master-setup [data-admin-action="show-master-info"]').forEach(button=>{button.type='button';button.classList.add('master-info-trigger');});};
 const mergeScoringIntoMasterSetup=()=>{const slot=document.getElementById('master-scoring-slot'),view=document.getElementById('view-scoring');if(!slot||!view||slot.children.length)return;const card=view.firstElementChild;if(card){card.querySelector('h3').textContent='Competition Scoring Rules';slot.append(card);}view.remove();};
 window.renderMasterImpactReview=()=>{const box=document.getElementById('master-impact-review');if(!box)return;const changes=[],select=(id)=>masterValue(id);if(select('master-organisation')!==savedFestSetup.organisationMode)changes.push(['Organisation model',`${teams.length} teams • ${registrations.length} registrations • ${participants.length} participants`]);if(select('master-schedule')!==savedFestSetup.scheduleMode)changes.push(['Schedule mode',`${events.filter(event=>event.scheduleDate||event.scheduleDayId).length} scheduled events • schedule versions require review`]);if(select('master-judging')!==savedFestSetup.judgingMode)changes.push(['Judgement mode',`${judgeAssignments.length} assignments • ${judgeScores.filter(score=>score.status==='submitted').length} submitted score sheets`]);if(select('master-results')!==savedFestSetup.resultWorkflow)changes.push(['Result workflow',`${results.length} results • ${judgeScores.length} judge score sheets`]);if(select('master-team-scoring')!==savedFestSetup.teamScoringMode)changes.push(['Team scoring',`${results.length} published/working results • team standings require recalculation`]);const current=readScoringConfigFromDom();if(JSON.stringify(current.configs)!==JSON.stringify(normalizeAdminScoringRules().configs)||JSON.stringify(current.gradeThresholds)!==JSON.stringify(normalizeAdminScoringRules().gradeThresholds))changes.push(['Competition scoring rules',`${results.filter(result=>!result.status||result.status==='published').length} published results stay frozen • future results use the new snapshot • standings ledger requires review`]);const removed=savedFestSetup.participantTypes.filter(type=>!checkedValues('master-participants').includes(type));removed.forEach(type=>changes.push([`Participant type: ${type}`,`${participantTypeUsage(type)} linked records require review`]));const policyMissing=incompleteCompetitionPolicies(competitionPoliciesFromForm()),classValues=(document.querySelector('[data-student-field-options="class"]')?.value||'').split(',').map(v=>v.trim()).filter(Boolean),checks=[['Participant types',checkedValues('master-participants').length>0],['Gender divisions',checkedValues('master-genders').length>0],['Registration channels',checkedValues('master-registration').length>0],['Class Master',classValues.length>0],['Competition policies',policyMissing.length===0]];const readiness=checks.map(([title,ok])=>`<article class="rounded-xl border p-3 ${ok?'border-emerald-200 bg-emerald-50':'border-red-200 bg-red-50'}"><b class="text-sm ${ok?'text-emerald-900':'text-red-900'}">${ok?'✓':'✕'} ${title}</b><p class="mt-1 text-xs font-semibold ${ok?'text-emerald-700':'text-red-700'}">${ok?'Ready for activation':title==='Competition policies'?escapeHtml(policyMissing.join(' • ')):'Complete this section before activation'}</p></article>`).join('');const impacts=changes.map(([title,impact])=>`<article class="rounded-xl border border-amber-200 bg-amber-50 p-3"><div class="flex items-center gap-2"><i data-lucide="triangle-alert" class="h-4 w-4 text-amber-600"></i><b class="text-sm text-amber-950">${escapeHtml(title)}</b></div><p class="mt-1 text-xs font-semibold text-amber-800">${escapeHtml(impact)}</p><p class="mt-2 text-[10px] font-black uppercase text-amber-600">Data is retained; review affected records after saving.</p></article>`).join('');box.innerHTML=readiness+(impacts||'<div class="col-span-full rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">No operational mode changes detected.</div>');window.lucide?.createIcons?.();};
@@ -3396,33 +3601,43 @@ window.renderMasterDomains = (setup = festSetup) => {
     if (!container) return;
     const domainsConfig = setup.domains || { enabled: ['arts'], activeDomains: [] };
     const enabledSet = new Set(domainsConfig.enabled || ['arts']);
+    const activeDomains = domainsConfig.activeDomains || [];
     
     container.innerHTML = `
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            ${(domainsConfig.activeDomains || []).map(d => {
+            ${activeDomains.map(d => {
                 const isEnabled = enabledSet.has(d.id);
                 return `
-                    <div class="rounded-2xl border ${isEnabled ? 'border-indigo-200 bg-indigo-50/40' : 'border-slate-200 bg-slate-50/60 opacity-70'} p-4 flex flex-col justify-between">
+                    <div class="rounded-2xl border ${isEnabled ? 'border-indigo-200 bg-white shadow-2xs' : 'border-slate-200 bg-slate-50/70 opacity-70'} p-4 flex flex-col justify-between" data-domain-card="${escapeHtml(d.id)}">
                         <div>
-                            <div class="flex items-center justify-between">
-                                <b class="text-sm font-black text-slate-800">${escapeHtml(d.name)}</b>
-                                <label class="relative inline-flex items-center cursor-pointer">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <b class="text-sm font-black text-slate-800 truncate" title="${escapeHtml(d.name)}">${escapeHtml(d.name)}</b>
+                                    <button type="button" data-admin-action="edit-domain" data-domain-id="${escapeHtml(d.id)}" class="p-1 text-slate-400 hover:text-indigo-600 rounded-lg transition active:scale-95" title="Rename Domain"><i data-lucide="pencil" class="h-3.5 w-3.5"></i></button>
+                                    ${activeDomains.length > 1 ? `<button type="button" data-admin-action="remove-domain" data-domain-id="${escapeHtml(d.id)}" class="p-1 text-slate-400 hover:text-rose-600 rounded-lg transition active:scale-95" title="Delete Domain"><i data-lucide="trash-2" class="h-3.5 w-3.5"></i></button>` : ''}
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer shrink-0 ml-2" title="${isEnabled ? 'Disable domain' : 'Enable domain'}">
                                     <input type="checkbox" data-domain-toggle="${escapeHtml(d.id)}" ${isEnabled ? 'checked' : ''} class="sr-only peer">
                                     <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
                                 </label>
                             </div>
-                            <div class="mt-3 flex flex-wrap gap-1.5">
-                                ${(d.segments || []).map(s => `
-                                    <span class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-700" title="${escapeHtml(s.description || '')}">
-                                        ${escapeHtml(s.name)}
-                                        <button type="button" data-admin-action="remove-domain-segment" data-domain-id="${escapeHtml(d.id)}" data-segment-id="${escapeHtml(s.id)}" class="text-slate-400 hover:text-rose-500 font-black">&times;</button>
-                                    </span>
-                                `).join('')}
+                            <div class="mt-3">
+                                <span class="text-[10px] font-black uppercase text-slate-400 block mb-1.5">Segments:</span>
+                                <div class="flex flex-wrap gap-1.5">
+                                    ${(d.segments || []).map(s => `
+                                        <span class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-700 shadow-2xs group" title="${escapeHtml(s.description || '')}">
+                                            <span>${escapeHtml(s.name)}</span>
+                                            <button type="button" data-admin-action="edit-domain-segment" data-domain-id="${escapeHtml(d.id)}" data-segment-id="${escapeHtml(s.id)}" class="text-slate-400 hover:text-indigo-600 transition" title="Rename Segment"><i data-lucide="pencil" class="h-3 w-3"></i></button>
+                                            <button type="button" data-admin-action="remove-domain-segment" data-domain-id="${escapeHtml(d.id)}" data-segment-id="${escapeHtml(s.id)}" class="text-slate-400 hover:text-rose-500 font-black transition" title="Delete Segment">&times;</button>
+                                        </span>
+                                    `).join('')}
+                                    ${!(d.segments || []).length ? '<span class="text-[11px] italic text-slate-400">No segments added yet</span>' : ''}
+                                </div>
                             </div>
                         </div>
                         <div class="mt-3 pt-3 border-t border-slate-100 flex gap-1.5">
-                            <input type="text" data-new-segment-input="${escapeHtml(d.id)}" class="text-input h-7 text-[11px] py-1" placeholder="+ Add segment">
-                            <button type="button" data-admin-action="add-domain-segment" data-domain-id="${escapeHtml(d.id)}" class="rounded-lg bg-slate-800 text-white px-2.5 py-1 text-[11px] font-bold">Add</button>
+                            <input type="text" data-new-segment-input="${escapeHtml(d.id)}" class="text-input h-8 text-[11px] py-1" placeholder="+ Add segment">
+                            <button type="button" data-admin-action="add-domain-segment" data-domain-id="${escapeHtml(d.id)}" class="rounded-xl bg-slate-800 hover:bg-slate-900 text-white px-3 py-1 text-[11px] font-bold transition active:scale-95">Add</button>
                         </div>
                     </div>
                 `;
@@ -3518,6 +3733,60 @@ window.removeMasterTierLevel = async (tierId) => {
     window.showToast('Tier removed');
 };
 
+window.addMasterDomain = async () => {
+    const name = await window.promptAction('Enter New Domain Name (e.g. Cultural, Islamic, Academic, Tech):', '');
+    if (!name || !name.trim()) return;
+    const cleanName = name.trim();
+    const id = cleanName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const activeDomains = festSetup.domains?.activeDomains || [];
+    if (activeDomains.some(d => d.id === id || d.name.toLowerCase() === cleanName.toLowerCase())) {
+        return window.showToast('Domain already exists', 'error');
+    }
+    const newDomain = {
+        id,
+        name: cleanName,
+        segments: []
+    };
+    festSetup.domains = {
+        ...(festSetup.domains || {}),
+        enabled: [...new Set([...(festSetup.domains?.enabled || []), id])],
+        activeDomains: [...activeDomains, newDomain]
+    };
+    window.renderMasterDomains(festSetup);
+    window.showToast(`Domain "${cleanName}" added`);
+};
+
+window.editMasterDomain = async (domainId) => {
+    const activeDomains = festSetup.domains?.activeDomains || [];
+    const domain = activeDomains.find(d => d.id === domainId);
+    if (!domain) return;
+    const newName = await window.promptAction('Edit Domain Name:', domain.name);
+    if (!newName || !newName.trim() || newName.trim() === domain.name) return;
+    const cleanName = newName.trim();
+    if (!await window.confirmAction(`Rename domain "${domain.name}" to "${cleanName}"?`)) return;
+    domain.name = cleanName;
+    window.renderMasterDomains(festSetup);
+    window.showToast(`Domain renamed to "${cleanName}"`);
+};
+
+window.removeMasterDomain = async (domainId) => {
+    const activeDomains = festSetup.domains?.activeDomains || [];
+    if (activeDomains.length <= 1) return window.showToast('At least one festival domain is required', 'error');
+    const domain = activeDomains.find(d => d.id === domainId);
+    if (!domain) return;
+    if (!await window.confirmAction(`Are you sure you want to delete domain "${domain.name}" and all its segments?`)) return;
+    festSetup.domains = {
+        ...(festSetup.domains || {}),
+        enabled: (festSetup.domains?.enabled || []).filter(id => id !== domainId),
+        activeDomains: activeDomains.filter(d => d.id !== domainId)
+    };
+    if (!festSetup.domains.enabled.length && festSetup.domains.activeDomains.length) {
+        festSetup.domains.enabled = [festSetup.domains.activeDomains[0].id];
+    }
+    window.renderMasterDomains(festSetup);
+    window.showToast(`Domain "${domain.name}" deleted`);
+};
+
 window.addMasterDomainSegment = (domainId) => {
     const input = document.querySelector(`[data-new-segment-input="${domainId}"]`);
     const name = (input?.value || '').trim();
@@ -3533,10 +3802,28 @@ window.addMasterDomainSegment = (domainId) => {
     window.showToast('Segment added');
 };
 
-window.removeMasterDomainSegment = (domainId, segmentId) => {
+window.editMasterDomainSegment = async (domainId, segmentId) => {
     const activeDomains = festSetup.domains?.activeDomains || [];
     const domain = activeDomains.find(d => d.id === domainId);
     if (!domain) return;
+    const segment = (domain.segments || []).find(s => s.id === segmentId);
+    if (!segment) return;
+    const newName = await window.promptAction('Edit Segment Name:', segment.name);
+    if (!newName || !newName.trim() || newName.trim() === segment.name) return;
+    const cleanName = newName.trim();
+    if (!await window.confirmAction(`Rename segment "${segment.name}" to "${cleanName}"?`)) return;
+    segment.name = cleanName;
+    window.renderMasterDomains(festSetup);
+    window.showToast(`Segment renamed to "${cleanName}"`);
+};
+
+window.removeMasterDomainSegment = async (domainId, segmentId) => {
+    const activeDomains = festSetup.domains?.activeDomains || [];
+    const domain = activeDomains.find(d => d.id === domainId);
+    if (!domain) return;
+    const segment = (domain.segments || []).find(s => s.id === segmentId);
+    const segName = segment?.name || segmentId;
+    if (!await window.confirmAction(`Delete segment "${segName}" from domain "${domain.name}"?`)) return;
     domain.segments = (domain.segments || []).filter(s => s.id !== segmentId);
     window.renderMasterDomains(festSetup);
     window.showToast('Segment removed');
@@ -3565,9 +3852,10 @@ window.addMasterCustomGender = () => {
     window.showToast(`Gender '${val}' added`);
 };
 
-window.removeMasterCustomGender = (gender) => {
+window.removeMasterCustomGender = async (gender) => {
     const current = festSetup.allowedGenders || ['Boys', 'Girls'];
     if (current.length <= 1) return window.showToast('At least one gender is required', 'error');
+    if (!await window.confirmAction(`Delete gender '${gender}'?`)) return;
     festSetup.allowedGenders = current.filter(g => g !== gender);
     window.renderMasterGenderOptions(festSetup);
     window.applyFestCapabilities();
@@ -4235,6 +4523,7 @@ window.saveMasterSetup = async () => {
         eventFeatures:Object.fromEntries([...document.querySelectorAll('[data-master-event-feature]')].map(input=>[input.dataset.masterEventFeature,input.checked])),
         eligibleClasses:(document.querySelector('[data-student-field-options="class"]')?.value||'').split(',').map(value=>value.trim()).filter(Boolean),
         participantTypes:selectedParticipantTypes,
+        participantTypeDefinitions:festSetup.participantTypeDefinitions,
         allowedGenders:selectedGenders,
         registrationChannels:selectedRegistrationChannels,
         publicModules:Object.fromEntries([...document.querySelectorAll('[data-master-public]')].map(input=>[input.dataset.masterPublic,input.checked])),

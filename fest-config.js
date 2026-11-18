@@ -35,14 +35,6 @@ export const DEFAULT_DOMAINS = Object.freeze({
         { id: 'field', name: 'Field Events', description: 'Jumps, Throws' },
         { id: 'games', name: 'Games & Tournaments', description: 'Football, Chess, Badminton' }
       ]
-    },
-    {
-      id: 'academic',
-      name: 'Academic & Quranic',
-      segments: [
-        { id: 'quiz', name: 'Quiz & Debate', description: 'Knowledge and speeches' },
-        { id: 'quran', name: 'Quran & Tahfeez', description: 'Recitation and Hifz' }
-      ]
     }
   ]
 });
@@ -69,13 +61,7 @@ export const DEFAULT_FEST_SETUP = Object.freeze({
   domains: DEFAULT_DOMAINS,
   participantTypes: ['student'],
   participantTypeDefinitions: [
-    { key:'student', label:'Student', description:'Students managed in the Student Directory.', teamAffiliated:true, system:true },
-    { key:'parent', label:'Parent', description:'Parents or guardians linked to a student.', teamAffiliated:true, system:true },
-    { key:'staff', label:'Staff', description:'Teaching and non-teaching staff participants.', teamAffiliated:false, system:true },
-    { key:'alumni', label:'Alumni', description:'Former students and alumni participants.', teamAffiliated:false, system:true },
-    { key:'public', label:'Public', description:'Open participants without an existing student record.', teamAffiliated:false, system:true },
-    { key:'guest', label:'Guest', description:'Chief guests, special guests, speakers and invitees.', teamAffiliated:false, system:true },
-    { key:'volunteer', label:'Volunteer', description:'Festival volunteers with duty and validity details.', teamAffiliated:false, system:true }
+    { key:'student', label:'Student', description:'Students managed in the Student Directory.', teamAffiliated:true, system:true, allowedGenders:['Boys','Girls'], registrationChannels:['admin','teamLeader'] }
   ],
   allowedGenders: ['Boys', 'Girls'],
   genderSettings: { mode: 'students_default', allowedGenders: ['Boys', 'Girls'], customGenders: [], mixedPolicy: 'both' },
@@ -256,8 +242,31 @@ export function normalizeFestSetup(raw = {}) {
 
 export function normalizeParticipantTypeDefinitions(value) {
   const source=Array.isArray(value)&&value.length?value:DEFAULT_FEST_SETUP.participantTypeDefinitions;
-  const clean=source.map((item,index)=>{const key=String(item?.key||item?.label||`participant_${index+1}`).trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');return {key,label:String(item?.label||key).trim().slice(0,50),description:String(item?.description||'').trim().slice(0,240),teamAffiliated:item?.teamAffiliated!==false,system:!!item?.system};}).filter(item=>item.key&&item.label);
-  const merged=new Map(DEFAULT_FEST_SETUP.participantTypeDefinitions.map(item=>[item.key,{...item}]));clean.forEach(item=>merged.set(item.key,{...(merged.get(item.key)||{}),...item,system:merged.has(item.key)||item.system}));return [...merged.values()];
+  const clean=source.map((item,index)=>{
+    const key=String(item?.key||item?.label||`participant_${index+1}`).trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+    const isStudent = key === 'student';
+    return {
+      key,
+      label:String(item?.label||key).trim().slice(0,50),
+      description:String(item?.description||'').trim().slice(0,240),
+      teamAffiliated:item?.teamAffiliated!==false,
+      system:isStudent,
+      allowedGenders:Array.isArray(item?.allowedGenders)&&item.allowedGenders.length?item.allowedGenders:['Boys','Girls'],
+      registrationChannels:Array.isArray(item?.registrationChannels)&&item.registrationChannels.length?item.registrationChannels:(item?.teamAffiliated!==false?['admin','teamLeader']:['admin','self','onSite'])
+    };
+  }).filter(item=>item.key&&item.label);
+  if(!clean.some(item=>item.key==='student')){
+    clean.unshift({
+      key:'student',
+      label:'Student',
+      description:'Students managed in the Student Directory.',
+      teamAffiliated:true,
+      system:true,
+      allowedGenders:['Boys','Girls'],
+      registrationChannels:['admin','teamLeader']
+    });
+  }
+  return clean;
 }
 
 const optionalChoice = (value, choices) => choices.includes(value) ? value : '';
