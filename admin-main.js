@@ -231,14 +231,18 @@ async function startAdminSession() {
             teamLogos = data.teamLogos || {};
             teamIdCardHeaders = data.teamIdCardHeaders || {};
             chestConfig = data.chestConfig || {};
-            festSetup = normalizeFestSetup(data.festSetup || {});
-            savedFestSetup = normalizeFestSetup(festSetup);
+            savedFestSetup = normalizeFestSetup(data.festSetup || {});
+            if (!masterDirtySections.size) {
+                festSetup = window.structuredClone ? structuredClone(savedFestSetup) : JSON.parse(JSON.stringify(savedFestSetup));
+            }
             window.adminSharedState.update({ generalSettings: data, categories, teams, teamDisplayNames, categoryDisplayNames, teamColors, teamLogos, teamIdCardHeaders, chestConfig, festSetup });
             window.renderDropdowns();
             if (isTabActive('config') || isTabActive('master-setup')) {
                 window.renderSetupLists?.();
                 window.renderChestGrid?.();
-                window.renderMasterSetup?.();
+                if (!masterDirtySections.size) {
+                    window.renderMasterSetup?.();
+                }
             }
             window.applyFestCapabilities?.();
             window.ensureStableMasterIdentities?.(data);
@@ -561,6 +565,7 @@ document.addEventListener('click', (event) => {
         'save-team-display-name': () => window.saveTeamDisplayName(d.team),
         'save-category-display-name': () => window.saveCategoryDisplayName(d.category),
         'save-chest-config': () => window.saveChestNoConfig(),
+        'discard-master-setup': () => window.discardMasterDraft(),
         'save-master-setup': () => window.saveMasterSetup(),
         'apply-event-profile': () => window.applyEventProfile(d.profile),
         'filter-event-rule-status': () => window.setEventFieldStatusFilter(d.status),
@@ -3340,6 +3345,8 @@ window.addMasterParticipantType = () => {
     const descInput = document.getElementById('master-new-participant-description');
     if (labelInput) labelInput.value = '';
     if (descInput) descInput.value = '';
+    masterDirtySections.add('people-registration');
+    updateMasterSubnavStatus();
     window.renderMasterSetup();
     window.showToast(`Participant type "${label}" added`);
 };
@@ -3434,6 +3441,8 @@ window.saveParticipantTypeModal = async () => {
     };
 
     window.closeParticipantTypeModal();
+    masterDirtySections.add('people-registration');
+    updateMasterSubnavStatus();
     window.renderMasterSetup();
     window.showToast(`Updated "${label}" configuration`);
 };
@@ -3455,12 +3464,14 @@ window.removeMasterParticipantType = async key => {
         participantTypeDefinitions: definitions.filter(value => value.key !== key),
         participantTypes: festSetup.participantTypes.filter(value => value !== key)
     };
+    masterDirtySections.add('people-registration');
+    updateMasterSubnavStatus();
     window.renderMasterSetup();
     window.showToast(`Participant type "${item.label}" deleted`);
 };
 
 const MASTER_SCORING_PACK={school_team_fest:'points_grades',simple_direct_fest:'direct_rank',open_registration_fest:'standard_points',hybrid_community_fest:'advanced'};
-window.applyMasterPreset=value=>{if(value==='custom'){festSetup={...festSetup,preset:'custom'};window.renderMasterSetup();return;}const currentPolicies=festSetup.competitionPolicies,currentFields=festSetup.studentFields,currentDefinitions=festSetup.participantTypeDefinitions;festSetup={...setupForPreset(value),competitionPolicies:currentPolicies,studentFields:currentFields,participantTypeDefinitions:currentDefinitions};window.renderMasterSetup();window.applyScoringPolicyPack?.(MASTER_SCORING_PACK[value]||'custom');};
+window.applyMasterPreset=value=>{if(value==='custom'){festSetup={...festSetup,preset:'custom'};masterDirtySections.add('overview');updateMasterSubnavStatus();window.renderMasterSetup();return;}const currentPolicies=festSetup.competitionPolicies,currentFields=festSetup.studentFields,currentDefinitions=festSetup.participantTypeDefinitions;festSetup={...setupForPreset(value),competitionPolicies:currentPolicies,studentFields:currentFields,participantTypeDefinitions:currentDefinitions};masterDirtySections.add('overview');updateMasterSubnavStatus();window.renderMasterSetup();window.applyScoringPolicyPack?.(MASTER_SCORING_PACK[value]||'custom');};
 const renderPresetGuide=setup=>{const guide=FEST_PRESET_GUIDES[setup.preset]||FEST_PRESET_GUIDES.custom,box=document.getElementById('master-preset-guide');if(!box)return;box.innerHTML=`<div class="flex flex-col gap-4 lg:flex-row lg:justify-between"><div><h4 class="text-lg font-black text-indigo-950">${escapeHtml(guide.label)}</h4><p class="mt-1 text-sm font-semibold text-indigo-800">${escapeHtml(guide.summary)}</p><p class="mt-3 text-xs font-black uppercase text-indigo-500">Workflow</p><p class="mt-1 text-xs font-bold text-indigo-800">${guide.workflow.map(escapeHtml).join(' → ')}</p></div><div class="lg:max-w-sm"><p class="text-xs font-black uppercase text-indigo-500">Available workspaces</p><div class="mt-2 flex flex-wrap gap-2">${guide.pages.map(page=>`<span class="rounded-full bg-white px-3 py-1 text-[10px] font-black text-indigo-700">${escapeHtml(page)}</span>`).join('')}</div></div></div>`;};
 const renderMasterParticipantTypes = setup => {
     const box = document.getElementById('master-participant-types');
@@ -3714,6 +3725,8 @@ window.addMasterTierLevel = async () => {
         mode: 'multi_tier',
         tiers: [...tiers, newTier]
     };
+    masterDirtySections.add('overview');
+    updateMasterSubnavStatus();
     window.renderMasterTiers(festSetup);
     window.showToast('Tier added');
 };
@@ -3729,6 +3742,8 @@ window.removeMasterTierLevel = async (tierId) => {
     if (festSetup.tierStructure.activeTier === tierId) {
         festSetup.tierStructure.activeTier = festSetup.tierStructure.tiers[0]?.id || 'institution';
     }
+    masterDirtySections.add('overview');
+    updateMasterSubnavStatus();
     window.renderMasterTiers(festSetup);
     window.showToast('Tier removed');
 };
@@ -3752,6 +3767,8 @@ window.addMasterDomain = async () => {
         enabled: [...new Set([...(festSetup.domains?.enabled || []), id])],
         activeDomains: [...activeDomains, newDomain]
     };
+    masterDirtySections.add('overview');
+    updateMasterSubnavStatus();
     window.renderMasterDomains(festSetup);
     window.showToast(`Domain "${cleanName}" added`);
 };
@@ -3765,6 +3782,8 @@ window.editMasterDomain = async (domainId) => {
     const cleanName = newName.trim();
     if (!await window.confirmAction(`Rename domain "${domain.name}" to "${cleanName}"?`)) return;
     domain.name = cleanName;
+    masterDirtySections.add('overview');
+    updateMasterSubnavStatus();
     window.renderMasterDomains(festSetup);
     window.showToast(`Domain renamed to "${cleanName}"`);
 };
@@ -3783,6 +3802,8 @@ window.removeMasterDomain = async (domainId) => {
     if (!festSetup.domains.enabled.length && festSetup.domains.activeDomains.length) {
         festSetup.domains.enabled = [festSetup.domains.activeDomains[0].id];
     }
+    masterDirtySections.add('overview');
+    updateMasterSubnavStatus();
     window.renderMasterDomains(festSetup);
     window.showToast(`Domain "${domain.name}" deleted`);
 };
@@ -3798,6 +3819,8 @@ window.addMasterDomainSegment = (domainId) => {
     if ((domain.segments || []).some(s => s.id === id)) return window.showToast('Segment already exists', 'error');
     domain.segments = [...(domain.segments || []), { id, name, description: '' }];
     if (input) input.value = '';
+    masterDirtySections.add('overview');
+    updateMasterSubnavStatus();
     window.renderMasterDomains(festSetup);
     window.showToast('Segment added');
 };
@@ -3813,6 +3836,8 @@ window.editMasterDomainSegment = async (domainId, segmentId) => {
     const cleanName = newName.trim();
     if (!await window.confirmAction(`Rename segment "${segment.name}" to "${cleanName}"?`)) return;
     segment.name = cleanName;
+    masterDirtySections.add('overview');
+    updateMasterSubnavStatus();
     window.renderMasterDomains(festSetup);
     window.showToast(`Segment renamed to "${cleanName}"`);
 };
@@ -3825,6 +3850,8 @@ window.removeMasterDomainSegment = async (domainId, segmentId) => {
     const segName = segment?.name || segmentId;
     if (!await window.confirmAction(`Delete segment "${segName}" from domain "${domain.name}"?`)) return;
     domain.segments = (domain.segments || []).filter(s => s.id !== segmentId);
+    masterDirtySections.add('overview');
+    updateMasterSubnavStatus();
     window.renderMasterDomains(festSetup);
     window.showToast('Segment removed');
 };
@@ -3834,6 +3861,8 @@ window.setMasterGenderPreset = (preset) => {
     if (preset === 'adults') allowed = ['Men', 'Women'];
     else if (preset === 'universal') allowed = ['Male', 'Female'];
     festSetup.allowedGenders = allowed;
+    masterDirtySections.add('people-registration');
+    updateMasterSubnavStatus();
     window.renderMasterGenderOptions(festSetup);
     window.applyFestCapabilities();
     window.showToast(`Gender preset changed to ${allowed.join(' / ')}`);
@@ -3847,6 +3876,8 @@ window.addMasterCustomGender = () => {
     if (current.includes(val)) return window.showToast('Gender already exists', 'error');
     festSetup.allowedGenders = [...current, val];
     if (input) input.value = '';
+    masterDirtySections.add('people-registration');
+    updateMasterSubnavStatus();
     window.renderMasterGenderOptions(festSetup);
     window.applyFestCapabilities();
     window.showToast(`Gender '${val}' added`);
@@ -3857,6 +3888,8 @@ window.removeMasterCustomGender = async (gender) => {
     if (current.length <= 1) return window.showToast('At least one gender is required', 'error');
     if (!await window.confirmAction(`Delete gender '${gender}'?`)) return;
     festSetup.allowedGenders = current.filter(g => g !== gender);
+    masterDirtySections.add('people-registration');
+    updateMasterSubnavStatus();
     window.renderMasterGenderOptions(festSetup);
     window.applyFestCapabilities();
     window.showToast(`Gender '${gender}' removed`);
@@ -3876,6 +3909,8 @@ window.addCategoryDefinition = async () => {
         color: colors[categoriesList.length % colors.length]
     };
     festSetup.categoryDefinitions = [...categoriesList, newCat];
+    masterDirtySections.add('people-registration');
+    updateMasterSubnavStatus();
     window.renderMasterCategoryArchitecture(festSetup);
     window.showToast(`Category '${clean}' added`);
 };
@@ -3885,6 +3920,8 @@ window.removeCategoryDefinition = async (key) => {
     if (categoriesList.length <= 1) return window.showToast('At least one category is required', 'error');
     if (!await window.confirmAction(`Delete category '${key}'?`)) return;
     festSetup.categoryDefinitions = categoriesList.filter(c => c.key !== key);
+    masterDirtySections.add('people-registration');
+    updateMasterSubnavStatus();
     window.renderMasterCategoryArchitecture(festSetup);
     window.showToast(`Category '${key}' removed`);
 };
@@ -3897,6 +3934,8 @@ window.editCategoryClasses = async (key) => {
     const classesInput = await window.promptAction(`Eligible classes for ${cat.label} (comma separated):`, currentClasses);
     if (classesInput === null) return;
     cat.eligibleClasses = classesInput.split(',').map(s => s.trim()).filter(Boolean);
+    masterDirtySections.add('people-registration');
+    updateMasterSubnavStatus();
     window.renderMasterCategoryArchitecture(festSetup);
     window.showToast(`Updated classes for ${cat.label}`);
 };
@@ -3929,6 +3968,7 @@ window.renderMasterSetup = () => {
 document.getElementById('view-master-setup')?.addEventListener('change',event=>{
     if (event.target.matches('[name="master-tier-mode"]')) {
         festSetup.tierStructure = { ...(festSetup.tierStructure || {}), mode: event.target.value };
+        masterDirtySections.add('overview');
         window.renderMasterTiers(festSetup);
     } else if (event.target.matches('[data-domain-toggle]')) {
         const domainId = event.target.dataset.domainToggle;
@@ -3937,6 +3977,7 @@ document.getElementById('view-master-setup')?.addEventListener('change',event=>{
         else current.delete(domainId);
         if (!current.size) current.add('arts');
         festSetup.domains = { ...(festSetup.domains || {}), enabled: [...current] };
+        masterDirtySections.add('overview');
         window.renderMasterDomains(festSetup);
     }
     if(event.target.matches('[name="master-participants"]')&&!event.target.checked&&!checkedValues('master-participants').length){event.target.checked=true;window.showToast('At least one participant type is required. Enable another type before disabling this one.','error');return}if(event.target.matches('[name="master-participants"],[name="master-registration"]'))window.applyFestCapabilities();const landingSectionChanged=event.target.matches('[data-public-view-path^="landing.sections."]');if(event.target.matches('[data-master-public]')||landingSectionChanged){const draft=publicViewFromDom();festSetup={...festSetup,publicView:draft};window.renderPublicViewSettings(normalizeFestSetup(festSetup));if(event.target.matches('[data-master-public]'))window.showToast(`${event.target.closest('label')?.innerText.trim()||'Module'} ${event.target.checked?'enabled':'disabled'}; dependent landing controls updated.`);else window.showToast(`${PUBLIC_VIEW_LABELS[event.target.dataset.publicViewPath.split('.').at(-1)]||'Landing section'} ${event.target.checked?'enabled':'disabled'}; menu and quick-button controls updated.`);}const section=event.target.closest('[data-master-section]')?.dataset.masterSection||activeMasterSection;masterDirtySections.add(section);updateMasterSubnavStatus();if(event.target.id==='master-preset')return;const preset=document.getElementById('master-preset');if(preset&&preset.value!=='custom'){preset.value='custom';festSetup={...festSetup,preset:'custom'};renderPresetGuide(festSetup);}window.renderMasterImpactReview?.();});
@@ -4547,6 +4588,23 @@ window.saveMasterSetup = async () => {
         addDoc(collection(db,'auditLogs'),{action:'master_setup_updated',preset:next.preset,changedKeys,removedParticipantTypes:removedTypes,operationalRecordCount:operationalCount,uid:auth.currentUser?.uid||'',createdAt:Date.now()})
     ]);
     scoringRules=currentScoring;window.applyFestCapabilities();window.renderMasterSetup();window.renderStudentCustomFields();window.renderScoringRules();masterDirtySections.clear();updateMasterSubnavStatus();window.showToast('Master Setup and competition policies saved');
+};
+
+window.discardMasterDraft = async () => {
+    if (!masterDirtySections.size) {
+        window.showToast('No unsaved Master Setup changes to clear');
+        return;
+    }
+    const count = masterDirtySections.size;
+    const confirmText = `Discard all unsaved draft changes across ${count} Master Setup section${count === 1 ? '' : 's'} and reset back to the saved festival setup?`;
+    if (!await window.confirmAction(confirmText, { okText: 'Clear Draft', cancelText: 'Keep Editing' })) {
+        return;
+    }
+    festSetup = window.structuredClone ? structuredClone(savedFestSetup) : JSON.parse(JSON.stringify(savedFestSetup));
+    masterDirtySections.clear();
+    window.renderMasterSetup();
+    updateMasterSubnavStatus();
+    window.showToast('Master Setup draft cleared. Reverted to saved configuration.');
 };
 
 document.getElementById('form-student')?.addEventListener('submit', async (e) => {

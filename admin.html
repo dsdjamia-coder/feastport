@@ -214,6 +214,12 @@
                 <button data-admin-action="switch-tab" data-tab="guide" id="nav-guide" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"><i data-lucide="book-open-text" class="w-5 h-5"></i><span class="sidebar-label">User Guide</span></button>
                 <button data-admin-action="switch-tab" data-tab="danger" id="nav-danger" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 transition-all"><i data-lucide="trash-2" class="w-5 h-5"></i><span class="sidebar-label">Data Reset</span></button>
             </nav>
+            <div class="p-3 border-t border-slate-100 bg-slate-50/60 sticky bottom-0 z-10">
+                <button id="admin-logout-button" class="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:text-red-600 hover:bg-red-50 hover:border-red-200 text-xs font-bold transition shadow-2xs active:scale-95" title="Logout">
+                    <i data-lucide="log-out" class="w-4 h-4 shrink-0 text-slate-400"></i>
+                    <span class="sidebar-label">Logout</span>
+                </button>
+            </div>
         </aside>
 
         <!-- CONTENT AREA -->
@@ -222,8 +228,13 @@
                 <header class="app-header">
                     <button data-admin-action="open-sidebar" class="md:hidden menu-toggle mr-2" aria-label="Open Menu"><span></span><span></span><span></span></button>
                     <button id="desktop-sidebar-toggle" data-admin-action="toggle-desktop-sidebar" class="hidden md:inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600" type="button" aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar"><i data-lucide="panel-left-close" class="h-5 w-5"></i></button>
-                    <div class="min-w-0 flex-1"><div class="flex items-center gap-2"><h2 id="page-title" class="header-title">Dashboard</h2><span id="page-context" class="hidden truncate text-xs font-bold text-indigo-600"></span></div><p id="page-status" class="ml-3 hidden truncate text-[10px] font-bold text-slate-400"></p></div><div id="master-header-actions" class="hidden items-center gap-2"><button data-admin-action="switch-master-section" data-section="review-activate" class="rounded-lg border border-indigo-200 px-3 py-2 text-xs font-black text-indigo-700">Review</button><button data-admin-action="save-master-setup" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-black text-white">Save &amp; Activate</button></div>
-                    <div class="flex items-center gap-2"><div class="bg-indigo-50 px-3 py-1.5 rounded-full text-xs font-bold text-indigo-700 border border-indigo-100 flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div><span id="admin-user-label">Admin</span></div><button id="admin-logout-button" class="p-2 rounded-xl border border-slate-200 text-slate-500 hover:text-red-600 hover:bg-red-50" title="Logout"><i data-lucide="log-out" class="w-4 h-4"></i></button></div>
+                    <div class="min-w-0 flex-1"><div class="flex items-center gap-2"><h2 id="page-title" class="header-title">Dashboard</h2><span id="page-context" class="hidden truncate text-xs font-bold text-indigo-600"></span></div><p id="page-status" class="ml-3 hidden truncate text-[10px] font-bold text-slate-400"></p></div>
+                    <div id="master-header-actions" class="hidden items-center gap-2">
+                        <button type="button" data-admin-action="discard-master-setup" id="btn-discard-master-draft" class="rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-2 text-xs font-black transition active:scale-95" title="Discard unsaved Master Setup changes">Clear Draft</button>
+                        <button type="button" data-admin-action="switch-master-section" data-section="review-activate" class="rounded-xl border border-indigo-200 bg-white hover:bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-700 transition active:scale-95">Review</button>
+                        <button type="button" data-admin-action="save-master-setup" class="rounded-xl bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 text-xs font-black text-white shadow-sm shadow-indigo-500/20 transition active:scale-95">Save &amp; Activate</button>
+                    </div>
+                    <span id="admin-user-label" class="hidden"></span>
                 </header>
             </div>
 
