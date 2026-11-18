@@ -183,9 +183,9 @@
                 <button data-admin-action="switch-tab" data-tab="dashboard" id="nav-dashboard" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all active-nav"><i data-lucide="layout-dashboard" class="w-5 h-5"></i><span class="sidebar-label">Dashboard</span></button>
 
                 <p class="sidebar-section-label px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-6">People & Registration</p>
-                <button data-admin-action="switch-tab" data-tab="downloads" id="nav-downloads" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"><i data-lucide="download" class="w-5 h-5"></i><span class="sidebar-label">Downloads</span></button>
                 <button data-admin-action="switch-tab" data-tab="registrations" id="nav-registrations" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"><i data-lucide="clipboard-check" class="w-5 h-5"></i><span class="sidebar-label">Registrations</span></button>
                 <button data-admin-action="switch-tab" data-tab="students" id="nav-students" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"><i data-lucide="users" class="w-5 h-5"></i><span class="sidebar-label">Students</span></button>
+                <button data-admin-action="switch-tab" data-tab="downloads" id="nav-downloads" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"><i data-lucide="download" class="w-5 h-5"></i><span class="sidebar-label">Downloads</span></button>
 
                 <p class="sidebar-section-label px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-6">Programme & Judging</p>
                 <button data-admin-action="switch-tab" data-tab="events" id="nav-events" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"><i data-lucide="calendar" class="w-5 h-5"></i><span class="sidebar-label">Events</span></button>
@@ -194,8 +194,8 @@
                 <button data-admin-action="switch-tab" data-tab="judge" id="nav-judge" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"><i data-lucide="scale" class="w-5 h-5"></i><span class="sidebar-label">Judgement</span></button>
 
                 <p class="sidebar-section-label px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-6">Festival Configuration</p>
-                <button data-admin-action="switch-tab" data-tab="master-setup" id="nav-master-setup" aria-expanded="false" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"><i data-lucide="sliders-horizontal" class="w-5 h-5"></i><span class="sidebar-label flex-1 text-left">Master Setup</span><i data-lucide="chevron-down" id="master-subnav-chevron" class="sidebar-label h-4 w-4 transition-transform"></i></button>
-                <div id="master-setup-subnav" class="hidden space-y-1 border-l-2 border-indigo-100 ml-6 pl-3 py-1" aria-label="Master Setup sections">
+                <button data-admin-action="switch-tab" data-tab="master-setup" id="nav-master-setup" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"><i data-lucide="sliders-horizontal" class="w-5 h-5"></i><span class="sidebar-label">Master Setup</span></button>
+                <div id="master-setup-subnav" class="hidden" style="display:none !important" aria-hidden="true">
                     <button data-admin-action="switch-master-section" data-section="overview" title="Overview & Mode" aria-label="Overview & Mode" class="master-subnav-item relative flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold text-slate-500"><i data-lucide="compass" class="h-4 w-4 shrink-0"></i><span class="master-subnav-label">Overview &amp; Mode</span></button>
                     <button data-admin-action="switch-master-section" data-section="people-registration" title="People & Registration" aria-label="People & Registration" class="master-subnav-item relative flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold text-slate-500"><i data-lucide="users-round" class="h-4 w-4 shrink-0"></i><span class="master-subnav-label">People &amp; Registration</span></button><button data-admin-action="switch-master-section" data-section="public-view" title="Public View" aria-label="Public View" class="master-subnav-item relative flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold text-slate-500"><i data-lucide="panels-top-left" class="h-4 w-4 shrink-0"></i><span class="master-subnav-label">Public View</span></button>
                     <button data-admin-action="switch-master-section" data-section="events-schedule" title="Events & Schedule" aria-label="Events & Schedule" class="master-subnav-item relative flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold text-slate-500"><i data-lucide="calendar-range" class="h-4 w-4 shrink-0"></i><span class="master-subnav-label">Events &amp; Schedule</span></button>
@@ -211,8 +211,8 @@
                 <button data-admin-action="switch-tab" data-tab="tv-display" id="nav-tv-display" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"><i data-lucide="tv" class="w-5 h-5"></i><span class="sidebar-label">TV Display Settings</span></button>
 
                 <p class="sidebar-section-label px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-6">System</p>
-                <button data-admin-action="switch-tab" data-tab="danger" id="nav-danger" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 transition-all"><i data-lucide="trash-2" class="w-5 h-5"></i><span class="sidebar-label">Data Reset</span></button>
                 <button data-admin-action="switch-tab" data-tab="guide" id="nav-guide" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"><i data-lucide="book-open-text" class="w-5 h-5"></i><span class="sidebar-label">User Guide</span></button>
+                <button data-admin-action="switch-tab" data-tab="danger" id="nav-danger" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 transition-all"><i data-lucide="trash-2" class="w-5 h-5"></i><span class="sidebar-label">Data Reset</span></button>
             </nav>
         </aside>
 
@@ -524,7 +524,17 @@
 
                 <!-- TEAM SETUP -->
                 <div id="view-config" class="tab-view max-w-7xl mx-auto space-y-4 md:space-y-6">
-                    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <!-- Sticky Team Setup Subtabs Bar -->
+                    <nav class="sticky top-0 z-20 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white/95 px-3 pt-2 pb-0 backdrop-blur shadow-xs scrollbar-none" role="tablist" aria-label="Team Setup subtabs">
+                        <button type="button" data-admin-action="switch-team-config-subtab" data-config-subtab="chest" class="team-config-subtab-btn flex items-center gap-2 border-b-2 border-teal-600 px-4 py-2.5 text-xs font-black text-teal-700 bg-teal-50/70 rounded-t-xl transition-all whitespace-nowrap" aria-selected="true">
+                            <i data-lucide="palette" class="w-4 h-4"></i> Team Setup &amp; Chest Numbers
+                        </button>
+                        <button type="button" data-admin-action="switch-team-config-subtab" data-config-subtab="create" class="team-config-subtab-btn flex items-center gap-2 border-b-2 border-transparent px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl transition-all whitespace-nowrap" aria-selected="false">
+                            <i data-lucide="folder-plus" class="w-4 h-4"></i> Create Teams &amp; Categories
+                        </button>
+                    </nav>
+
+                    <div id="team-config-panel-create" class="hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                         <h3 class="mb-4 text-sm font-bold uppercase tracking-wider text-slate-800">Create Teams & Categories</h3>
                         <div class="grid gap-5 lg:grid-cols-2">
                             <section class="space-y-3 rounded-xl border bg-slate-50 p-4">
@@ -549,7 +559,7 @@
                             </section>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div id="team-config-panel-chest" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between items-center gap-4">
                             <div><h3 class="font-bold text-slate-800 text-lg flex items-center gap-2"><i data-lucide="palette" class="w-5 h-5 text-teal-600"></i> Team Setup</h3></div>
                             <button data-admin-action="save-chest-config" id="btnSaveChest" disabled class="touch-target w-full md:w-auto bg-teal-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-teal-700 flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 transition active:scale-95 opacity-50 cursor-not-allowed"><i data-lucide="save" class="w-4 h-4"></i> Save All</button>
@@ -724,13 +734,19 @@
 
                 <!-- JUDGEMENT -->
                 <div id="view-judge" class="tab-view max-w-7xl mx-auto space-y-4 md:space-y-6">
+                    <!-- Sticky Judgement Subtabs Bar -->
+                    <nav class="sticky top-0 z-20 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white/95 px-3 pt-2 pb-0 backdrop-blur shadow-xs scrollbar-none" role="tablist" aria-label="Judgement subtabs">
+                        <button type="button" data-admin-action="switch-judge-subtab" data-subtab="assign" class="judge-subtab flex items-center gap-2 border-b-2 border-indigo-600 px-4 py-2.5 text-xs font-black text-indigo-700 bg-indigo-50/70 rounded-t-xl transition-all whitespace-nowrap" aria-selected="true">
+                            <i data-lucide="calendar-check" class="w-4 h-4"></i> Assign Schedule
+                        </button>
+                        <button type="button" data-admin-action="switch-judge-subtab" data-subtab="review" class="judge-subtab flex items-center gap-2 border-b-2 border-transparent px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl transition-all whitespace-nowrap" aria-selected="false">
+                            <i data-lucide="clipboard-list" class="w-4 h-4"></i> Review Scores
+                        </button>
+                    </nav>
+
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
                             <div><h3 class="font-black text-slate-800 text-lg flex items-center gap-2"><i data-lucide="scale" class="w-5 h-5 text-indigo-600"></i> Judgement Control</h3><p class="text-xs text-slate-500 mt-1">Assign judges to scheduled programs only. Judge access is managed from Access Management.</p></div>
-                            <div class="flex flex-wrap gap-2">
-                                <button data-admin-action="switch-judge-subtab" data-subtab="assign" class="judge-subtab px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black">Assign Schedule</button>
-                                <button data-admin-action="switch-judge-subtab" data-subtab="review" class="judge-subtab px-4 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-black">Review Scores</button>
-                            </div>
                         </div>
                         <div class="p-5 grid grid-cols-2 md:grid-cols-4 gap-3" id="judge-stat-cards"></div>
                         <div id="judge-subtab-assign" class="judge-subtab-panel p-5 border-t border-slate-100 space-y-5"><button data-admin-action="save-judge-assignment" class="w-full md:w-auto bg-emerald-600 text-white rounded-xl px-6 py-3 font-black">Save Assignments</button>
@@ -746,6 +762,15 @@
 
                 <!-- 7. PUBLIC PAGE CONTROL -->
                 <div id="view-public-content" class="tab-view max-w-7xl mx-auto space-y-4 md:space-y-6">
+                    <!-- Sticky Public Page Control Subtabs Bar -->
+                    <nav class="sticky top-0 z-20 flex gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white/95 px-3 pt-2 pb-0 backdrop-blur shadow-xs scrollbar-none" id="public-content-subtabs" role="tablist" aria-label="Public content sections">
+                        <button type="button" data-admin-action="switch-public-content-panel" data-panel="home" class="public-tab-btn flex items-center gap-2 border-b-2 border-blue-600 px-4 py-2.5 text-xs font-black text-blue-700 bg-blue-50/70 rounded-t-xl transition-all whitespace-nowrap" aria-selected="true"><i data-lucide="home" class="w-4 h-4"></i> Home Page</button>
+                        <button type="button" data-admin-action="switch-public-content-panel" data-panel="next" class="public-tab-btn flex items-center gap-2 border-b-2 border-transparent px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl transition-all whitespace-nowrap" aria-selected="false"><i data-lucide="calendar-clock" class="w-4 h-4"></i> Next Program Card</button>
+                        <button type="button" data-admin-action="switch-public-content-panel" data-panel="results" class="public-tab-btn flex items-center gap-2 border-b-2 border-transparent px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl transition-all whitespace-nowrap" aria-selected="false"><i data-lucide="list-checks" class="w-4 h-4"></i> Results Page</button>
+                        <button type="button" data-admin-action="switch-public-content-panel" data-panel="team" class="public-tab-btn flex items-center gap-2 border-b-2 border-transparent px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl transition-all whitespace-nowrap" aria-selected="false"><i data-lucide="users" class="w-4 h-4"></i> Team Portal</button>
+                        <button type="button" data-admin-action="switch-public-content-panel" data-panel="social" class="public-tab-btn flex items-center gap-2 border-b-2 border-transparent px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl transition-all whitespace-nowrap" aria-selected="false"><i data-lucide="share-2" class="w-4 h-4"></i> Social Links</button>
+                    </nav>
+
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between gap-4 md:items-center">
                             <div>
@@ -754,15 +779,6 @@
                             </div>
                             <button data-admin-action="save-public-content" id="btn-save-public-content" class="touch-target w-full md:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 transition active:scale-95"><i data-lucide="save" class="w-4 h-4"></i> Save Public Content</button>
                         </div>
-                            <div class="border-t border-slate-100 bg-slate-50/60 p-2 sm:p-3 overflow-x-auto">
-                                <div id="public-content-subtabs" class="flex gap-2 min-w-max" role="tablist" aria-label="Public content sections">
-                                    <button type="button" data-admin-action="switch-public-content-panel" data-panel="home" class="public-tab-btn flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition border bg-white shadow-sm border-blue-600 text-blue-700" aria-selected="true"><i data-lucide="home" class="w-4 h-4"></i> Home Page</button>
-                                    <button type="button" data-admin-action="switch-public-content-panel" data-panel="next" class="public-tab-btn flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition border border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60" aria-selected="false"><i data-lucide="calendar-clock" class="w-4 h-4"></i> Next Program Card</button>
-                                    <button type="button" data-admin-action="switch-public-content-panel" data-panel="results" class="public-tab-btn flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition border border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60" aria-selected="false"><i data-lucide="list-checks" class="w-4 h-4"></i> Results Page</button>
-                                    <button type="button" data-admin-action="switch-public-content-panel" data-panel="team" class="public-tab-btn flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition border border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60" aria-selected="false"><i data-lucide="users" class="w-4 h-4"></i> Team Portal</button>
-                                    <button type="button" data-admin-action="switch-public-content-panel" data-panel="social" class="public-tab-btn flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition border border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60" aria-selected="false"><i data-lucide="share-2" class="w-4 h-4"></i> Social Links</button>
-                                </div>
-                            </div>
                         <div class="p-4 md:p-5 space-y-6">
                             <section data-public-content-panel="home" class="rounded-2xl border border-slate-200 p-4 space-y-4">
                                 <h4 class="font-black text-slate-800 flex items-center gap-2"><i data-lucide="home" class="w-4 h-4 text-indigo-600"></i> Home Page Content</h4>

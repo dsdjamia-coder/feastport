@@ -541,6 +541,7 @@ document.addEventListener('click', (event) => {
         'export-csv': () => window.exportToCSV(),
         'add-item': () => window.addItem(d.type, d.input),
         'create-team': () => window.createTeam(),
+        'switch-team-config-subtab': () => window.switchTeamConfigSubtab(d.configSubtab || btn.dataset.configSubtab),
         'save-team-display-name': () => window.saveTeamDisplayName(d.team),
         'save-category-display-name': () => window.saveCategoryDisplayName(d.category),
         'save-chest-config': () => window.saveChestNoConfig(),
@@ -795,7 +796,7 @@ const MASTER_SETUP_SECTIONS={
 };
 let activeMasterSection=sessionStorage.getItem('adminMasterSection')||'overview';if(activeMasterSection==='people-registration-public')activeMasterSection='people-registration';
 const masterDirtySections=new Set();
-const setMasterSubnavExpanded=expanded=>{const menu=document.getElementById('master-setup-subnav'),button=document.getElementById('nav-master-setup'),chevron=document.getElementById('master-subnav-chevron');menu?.classList.toggle('hidden',!expanded);menu?.classList.toggle('master-subnav-expanded',expanded);button?.setAttribute('aria-expanded',String(expanded));chevron?.classList.toggle('rotate-180',expanded);};
+const setMasterSubnavExpanded=expanded=>{const menu=document.getElementById('master-setup-subnav');if(menu)menu.style.display='none';};
 const updateMasterSubnavStatus=()=>{const missing=typeof competitionPoliciesFromForm==='function'?incompleteCompetitionPolicies(competitionPoliciesFromForm()):[];document.querySelectorAll('.master-subnav-item').forEach(button=>{let badge=button.querySelector('[data-master-status]');if(!badge){badge=document.createElement('span');badge.dataset.masterStatus='true';badge.className='float-right ml-2';button.append(badge);}const invalid=(button.dataset.section==='judging-scoring'||button.dataset.section==='review-activate')&&missing.length;const dirty=masterDirtySections.has(button.dataset.section),state=invalid?'needs attention':dirty?'unsaved changes':'ready';badge.textContent=invalid?'!':dirty?'●':'✓';badge.className=`float-right ml-auto ${invalid?'text-red-500':dirty?'text-amber-500':'text-emerald-500'}`;button.setAttribute('aria-label',`${MASTER_SETUP_SECTIONS[button.dataset.section]?.title||button.dataset.section} — ${state}`);});document.querySelectorAll('[data-master-tab]').forEach(button=>{const sec=button.dataset.masterTab;let badge=button.querySelector('[data-master-tab-status]');if(!badge){badge=document.createElement('span');badge.dataset.masterTabStatus=sec;badge.className='ml-1 text-[11px] font-black';button.append(badge);}const invalid=(sec==='judging-scoring'||sec==='review-activate')&&missing.length;const dirty=masterDirtySections.has(sec);badge.textContent=invalid?'!':dirty?'●':'✓';badge.className=`ml-1 text-[11px] font-black ${invalid?'text-red-600':dirty?'text-amber-600':'text-emerald-600'}`;});const status=document.getElementById('page-status');if(status&&document.getElementById('view-master-setup')?.classList.contains('active')){const meta=MASTER_SETUP_SECTIONS[activeMasterSection],issueCount=missing.length;status.textContent=`${festSetup.eventManagementMode?.[0]?.toUpperCase()+festSetup.eventManagementMode?.slice(1)} profile • ${masterDirtySections.size} unsaved section${masterDirtySections.size===1?'':'s'}${issueCount?` • ${issueCount} policy issue${issueCount===1?'':'s'}`:''} • ${meta.description}`;}};
 window.switchMasterSection=(section,{scroll=true}={})=>{if(!MASTER_SETUP_SECTIONS[section])section='overview';activeMasterSection=section;sessionStorage.setItem('adminMasterSection',section);setMasterSubnavExpanded(true);document.querySelectorAll('#view-master-setup [data-master-section]').forEach(element=>element.classList.toggle('hidden',element.dataset.masterSection!==section));document.querySelectorAll('#view-master-setup [data-master-section-container]').forEach(container=>{const children=[...container.querySelectorAll(':scope > [data-master-section], :scope > div > [data-master-section]')];container.classList.toggle('hidden',children.length>0&&!children.some(child=>child.dataset.masterSection===section));});document.querySelectorAll('.master-subnav-item').forEach(button=>{const active=button.dataset.section===section;button.classList.toggle('bg-indigo-50',active);button.classList.toggle('text-indigo-700',active);button.classList.toggle('text-slate-500',!active);button.setAttribute('aria-current',active?'page':'false');});document.querySelectorAll('[data-master-tab]').forEach(button=>{const active=button.dataset.masterTab===section;button.classList.toggle('border-indigo-600',active);button.classList.toggle('text-indigo-700',active);button.classList.toggle('bg-indigo-50/70',active);button.classList.toggle('font-black',active);button.classList.toggle('border-transparent',!active);button.classList.toggle('text-slate-500',!active);button.classList.toggle('font-bold',!active);button.setAttribute('aria-selected',active?'true':'false');});const meta=MASTER_SETUP_SECTIONS[section];const context=document.getElementById('page-context'),status=document.getElementById('page-status');if(context){context.textContent=`/ ${meta.title}`;context.classList.remove('hidden');}if(status){status.textContent=`${festSetup.eventManagementMode?.[0]?.toUpperCase()+festSetup.eventManagementMode?.slice(1)} profile • ${masterDirtySections.size} unsaved section${masterDirtySections.size===1?'':'s'} • ${meta.description}`;status.classList.remove('hidden');}closeMasterInfo();const url=new URL(location.href);url.searchParams.set('tab','master-setup');url.searchParams.set('section',section);history.replaceState(null,'',url);updateMasterSubnavStatus();if(scroll)resetAdminContentScroll();window.lucide?.createIcons?.();};
 
@@ -816,7 +817,7 @@ window.switchTab = (tab) => {
 
     const titles = { 'dashboard': 'Dashboard', 'registrations': 'Registrations', 'students': 'Students Directory', 'events': 'Events Management', 'schedule': 'Time Schedule', 'config': 'Team Setup', 'master-setup': 'Master Setup', 'access': 'Access Management', 'scoring': 'Scoring Settings', 'judge': 'Judgement Desk', 'public-content': 'Public Page Control & Contents', 'poster-certificate':'Poster & Certificate', 'tv-display': 'TV Display Settings', 'danger': 'Data Reset', 'downloads': 'Downloads', 'guide': 'User Guide' };
     document.getElementById('page-title').innerText = titles[tab] || 'Admin Panel';const masterActive=tab==='master-setup';document.getElementById('master-header-actions')?.classList.toggle('hidden',!masterActive);document.getElementById('master-header-actions')?.classList.toggle('flex',masterActive);if(!masterActive){document.getElementById('page-context')?.classList.add('hidden');document.getElementById('page-status')?.classList.add('hidden');}
-    if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].border-indigo-600')?.dataset?.downloadTab || document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') { window.renderDropdowns?.(); renderStudentTable(); } if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.();renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') { window.switchScheduleSubtab?.(activeScheduleSubtab); window.renderSchedule(); } if(tab === 'schedule-review') window.renderScheduleReview?.(); if(tab === 'registrations') renderRegList(); if(tab === 'config') { window.renderSetupLists?.(); window.renderChestGrid?.(); } if(tab === 'access') window.renderAccessManagement?.(); if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
+    if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].border-indigo-600')?.dataset?.downloadTab || document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') { window.renderDropdowns?.(); renderStudentTable(); } if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.();renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') { window.switchScheduleSubtab?.(activeScheduleSubtab); window.renderSchedule(); } if(tab === 'schedule-review') window.renderScheduleReview?.(); if(tab === 'registrations') renderRegList(); if(tab === 'config') { window.switchTeamConfigSubtab?.(activeTeamConfigSubtab); window.renderSetupLists?.(); window.renderChestGrid?.(); } if(tab === 'access') window.renderAccessManagement?.(); if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
     resetAdminContentScroll();
 };
 
@@ -2020,12 +2021,13 @@ window.switchPublicContentPanel = panel => {
     });
     document.querySelectorAll('#public-content-subtabs .public-tab-btn').forEach(button => {
         const active = button.dataset.panel === activePublicContentPanel;
-        button.classList.toggle('bg-white', active);
-        button.classList.toggle('shadow-sm', active);
         button.classList.toggle('border-blue-600', active);
         button.classList.toggle('text-blue-700', active);
+        button.classList.toggle('bg-blue-50/70', active);
+        button.classList.toggle('font-black', active);
         button.classList.toggle('border-transparent', !active);
-        button.classList.toggle('text-slate-600', !active);
+        button.classList.toggle('text-slate-500', !active);
+        button.classList.toggle('font-bold', !active);
         button.setAttribute('aria-selected', String(active));
     });
     document.querySelectorAll('input[name="public-content-panel"]').forEach(input => { input.checked = input.value === activePublicContentPanel; });
@@ -3076,6 +3078,27 @@ window.editItem = async (type, oldVal) => {
     finally { document.getElementById('app-loader')?.classList.add('hide'); }
 };
 
+let activeTeamConfigSubtab = 'chest';
+window.switchTeamConfigSubtab = (subtab = 'chest') => {
+    activeTeamConfigSubtab = ['chest', 'create'].includes(subtab) ? subtab : 'chest';
+    const chestPanel = document.getElementById('team-config-panel-chest');
+    const createPanel = document.getElementById('team-config-panel-create');
+    if (chestPanel) chestPanel.classList.toggle('hidden', activeTeamConfigSubtab !== 'chest');
+    if (createPanel) createPanel.classList.toggle('hidden', activeTeamConfigSubtab !== 'create');
+    document.querySelectorAll('.team-config-subtab-btn').forEach(btn => {
+        const active = btn.dataset.configSubtab === activeTeamConfigSubtab;
+        btn.classList.toggle('border-teal-600', active);
+        btn.classList.toggle('text-teal-700', active);
+        btn.classList.toggle('bg-teal-50/70', active);
+        btn.classList.toggle('font-black', active);
+        btn.classList.toggle('border-transparent', !active);
+        btn.classList.toggle('text-slate-500', !active);
+        btn.classList.toggle('font-bold', !active);
+        btn.setAttribute('aria-selected', String(active));
+    });
+    window.lucide?.createIcons?.();
+};
+
 window.renderSetupLists = () => {
     const teamBox=document.getElementById('created-teams-list'),categoryBox=document.getElementById('created-categories-list');
     document.getElementById('inp-new-team')?.setAttribute('placeholder', `${nextTeamCode()} display name`);
@@ -4000,10 +4023,17 @@ window.switchJudgeSubtab = (tab = 'assign') => {
     document.querySelectorAll('.judge-subtab-panel').forEach(panel => panel.classList.toggle('hidden', panel.id !== `judge-subtab-${tab}`));
     document.querySelectorAll('.judge-subtab').forEach(btn => {
         const active = btn.dataset.subtab === tab;
-        btn.classList.toggle('bg-indigo-600', active); btn.classList.toggle('text-white', active);
-        btn.classList.toggle('bg-slate-100', !active); btn.classList.toggle('text-slate-600', !active);
+        btn.classList.toggle('border-indigo-600', active);
+        btn.classList.toggle('text-indigo-700', active);
+        btn.classList.toggle('bg-indigo-50/70', active);
+        btn.classList.toggle('font-black', active);
+        btn.classList.toggle('border-transparent', !active);
+        btn.classList.toggle('text-slate-500', !active);
+        btn.classList.toggle('font-bold', !active);
+        btn.setAttribute('aria-selected', String(active));
     });
     window.renderJudgePanel?.();
+    window.lucide?.createIcons?.();
 };
 
 window.renderJudgeStats = () => {
