@@ -217,7 +217,7 @@ export function normalizeFestSetup(raw = {}) {
     allowedGenders,
     organisationMode: allowed(raw.organisationMode, ['team', 'open', 'hybrid'], base.organisationMode),
     participantTypeDefinitions,
-    participantTypes: list(raw.participantTypes, participantKeys, base.participantTypes),
+    participantTypes: list(raw.participantTypes, participantKeys, base.participantTypes).filter(type => !['guest', 'volunteer'].includes(type)),
     registrationChannels: list(raw.registrationChannels, ['admin', 'teamLeader', 'self', 'onSite'], base.registrationChannels),
     scheduleMode: allowed(raw.scheduleMode, ['disabled', 'basic', 'full'], base.scheduleMode),
     judgingMode: allowed(raw.judgingMode, ['disabled', 'enabled', 'optional'], base.judgingMode),
@@ -254,7 +254,7 @@ export function normalizeParticipantTypeDefinitions(value) {
       allowedGenders:Array.isArray(item?.allowedGenders)&&item.allowedGenders.length?item.allowedGenders:['Boys','Girls'],
       registrationChannels:Array.isArray(item?.registrationChannels)&&item.registrationChannels.length?item.registrationChannels:(item?.teamAffiliated!==false?['admin','teamLeader']:['admin','self','onSite'])
     };
-  }).filter(item=>item.key&&item.label);
+  }).filter(item=>item.key&&item.label&&!['guest', 'volunteer'].includes(item.key));
   if(!clean.some(item=>item.key==='student')){
     clean.unshift({
       key:'student',

@@ -577,6 +577,10 @@ document.addEventListener('click', (event) => {
         'remove-participant-type': () => window.removeMasterParticipantType(d.key),
         'close-participant-type-modal': () => window.closeParticipantTypeModal(),
         'save-participant-type-modal': () => window.saveParticipantTypeModal(),
+        'modal-switch-pt-tab': () => window.switchParticipantTypeModalTab(d.ptTab),
+        'modal-add-student-field': () => window.addModalStudentField(),
+        'modal-edit-student-field': () => window.editModalStudentField(d.key),
+        'modal-remove-student-field': () => window.removeModalStudentField(d.key),
         'add-tier-level': () => window.addMasterTierLevel(),
         'remove-tier-level': () => window.removeMasterTierLevel(d.tierId),
         'add-domain-modal': () => window.addMasterDomain(),
@@ -3351,12 +3355,153 @@ window.addMasterParticipantType = () => {
     window.showToast(`Participant type "${label}" added`);
 };
 
+window.switchParticipantTypeModalTab = tabId => {
+    const tabs = ['general', 'gender', 'channels', 'fields'];
+    if (!tabs.includes(tabId)) tabId = 'general';
+    tabs.forEach(tab => {
+        const btn = document.getElementById(`pt-btn-tab-${tab}`);
+        const panel = document.getElementById(`pt-tab-panel-${tab}`);
+        const active = tab === tabId;
+        if (btn) {
+            btn.classList.toggle('border-indigo-600', active);
+            btn.classList.toggle('text-indigo-700', active);
+            btn.classList.toggle('font-black', active);
+            btn.classList.toggle('bg-white/70', active);
+            btn.classList.toggle('border-transparent', !active);
+            btn.classList.toggle('text-slate-500', !active);
+            btn.classList.toggle('font-bold', !active);
+            btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        }
+        if (panel) {
+            panel.classList.toggle('hidden', !active);
+        }
+    });
+    if (tabId === 'fields') {
+        window.renderModalStudentFields();
+    }
+    window.lucide?.createIcons?.();
+};
+
+window.updateModalGenderScheme = (scheme, preselectedGenders = null) => {
+    const binaryWrap = document.getElementById('edit-pt-gender-binary-wrap');
+    const unisexBanner = document.getElementById('edit-pt-gender-unisex-banner');
+    const container = document.getElementById('edit-pt-genders');
+
+    if (scheme === 'all_unisex') {
+        if (binaryWrap) binaryWrap.classList.add('hidden');
+        if (unisexBanner) unisexBanner.classList.remove('hidden');
+        if (container) container.innerHTML = '';
+        return;
+    }
+
+    if (binaryWrap) binaryWrap.classList.remove('hidden');
+    if (unisexBanner) unisexBanner.classList.add('hidden');
+
+    const options = scheme === 'men_women' ? ['Men', 'Women'] : scheme === 'male_female' ? ['Male', 'Female'] : ['Boys', 'Girls'];
+    const chosen = preselectedGenders && preselectedGenders.length ? new Set(preselectedGenders) : new Set(options);
+
+    if (container) {
+        container.innerHTML = options.map(g => `
+            <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs font-bold cursor-pointer hover:bg-slate-100">
+                <input type="checkbox" name="edit-pt-gender-opt" value="${escapeHtml(g)}" ${chosen.has(g) ? 'checked' : ''} class="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500">
+                <span>${escapeHtml(g)}</span>
+            </label>
+        `).join('');
+    }
+};
+
+window.renderModalStudentFields = () => {
+    const box = document.getElementById('modal-student-field-settings');
+    if (!box) return;
+    const fields = normalizeStudentFields(festSetup.studentFields);
+    box.innerHTML = fields.map(field => `
+        <div class="grid items-center gap-2 rounded-xl border bg-slate-50 p-3 sm:grid-cols-[1fr_auto_auto_auto]">
+            <div>
+                <b class="text-sm text-slate-800">${escapeHtml(field.label)}</b>
+                <p class="text-[10px] font-bold uppercase text-slate-400">${field.key} • ${field.type}</p>
+                ${field.type === 'select' ? `<input data-student-field-options="${field.key}" value="${escapeHtml((field.options || []).join(', '))}" placeholder="Choices, comma separated" class="mt-2 w-full rounded-lg border bg-white px-2 py-1.5 text-xs">` : ''}
+            </div>
+            <label class="text-xs font-bold cursor-pointer flex items-center gap-1.5"><input data-student-field-enabled="${field.key}" type="checkbox" ${field.enabled !== false ? 'checked' : ''} ${field.key === 'name' ? 'disabled' : ''} class="h-4 w-4 rounded text-indigo-600"> Enabled</label>
+            <label class="text-xs font-bold cursor-pointer flex items-center gap-1.5"><input data-student-field-required="${field.key}" type="checkbox" ${field.required === true ? 'checked' : ''} ${field.key === 'name' ? 'disabled' : ''} class="h-4 w-4 rounded text-indigo-600"> Required</label>
+            ${field.system ? '<span class="text-[10px] font-bold text-slate-400">BUILT IN</span>' : `
+                <span class="flex gap-1.5">
+                    <button type="button" data-admin-action="modal-edit-student-field" data-key="${field.key}" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-xs font-bold text-indigo-700 transition active:scale-95 shadow-2xs">Edit</button>
+                    <button type="button" data-admin-action="modal-remove-student-field" data-key="${field.key}" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-xs font-bold text-rose-600 transition active:scale-95 shadow-2xs">Delete</button>
+                </span>
+            `}
+        </div>
+    `).join('');
+};
+
+window.addModalStudentField = () => {
+    const input = document.getElementById('modal-new-student-field-label');
+    const label = input?.value.trim();
+    const type = document.getElementById('modal-new-student-field-type')?.value || 'text';
+    const options = (document.getElementById('modal-new-student-field-options')?.value || '').split(',').map(v => v.trim()).filter(Boolean);
+    if (!label) return window.showToast('Enter a field label', 'error');
+    if (type === 'select' && !options.length) return window.showToast('Add at least one dropdown choice', 'error');
+    const key = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    if (!key) return window.showToast('Use an English field label', 'error');
+    const existing = normalizeStudentFields(festSetup.studentFields);
+    if (existing.some(f => f.key === key)) return window.showToast('Field already exists', 'error');
+    festSetup = {
+        ...festSetup,
+        studentFields: [...existing, { key, label, type, options, enabled: true, required: false }]
+    };
+    if (input) input.value = '';
+    const optInput = document.getElementById('modal-new-student-field-options');
+    if (optInput) optInput.value = '';
+    window.renderModalStudentFields();
+    masterDirtySections.add('people-registration');
+    updateMasterSubnavStatus();
+    window.showToast(`Field "${label}" added`);
+};
+
+window.editModalStudentField = async key => {
+    const fields = normalizeStudentFields(festSetup.studentFields);
+    const field = fields.find(item => item.key === key);
+    if (!field || field.system) return;
+    const label = (await window.promptAction('Edit field label:', field.label))?.trim();
+    if (!label) return;
+    festSetup = {
+        ...festSetup,
+        studentFields: fields.map(item => item.key === key ? { ...item, label } : item)
+    };
+    window.renderModalStudentFields();
+    masterDirtySections.add('people-registration');
+    updateMasterSubnavStatus();
+    window.showToast(`Updated label for "${label}"`);
+};
+
+window.removeModalStudentField = async key => {
+    const fields = normalizeStudentFields(festSetup.studentFields);
+    const field = fields.find(item => item.key === key);
+    if (!field || field.system) return;
+    if (!await window.confirmAction(`Delete field "${field.label}"?`)) return;
+    festSetup = {
+        ...festSetup,
+        studentFields: fields.filter(f => f.key !== key)
+    };
+    window.renderModalStudentFields();
+    masterDirtySections.add('people-registration');
+    updateMasterSubnavStatus();
+    window.showToast(`Field "${field.label}" deleted`);
+};
+
+window.renderStudentFieldSettings = () => window.renderModalStudentFields();
+window.addStudentField = () => window.addModalStudentField();
+window.editStudentField = key => window.editModalStudentField(key);
+window.removeStudentField = key => window.removeModalStudentField(key);
+
 window.openParticipantTypeModal = key => {
     const definitions = normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions);
     const item = definitions.find(d => d.key === key);
     if (!item) return;
     const modal = document.getElementById('participant-type-edit-modal');
     if (!modal) return;
+
+    window.switchParticipantTypeModalTab('general');
+
     document.getElementById('edit-pt-key').value = item.key;
     document.getElementById('edit-pt-label').value = item.label;
     document.getElementById('edit-pt-description').value = item.description || '';
@@ -3364,17 +3509,20 @@ window.openParticipantTypeModal = key => {
     const titleEl = document.getElementById('participant-type-modal-title');
     if (titleEl) titleEl.textContent = `Edit ${item.label} Configuration`;
 
-    const genderContainer = document.getElementById('edit-pt-genders');
-    if (genderContainer) {
-        const availableGenders = festSetup.allowedGenders || ['Boys', 'Girls'];
-        const selectedGenders = new Set(item.allowedGenders || availableGenders);
-        genderContainer.innerHTML = availableGenders.map(g => `
-            <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs font-bold cursor-pointer hover:bg-slate-100">
-                <input type="checkbox" name="edit-pt-gender-opt" value="${escapeHtml(g)}" ${selectedGenders.has(g) ? 'checked' : ''} class="h-4 w-4 rounded text-indigo-600">
-                <span>${escapeHtml(g)}</span>
-            </label>
-        `).join('');
+    // Detect gender scheme
+    const currentGenders = item.allowedGenders || ['Boys', 'Girls'];
+    let detectedScheme = 'boys_girls';
+    if (currentGenders.includes('Men') || currentGenders.includes('Women')) {
+        detectedScheme = 'men_women';
+    } else if (currentGenders.includes('Male') || currentGenders.includes('Female')) {
+        detectedScheme = 'male_female';
+    } else if (currentGenders.includes('All') || !currentGenders.length) {
+        detectedScheme = 'all_unisex';
     }
+
+    const schemeSelect = document.getElementById('edit-pt-gender-scheme');
+    if (schemeSelect) schemeSelect.value = detectedScheme;
+    window.updateModalGenderScheme(detectedScheme, currentGenders);
 
     const channelContainer = document.getElementById('edit-pt-channels');
     if (channelContainer) {
@@ -3387,11 +3535,15 @@ window.openParticipantTypeModal = key => {
         const selectedChannels = new Set(item.registrationChannels || ['admin', 'teamLeader']);
         channelContainer.innerHTML = allChannels.map(c => `
             <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs font-bold cursor-pointer hover:bg-slate-100">
-                <input type="checkbox" name="edit-pt-channel-opt" value="${c.id}" ${selectedChannels.has(c.id) ? 'checked' : ''} class="h-4 w-4 rounded text-indigo-600">
+                <input type="checkbox" name="edit-pt-channel-opt" value="${c.id}" ${selectedChannels.has(c.id) ? 'checked' : ''} class="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500">
                 <span>${c.label}</span>
             </label>
         `).join('');
     }
+
+    window.renderModalStudentFields();
+    const fieldsTitle = document.getElementById('pt-modal-fields-title');
+    if (fieldsTitle) fieldsTitle.textContent = `${item.label} Profile & Detail Fields`;
 
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -3413,11 +3565,30 @@ window.saveParticipantTypeModal = async () => {
     const affiliation = document.getElementById('edit-pt-affiliation')?.value || 'team';
     if (!label) return window.showToast('Participant type name is required', 'error');
 
-    const selectedGenders = [...document.querySelectorAll('input[name="edit-pt-gender-opt"]:checked')].map(i => i.value);
-    if (!selectedGenders.length) return window.showToast('Select at least one eligible gender division', 'error');
+    const scheme = document.getElementById('edit-pt-gender-scheme')?.value || 'boys_girls';
+    let selectedGenders = [];
+    if (scheme === 'all_unisex') {
+        selectedGenders = ['All'];
+    } else {
+        selectedGenders = [...document.querySelectorAll('input[name="edit-pt-gender-opt"]:checked')].map(i => i.value);
+        if (!selectedGenders.length) return window.showToast('Select at least one eligible gender division', 'error');
+    }
 
     const selectedChannels = [...document.querySelectorAll('input[name="edit-pt-channel-opt"]:checked')].map(i => i.value);
     if (!selectedChannels.length) return window.showToast('Select at least one registration channel', 'error');
+
+    // Read student fields if configured in modal
+    const updatedStudentFields = normalizeStudentFields(festSetup.studentFields).map(field => {
+        const optInput = document.querySelector(`[data-student-field-options="${field.key}"]`);
+        const enabledInput = document.querySelector(`[data-student-field-enabled="${field.key}"]`);
+        const requiredInput = document.querySelector(`[data-student-field-required="${field.key}"]`);
+        return {
+            ...field,
+            options: field.type === 'select' ? (optInput ? optInput.value.split(',').map(v => v.trim()).filter(Boolean) : (field.options || [])) : [],
+            enabled: field.key === 'name' || (enabledInput ? enabledInput.checked : field.enabled !== false),
+            required: field.key === 'name' || (requiredInput ? requiredInput.checked : field.required === true)
+        };
+    });
 
     if (!await window.confirmAction(`Update configuration for "${label}"?`, { okText: 'Update', cancelText: 'Cancel' })) return;
 
@@ -3425,6 +3596,7 @@ window.saveParticipantTypeModal = async () => {
     festSetup = {
         ...festSetup,
         preset: 'custom',
+        studentFields: updatedStudentFields,
         participantTypeDefinitions: definitions.map(item => {
             if (item.key === key) {
                 return {
@@ -3446,6 +3618,10 @@ window.saveParticipantTypeModal = async () => {
     window.renderMasterSetup();
     window.showToast(`Updated "${label}" configuration`);
 };
+
+document.getElementById('edit-pt-gender-scheme')?.addEventListener('change', event => {
+    window.updateModalGenderScheme(event.target.value);
+});
 
 window.editMasterParticipantType = async key => {
     window.openParticipantTypeModal(key);
@@ -3514,7 +3690,7 @@ const renderMasterParticipantTypes = setup => {
                     <div>
                         <span class="text-[10px] font-black uppercase text-slate-400 block mb-1">Eligible Genders:</span>
                         <div class="flex flex-wrap gap-1">
-                            ${genders.map(g => `<span class="rounded-lg bg-blue-50 border border-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">${escapeHtml(g)}</span>`).join('')}
+                            ${genders.length === 1 && genders[0] === 'All' ? '<span class="rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-bold text-emerald-700">All / Unisex (ലിംഗഭേദമില്ലാതെ)</span>' : genders.map(g => `<span class="rounded-lg bg-blue-50 border border-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">${escapeHtml(g)}</span>`).join('')}
                         </div>
                     </div>
                     <div>
@@ -4438,13 +4614,10 @@ function ensureEventRequirementLayout(prefix){const form=document.getElementById
 const syncEventGroupFields=prefix=>{const type=masterValue(`${prefix}-ev-type`)||'Single',groupVisible=type==='Group',groupInput=document.getElementById(prefix==='inp'?'inp-ev-grpsize':'edit-ev-grp'),groupWrap=document.getElementById(prefix==='inp'?'event-config-panel':'edit-event-config-panel');if(!groupWrap||!groupInput)return;groupWrap.classList.toggle('hidden',!groupVisible);groupWrap.setAttribute('aria-hidden',String(!groupVisible));groupInput.disabled=!groupVisible;groupInput.required=groupVisible;if(groupVisible&&Number(groupInput.value)<2)groupInput.value=2;};
 window.renderEventFormRequirements=prefix=>{const layout=ensureEventRequirementLayout(prefix);if(!layout)return;const rules=new Map((festSetup.eventFieldRules||[]).map(field=>[field.key,field.requirement])),place=(key,input,status)=>{const wrap=eventFieldWrapper(input,prefix,key);if(!wrap)return;wrap.dataset.eventLayoutField=key;wrap.classList.remove('hidden');wrap.classList.add('min-w-0','max-w-full');if(status==='hidden'||(status==='conditional'&&!eventFieldApplicable(key,prefix))){layout.querySelector('[data-event-hidden-storage]')?.append(wrap);wrap.classList.add('hidden');input.required=false;return;}layout.querySelector(`[data-event-requirement-section="${status}"] [data-event-requirement-grid]`)?.append(wrap);input.required=status==='required'||status==='conditional';const label=wrap.querySelector('.input-label,label,legend');let mark=wrap.querySelector('[data-event-required-mark]');if(input.required&&!mark&&label){mark=document.createElement('span');mark.dataset.eventRequiredMark='true';mark.className='ml-1 text-red-500';mark.textContent='*';label.append(mark);}else if(!input.required)mark?.remove();};for(const field of CORE_EVENT_FIELDS){const input=field.key==='stage'?document.querySelector(`input[name="${prefix==='inp'?'ev-stage':'edit-ev-stage'}"]`):document.getElementById(`${prefix}-${field.suffix}`);place(field.key,input,'required');}for(const[key,suffix]of Object.entries(EVENT_FORM_FIELD_IDS))place(key,document.getElementById(`${prefix}-${suffix}`),rules.get(key)||'hidden');const groupWrap=document.getElementById(prefix==='inp'?'event-config-panel':'edit-event-config-panel');if(groupWrap){groupWrap.dataset.eventLayoutField='groupSize';layout.querySelector('[data-event-requirement-section="required"] [data-event-requirement-grid]')?.append(groupWrap);}syncEventGroupFields(prefix);layout.querySelectorAll('[data-event-requirement-section]').forEach(section=>{const visible=[...section.querySelectorAll('[data-event-layout-field]')].filter(item=>!item.classList.contains('hidden')).length;section.classList.toggle('hidden',visible===0);const count=section.querySelector('[data-event-requirement-count]');if(count)count.textContent=`${visible} field${visible===1?'':'s'}`;});if(prefix==='inp'){const bulk=document.getElementById('inp-ev-bulk-names'),single=document.getElementById('inp-ev-name'),bulkEnabled=bulk&&!bulk.classList.contains('hidden');if(single)single.required=!bulkEnabled;if(bulk)bulk.required=!!bulkEnabled;}const legacy=document.getElementById(prefix==='inp'?'create-event-legacy-layout':'edit-event-legacy-layout');legacy?.classList.add('hidden');};
 const applyEventFieldRules=()=>{for(const prefix of ['inp','edit'])window.renderEventFormRequirements(prefix);};
-window.renderStudentFieldSettings = () => {
-    const box=document.getElementById('student-field-settings');if(!box)return;
-    box.innerHTML=normalizeStudentFields(festSetup.studentFields).map(field=>`<div class="grid items-center gap-2 rounded-xl border bg-slate-50 p-3 sm:grid-cols-[1fr_auto_auto_auto]"><div><b class="text-sm text-slate-800">${escapeHtml(field.label)}</b><p class="text-[10px] font-bold uppercase text-slate-400">${field.key} • ${field.type}</p>${field.type==='select'?`<input data-student-field-options="${field.key}" value="${escapeHtml((field.options||[]).join(', '))}" placeholder="Choices, comma separated" class="mt-2 w-full rounded-lg border bg-white px-2 py-1.5 text-xs">`:''}</div><label class="text-xs font-bold"><input data-student-field-enabled="${field.key}" type="checkbox" ${field.enabled?'checked':''} ${field.key==='name'?'disabled':''}> Enabled</label><label class="text-xs font-bold"><input data-student-field-required="${field.key}" type="checkbox" ${field.required?'checked':''} ${field.key==='name'?'disabled':''}> Required</label>${field.system?'<span class="text-[10px] font-bold text-slate-400">BUILT IN</span>':`<span class="flex gap-2"><button data-admin-action="edit-student-field" data-key="${field.key}" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-xs font-bold text-indigo-700 transition active:scale-95 shadow-2xs">Edit</button><button data-admin-action="remove-student-field" data-key="${field.key}" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-xs font-bold text-rose-600 transition active:scale-95 shadow-2xs">Delete</button></span>`}</div>`).join('');
-};
-window.addStudentField = () => {const input=document.getElementById('new-student-field-label'),label=input?.value.trim(),type=document.getElementById('new-student-field-type')?.value||'text',options=(document.getElementById('new-student-field-options')?.value||'').split(',').map(value=>value.trim()).filter(Boolean);if(!label)return window.showToast('Enter a field label','error');if(type==='select'&&!options.length)return window.showToast('Add at least one dropdown choice','error');const key=label.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');if(!key)return window.showToast('Use an English field key/label','error');if(normalizeStudentFields(festSetup.studentFields).some(field=>field.key===key))return window.showToast('That field already exists','error');festSetup={...festSetup,studentFields:[...normalizeStudentFields(festSetup.studentFields),{key,label,type,options,enabled:true,required:false}]};input.value='';document.getElementById('new-student-field-options').value='';window.renderStudentFieldSettings();};
-window.editStudentField=async key=>{const fields=normalizeStudentFields(festSetup.studentFields),field=fields.find(item=>item.key===key);if(!field||field.system)return;const label=(await window.promptAction('Field label',field.label))?.trim();if(!label)return;festSetup={...festSetup,studentFields:fields.map(item=>item.key===key?{...item,label}:item)};window.renderStudentFieldSettings();};
-window.removeStudentField = key => {festSetup={...festSetup,studentFields:normalizeStudentFields(festSetup.studentFields).filter(field=>field.key!==key)};window.renderStudentFieldSettings();};
+window.renderStudentFieldSettings = () => window.renderModalStudentFields?.();
+window.addStudentField = () => window.addModalStudentField?.();
+window.editStudentField = key => window.editModalStudentField?.(key);
+window.removeStudentField = key => window.removeModalStudentField?.(key);
 
 let studentImportRows=[];
 let studentImportHeaders=[];
@@ -4562,14 +4735,33 @@ window.saveMasterSetup = async () => {
         eventFieldProfile:JSON.stringify(eventFieldRulesFromDom().map(({key,requirement})=>({key,requirement})))===JSON.stringify(eventFieldRulesForMode(masterValue('master-event-management')).map(({key,requirement})=>({key,requirement})))?masterValue('master-event-management'):'custom',
         eventFieldRules:eventFieldRulesFromDom(),
         eventFeatures:Object.fromEntries([...document.querySelectorAll('[data-master-event-feature]')].map(input=>[input.dataset.masterEventFeature,input.checked])),
-        eligibleClasses:(document.querySelector('[data-student-field-options="class"]')?.value||'').split(',').map(value=>value.trim()).filter(Boolean),
+        eligibleClasses: (() => {
+            const classInput = document.querySelector('[data-student-field-options="class"]');
+            if (classInput && classInput.value) {
+                const list = classInput.value.split(',').map(v => v.trim()).filter(Boolean);
+                if (list.length) return list;
+            }
+            const existing = normalizeStudentFields(festSetup.studentFields).find(f => f.key === 'class');
+            if (existing && existing.options && existing.options.length) return existing.options;
+            return festSetup.eligibleClasses || ['1','2','3','4','5','6','7','8','9','10','+1','+2'];
+        })(),
         participantTypes:selectedParticipantTypes,
         participantTypeDefinitions:festSetup.participantTypeDefinitions,
         allowedGenders:selectedGenders,
         registrationChannels:selectedRegistrationChannels,
         publicModules:Object.fromEntries([...document.querySelectorAll('[data-master-public]')].map(input=>[input.dataset.masterPublic,input.checked])),
         publicView:publicViewFromDom(),
-        studentFields:normalizeStudentFields(festSetup.studentFields).map(field=>({...field,options:field.type==='select'?(document.querySelector(`[data-student-field-options="${field.key}"]`)?.value||'').split(',').map(value=>value.trim()).filter(Boolean):[],enabled:field.key==='name'||document.querySelector(`[data-student-field-enabled="${field.key}"]`)?.checked===true,required:field.key==='name'||document.querySelector(`[data-student-field-required="${field.key}"]`)?.checked===true})),
+        studentFields: normalizeStudentFields(festSetup.studentFields).map(field => {
+            const optInput = document.querySelector(`[data-student-field-options="${field.key}"]`);
+            const enabledInput = document.querySelector(`[data-student-field-enabled="${field.key}"]`);
+            const requiredInput = document.querySelector(`[data-student-field-required="${field.key}"]`);
+            return {
+                ...field,
+                options: field.type === 'select' ? (optInput ? optInput.value.split(',').map(value => value.trim()).filter(Boolean) : (field.options || [])) : [],
+                enabled: field.key === 'name' || (enabledInput ? enabledInput.checked === true : field.enabled !== false),
+                required: field.key === 'name' || (requiredInput ? requiredInput.checked === true : field.required === true)
+            };
+        }),
         competitionPolicies:competitionPoliciesFromForm()
     });
     if(!next.participantTypes.length || !next.allowedGenders.length || !next.registrationChannels.length) return window.showToast('Select at least one participant type, gender and registration channel','error');

@@ -164,9 +164,9 @@
         <p id="admin-loader-fest-name" class="mt-5 text-base font-black text-slate-800">Fest</p>
         <p class="mt-1 text-indigo-600 font-bold animate-pulse text-[10px] tracking-[0.25em] uppercase">Loading Admin</p>
     </div>
-    <div id="toast-container" class="fixed bottom-6 right-6 left-6 md:left-auto z-[90] flex flex-col gap-3 pointer-events-none"></div>
-    <div id="confirm-modal" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4"><div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 transform scale-100 transition-all animate-enter"><h3 class="text-lg font-bold text-slate-800 mb-2 text-center">Confirm Action</h3><p class="max-h-[60vh] overflow-y-auto whitespace-pre-line rounded-xl bg-slate-50 p-4 text-left text-sm leading-relaxed text-slate-600 mb-6" id="confirm-msg">Are you sure?</p><div class="flex gap-3"><button id="confirm-cancel" class="inline-flex items-center justify-center flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition active:scale-95">Cancel</button><button id="confirm-ok" class="inline-flex items-center justify-center flex-1 py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold shadow-sm shadow-rose-500/20 transition active:scale-95">Confirm</button></div></div></div>
-    <div id="prompt-modal" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4"><div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 transform scale-100 transition-all animate-enter"><h3 class="text-lg font-bold text-slate-800 mb-2" id="prompt-title">Enter Value</h3><input type="text" id="prompt-input" class="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 mb-6 font-medium" dir="auto"><div class="flex justify-end gap-3"><button id="prompt-cancel" class="inline-flex items-center justify-center px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition active:scale-95">Cancel</button><button id="prompt-ok" class="inline-flex items-center justify-center px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-sm shadow-indigo-500/20 transition active:scale-95">Save</button></div></div></div>
+    <div id="toast-container" class="fixed bottom-6 right-6 left-6 md:left-auto z-[9990] flex flex-col gap-3 pointer-events-none"></div>
+    <div id="confirm-modal" class="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4"><div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 transform scale-100 transition-all animate-enter"><h3 class="text-lg font-bold text-slate-800 mb-2 text-center">Confirm Action</h3><p class="max-h-[60vh] overflow-y-auto whitespace-pre-line rounded-xl bg-slate-50 p-4 text-left text-sm leading-relaxed text-slate-600 mb-6" id="confirm-msg">Are you sure?</p><div class="flex gap-3"><button id="confirm-cancel" class="inline-flex items-center justify-center flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition active:scale-95">Cancel</button><button id="confirm-ok" class="inline-flex items-center justify-center flex-1 py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold shadow-sm shadow-rose-500/20 transition active:scale-95">Confirm</button></div></div></div>
+    <div id="prompt-modal" class="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4"><div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 transform scale-100 transition-all animate-enter"><h3 class="text-lg font-bold text-slate-800 mb-2" id="prompt-title">Enter Value</h3><input type="text" id="prompt-input" class="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 mb-6 font-medium" dir="auto"><div class="flex justify-end gap-3"><button id="prompt-cancel" class="inline-flex items-center justify-center px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition active:scale-95">Cancel</button><button id="prompt-ok" class="inline-flex items-center justify-center px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-sm shadow-indigo-500/20 transition active:scale-95">Save</button></div></div></div>
 
     <div id="app-layout" class="flex h-full relative opacity-0 transition-opacity duration-500">
         <div id="sidebar-overlay" data-admin-action="close-sidebar" class="fixed inset-0 bg-black/50 z-40 hidden backdrop-blur-sm"></div>
@@ -879,7 +879,6 @@
                         <label class="input-group"><span class="input-label">General/Common gender participation</span><select id="policy-general-gender" class="text-input"><option value="">Select policy</option><option value="both">Boys and Girls eligible</option><option value="mixed">Mixed entry/group</option><option value="separate">Separate Boys/Girls entries</option><option value="admin_decision">Admin decides during registration</option><option value="per_event">Decide per event</option></select></label>
                         <label class="input-group"><span class="input-label">Published result correction</span><select id="policy-result-correction" class="text-input"><option value="">Select policy</option><option value="revision_reversal">Revision + ledger reversal only</option><option value="locked">Published results permanently locked</option><option value="admin_overwrite">Admin overwrite with audit</option></select></label>
                     </div><div id="competition-policy-status" class="border-t bg-slate-50 px-5 py-3 text-xs font-bold text-slate-600"></div></section><section id="master-scoring-slot" data-master-section="judging-scoring" class="space-y-4"></section>
-                    <section data-master-section="people-registration" class="rounded-2xl border border-cyan-100 bg-white shadow-sm"><header class="border-b bg-cyan-50 p-5"><h4 class="flex items-center gap-2 font-black text-cyan-950">Student Detail Fields <button data-admin-action="show-master-info" data-info="student_fields" class="rounded-lg p-1 text-cyan-700"><i data-lucide="info" class="h-4 w-4"></i></button></h4><p class="mt-1 text-xs font-semibold text-cyan-700">Choose fields shown while adding students. Required fields are validated in manual and Excel imports.</p></header><div class="p-5"><div id="student-field-settings" class="space-y-2"></div><div class="mt-4 grid gap-2 md:grid-cols-[1fr_150px_1fr_auto]"><input id="new-student-field-label" class="text-input" placeholder="Custom field label"><select id="new-student-field-type" class="text-input"><option value="text">Text</option><option value="tel">Phone</option><option value="email">Email</option><option value="number">Number</option><option value="date">Date</option><option value="select">Dropdown</option></select><input id="new-student-field-options" class="text-input" placeholder="Dropdown choices, comma separated"><button data-admin-action="add-student-field" class="rounded-xl bg-cyan-600 px-5 py-3 text-xs font-black text-white">Add Field</button></div></div></section>
                     <section data-master-section="review-activate" class="overflow-hidden rounded-2xl border border-rose-100 bg-white"><header class="border-b bg-rose-50 p-4"><h4 class="font-black text-rose-950">Configuration Impact Review</h4><p class="text-xs font-semibold text-rose-700">Shows records and workspaces that need review before saving mode changes.</p></header><div id="master-impact-review" class="grid gap-3 p-4 md:grid-cols-2"></div></section>
                     <div id="master-setup-summary" data-master-section="review-activate" class="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-bold text-emerald-800"></div>
                 </div>
@@ -1238,43 +1237,128 @@
     <div id="team-id-card-modal" class="fixed inset-0 z-[420] hidden items-center justify-center bg-slate-950/75 p-3 backdrop-blur" role="dialog" aria-modal="true"><article class="flex max-h-[94dvh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"><header class="flex shrink-0 items-center justify-between gap-3 border-b bg-emerald-50 p-4"><div><h2 id="team-id-card-title" class="text-lg font-black text-emerald-950">Team ID Cards</h2><p class="text-xs font-bold text-emerald-700">Choose page/card size, preview fitting, then download every member card as one PDF.</p></div><button data-admin-action="close-team-id-cards" class="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 transition active:scale-95">Close</button></header><div class="min-h-0 flex-1 overflow-y-auto p-4"><div class="grid gap-3 md:grid-cols-6"><label class="text-xs font-black uppercase text-slate-500">Page size<select id="team-id-page-size" class="mt-1 w-full rounded-xl border p-3 text-sm font-bold"><option value="A4">A4</option><option value="A3">A3</option><option value="IN12X18">12×18 inch</option></select></label><label class="text-xs font-black uppercase text-slate-500">Orientation<select id="team-id-orientation" class="mt-1 w-full rounded-xl border p-3 text-sm font-bold"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label><label class="text-xs font-black uppercase text-slate-500">Card width mm<input id="team-id-card-width" type="number" min="30" value="90" class="mt-1 w-full rounded-xl border p-3 text-sm font-bold"></label><label class="text-xs font-black uppercase text-slate-500">Card height mm<input id="team-id-card-height" type="number" min="30" value="130" class="mt-1 w-full rounded-xl border p-3 text-sm font-bold"></label><label class="text-xs font-black uppercase text-slate-500">Gap mm<input id="team-id-gap" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border p-3 text-sm font-bold"></label><label class="text-xs font-black uppercase text-slate-500">Margin mm<input id="team-id-margin" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border p-3 text-sm font-bold"></label></div><p id="team-id-preview-summary" class="mt-4 rounded-2xl bg-slate-900 p-3 text-center text-xs font-black text-white"></p><div id="team-id-preview" class="mt-4"></div></div><footer class="flex shrink-0 justify-end gap-2 border-t bg-white p-3"><button data-admin-action="close-team-id-cards" class="rounded-xl bg-slate-100 hover:bg-slate-200 px-5 py-2.5 text-xs font-bold text-slate-700 transition active:scale-95">Cancel</button><button data-admin-action="download-team-id-cards" class="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-5 py-2.5 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition active:scale-95">Download PDF</button></footer></article></div><script type="module" src="./admin-main.js?v=20260802-poster-certificate"></script>
 <div id="student-report-pdf-modal" class="fixed inset-0 z-[411] hidden items-center justify-center bg-slate-950/70 p-3 backdrop-blur"><div class="flex h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white"><div class="flex items-center justify-between border-b p-3"><div><b>Student Participation Summary Preview</b><p id="student-report-pdf-meta" class="text-xs text-slate-500"></p></div><div class="flex gap-2"><button data-admin-action="download-student-participation-pdf" class="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition active:scale-95">Download</button><button data-admin-action="close-student-participation-pdf" class="rounded-xl bg-slate-100 hover:bg-slate-200 px-4 py-2 text-xs font-bold text-slate-700 transition active:scale-95">Close</button></div></div><div id="student-report-pdf-loading" class="hidden p-4 text-center font-bold text-indigo-600">Generating Malayalam-safe PDF…</div><div id="student-report-pdf-error" class="hidden p-4 text-center font-bold text-red-600"></div><iframe id="student-report-pdf-frame" class="min-h-0 flex-1 w-full" title="Student Participation Summary PDF preview"></iframe></div></div><div id="final-entry-add-modal" class="fixed inset-0 z-[420] hidden items-center justify-center bg-slate-950/70 p-3 backdrop-blur"><div class="flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white"><header class="flex items-start justify-between gap-3 border-b bg-indigo-50 p-4"><div><h3 id="final-entry-add-title" class="font-black text-indigo-950">Add Final Entry</h3><p id="final-entry-add-summary" class="text-xs font-bold text-indigo-700">Choose eligible participants for this team.</p></div><button data-admin-action="close-final-entry-add" class="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 transition active:scale-95">Close</button></header><div id="final-entry-add-body" class="min-h-0 flex-1 overflow-y-auto p-4"></div><footer class="flex flex-wrap justify-between gap-2 border-t bg-slate-50 p-3"><button data-admin-action="close-final-entry-add" class="rounded-xl bg-slate-100 hover:bg-slate-200 px-5 py-2.5 text-xs font-bold text-slate-700 transition active:scale-95">Cancel</button><button data-admin-action="save-final-entry-slot" class="rounded-xl bg-indigo-600 hover:bg-indigo-700 px-5 py-2.5 text-xs font-bold text-white shadow-sm shadow-indigo-500/20 transition active:scale-95">Save Slot</button></footer></div></div><div id="registration-pdf-modal" class="fixed inset-0 z-[410] hidden items-center justify-center bg-slate-950/70 p-3 backdrop-blur"><div class="flex h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white"><div class="flex items-center justify-between border-b p-3"><div><b>Registration PDF Preview</b><p id="registration-pdf-meta" class="text-xs text-slate-500"></p></div><div class="flex gap-2"><button data-admin-action="download-registration-pdf" class="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition active:scale-95">Download</button><button data-admin-action="print-registration-pdf" class="rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-sm shadow-blue-500/20 transition active:scale-95">Print</button><button data-admin-action="close-registration-pdf" class="rounded-xl bg-slate-100 hover:bg-slate-200 px-4 py-2 text-xs font-bold text-slate-700 transition active:scale-95">Close</button></div></div><div id="registration-pdf-loading" class="hidden p-4 text-center font-bold text-indigo-600">Generating simple PDF…</div><div id="registration-pdf-error" class="hidden p-4 text-center font-bold text-red-600"></div><iframe id="registration-pdf-frame" class="min-h-0 flex-1 w-full" title="Registration PDF preview"></iframe></div></div><div id="admin-application-detail-dialog" class="fixed inset-0 z-[100] hidden place-items-center bg-slate-950/75 p-3"><article class="flex max-h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-3xl bg-white"><header class="border-b p-4"><h2 class="font-black">Application Detail</h2></header><div id="admin-application-detail-body" class="min-h-0 flex-1 overflow-y-auto p-4"></div><footer class="border-t p-3 text-right"><button data-admin-action="close-application-detail" class="rounded-xl bg-slate-900 hover:bg-slate-800 px-5 py-2.5 text-xs font-bold text-white transition active:scale-95">Close</button></footer></article></div>
 <div id="participant-type-edit-modal" class="fixed inset-0 z-[420] hidden items-center justify-center bg-slate-950/70 p-3 backdrop-blur" role="dialog" aria-modal="true">
-    <div class="flex max-h-[94vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-        <header class="flex items-center justify-between border-b bg-indigo-50 p-4">
-            <div>
-                <h3 id="participant-type-modal-title" class="font-black text-indigo-950">Edit Participant Type</h3>
-                <p class="text-xs font-semibold text-indigo-700">Configure affiliation, gender eligibility and registration channels.</p>
+    <div class="flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <header class="border-b bg-indigo-50/70 px-5 pt-4">
+            <div class="flex items-center justify-between pb-3">
+                <div>
+                    <h3 id="participant-type-modal-title" class="font-black text-indigo-950">Edit Participant Type</h3>
+                    <p class="text-xs font-semibold text-indigo-700">Configure demographics, gender divisions, channels and registration profile fields.</p>
+                </div>
+                <button type="button" data-admin-action="close-participant-type-modal" class="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 transition active:scale-95">&times;</button>
             </div>
-            <button data-admin-action="close-participant-type-modal" class="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700">&times;</button>
+            <!-- Subtab Navigation -->
+            <nav class="flex gap-1 overflow-x-auto border-t border-indigo-100/60 pt-2" role="tablist" aria-label="Participant Type Subtabs">
+                <button type="button" data-admin-action="modal-switch-pt-tab" data-pt-tab="general" id="pt-btn-tab-general" class="pt-tab-btn flex items-center gap-1.5 border-b-2 border-indigo-600 px-3.5 py-2 text-xs font-black text-indigo-700 bg-white/70 rounded-t-xl transition-all" aria-selected="true">
+                    <i data-lucide="info" class="w-3.5 h-3.5"></i> General
+                </button>
+                <button type="button" data-admin-action="modal-switch-pt-tab" data-pt-tab="gender" id="pt-btn-tab-gender" class="pt-tab-btn flex items-center gap-1.5 border-b-2 border-transparent px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-white/40 rounded-t-xl transition-all" aria-selected="false">
+                    <i data-lucide="venus-mars" class="w-3.5 h-3.5"></i> Gender &amp; Demographics
+                </button>
+                <button type="button" data-admin-action="modal-switch-pt-tab" data-pt-tab="channels" id="pt-btn-tab-channels" class="pt-tab-btn flex items-center gap-1.5 border-b-2 border-transparent px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-white/40 rounded-t-xl transition-all" aria-selected="false">
+                    <i data-lucide="radio" class="w-3.5 h-3.5"></i> Registration Channels
+                </button>
+                <button type="button" data-admin-action="modal-switch-pt-tab" data-pt-tab="fields" id="pt-btn-tab-fields" class="pt-tab-btn flex items-center gap-1.5 border-b-2 border-transparent px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-white/40 rounded-t-xl transition-all" aria-selected="false">
+                    <i data-lucide="list-plus" class="w-3.5 h-3.5"></i> Registration Fields
+                </button>
+            </nav>
         </header>
-        <div class="p-5 space-y-4 overflow-y-auto">
+
+        <div class="min-h-0 flex-1 overflow-y-auto p-5">
             <input type="hidden" id="edit-pt-key">
-            <div>
-                <label class="input-label">Type Name</label>
-                <input type="text" id="edit-pt-label" class="text-input font-bold">
+
+            <!-- Subtab 1: General -->
+            <div id="pt-tab-panel-general" class="pt-tab-panel space-y-4">
+                <div>
+                    <label class="input-label">Type Name</label>
+                    <input type="text" id="edit-pt-label" class="text-input font-bold" placeholder="e.g. Student, Parent, Staff">
+                </div>
+                <div>
+                    <label class="input-label">Description</label>
+                    <input type="text" id="edit-pt-description" class="text-input" placeholder="Brief summary of this participant category">
+                </div>
+                <div>
+                    <label class="input-label">Role Affiliation</label>
+                    <select id="edit-pt-affiliation" class="text-input font-bold">
+                        <option value="team">Team Member (Belongs to Team/House/Campus)</option>
+                        <option value="open">Independent / Open Participant</option>
+                    </select>
+                </div>
             </div>
-            <div>
-                <label class="input-label">Description</label>
-                <input type="text" id="edit-pt-description" class="text-input">
+
+            <!-- Subtab 2: Gender & Demographics -->
+            <div id="pt-tab-panel-gender" class="pt-tab-panel hidden space-y-4">
+                <div>
+                    <label class="input-label">Gender Division Format (ലിംഗഭേദ ക്രമീകരണം)</label>
+                    <select id="edit-pt-gender-scheme" class="text-input font-bold">
+                        <option value="boys_girls">Boys / Girls (School, Madrasa &amp; Youth)</option>
+                        <option value="men_women">Men / Women (Collegiate, Seniors &amp; Adults)</option>
+                        <option value="male_female">Male / Female (General, Professional &amp; Open)</option>
+                        <option value="all_unisex">All / Combined / Unisex (ലിംഗഭേദമില്ലാതെ / ഏകീകൃതം)</option>
+                    </select>
+                    <p class="text-[11px] font-semibold text-slate-500 mt-1">Select the division format. When choosing a binary format, specify which divisions apply below.</p>
+                </div>
+
+                <div id="edit-pt-gender-binary-wrap" class="space-y-2">
+                    <label class="input-label">Eligible Divisions for this Type</label>
+                    <div id="edit-pt-genders" class="grid grid-cols-2 gap-2 mt-1"></div>
+                    <p class="text-[10px] font-bold text-slate-400">Enable one or both divisions (e.g. boys-only institution or co-ed).</p>
+                </div>
+
+                <div id="edit-pt-gender-unisex-banner" class="hidden rounded-xl border border-emerald-200 bg-emerald-50/70 p-4">
+                    <div class="flex items-center gap-2 text-emerald-900 font-bold text-xs">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+                        <span>Unified Division (ലിംഗഭേദമില്ലാതെ)</span>
+                    </div>
+                    <p class="text-xs font-semibold text-emerald-700 mt-1">
+                        ഈ പാർട്ടിസിപ്പന്റ് വിഭാഗത്തിന് പ്രത്യേകം ലിംഗ വേർതിരിവുകൾ ആവശ്യമില്ല. എല്ലാവരും ഒരൊറ്റ പൊതു കാറ്റഗറിയിൽ ഒന്നിച്ച് പങ്കെടുക്കും.
+                    </p>
+                </div>
             </div>
-            <div>
-                <label class="input-label">Role Affiliation</label>
-                <select id="edit-pt-affiliation" class="text-input font-bold">
-                    <option value="team">Team Member (Belongs to Team/House)</option>
-                    <option value="open">Independent / Open Participant</option>
-                </select>
+
+            <!-- Subtab 3: Channels -->
+            <div id="pt-tab-panel-channels" class="pt-tab-panel hidden space-y-4">
+                <div>
+                    <label class="input-label">Allowed Registration Channels</label>
+                    <p class="text-[11px] font-semibold text-slate-500 mb-2">Choose which avenues allow registration of this participant type.</p>
+                    <div id="edit-pt-channels" class="grid grid-cols-2 gap-2 mt-1"></div>
+                </div>
             </div>
-            <div>
-                <label class="input-label">Eligible Genders for this Type</label>
-                <div id="edit-pt-genders" class="grid grid-cols-2 gap-2 mt-1"></div>
-            </div>
-            <div>
-                <label class="input-label">Allowed Registration Channels</label>
-                <div id="edit-pt-channels" class="grid grid-cols-2 gap-2 mt-1"></div>
+
+            <!-- Subtab 4: Registration Fields -->
+            <div id="pt-tab-panel-fields" class="pt-tab-panel hidden space-y-4">
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <label id="pt-modal-fields-title" class="input-label mb-0">Participant Profile &amp; Detail Fields</label>
+                            <p class="text-[11px] font-semibold text-slate-500">Configure inputs collected during registration and verified during Excel imports.</p>
+                        </div>
+                    </div>
+                    <div id="modal-student-field-settings" class="space-y-2"></div>
+
+                    <!-- Inline Add Field Form -->
+                    <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+                        <span class="block text-xs font-black text-slate-700 mb-2">+ Add Custom Field</span>
+                        <div class="grid gap-2 sm:grid-cols-[1fr_130px_1fr_auto]">
+                            <input id="modal-new-student-field-label" class="text-input" placeholder="Field Label (e.g. Roll No, Blood Group)">
+                            <select id="modal-new-student-field-type" class="text-input">
+                                <option value="text">Text</option>
+                                <option value="tel">Phone</option>
+                                <option value="email">Email</option>
+                                <option value="number">Number</option>
+                                <option value="date">Date</option>
+                                <option value="select">Dropdown</option>
+                            </select>
+                            <input id="modal-new-student-field-options" class="text-input" placeholder="Choices (comma separated)">
+                            <button type="button" data-admin-action="modal-add-student-field" class="rounded-xl bg-indigo-600 hover:bg-indigo-700 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition active:scale-95">Add Field</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+
         <footer class="flex justify-end gap-2 border-t bg-slate-50 p-3">
-            <button type="button" data-admin-action="close-participant-type-modal" class="rounded-xl bg-slate-100 hover:bg-slate-200 px-5 py-2.5 text-xs font-bold text-slate-700">Cancel</button>
-            <button type="button" data-admin-action="save-participant-type-modal" class="rounded-xl bg-indigo-600 hover:bg-indigo-700 px-5 py-2.5 text-xs font-bold text-white shadow-sm">Save Changes</button>
+            <button type="button" data-admin-action="close-participant-type-modal" class="rounded-xl bg-slate-100 hover:bg-slate-200 px-5 py-2.5 text-xs font-bold text-slate-700 transition active:scale-95">Cancel</button>
+            <button type="button" data-admin-action="save-participant-type-modal" class="rounded-xl bg-indigo-600 hover:bg-indigo-700 px-5 py-2.5 text-xs font-bold text-white shadow-sm shadow-indigo-500/20 transition active:scale-95">Save Changes</button>
         </footer>
     </div>
 </div>
