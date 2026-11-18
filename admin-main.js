@@ -506,7 +506,20 @@ document.addEventListener('click', (event) => {
         'close-sidebar': () => window.closeSidebar(),
         'open-sidebar': () => window.openSidebar(),
         'toggle-desktop-sidebar': () => window.toggleDesktopSidebar(),
-        'switch-tab': () => window.switchTab(d.tab),
+        'switch-tab': () => {
+            window.switchTab(d.tab);
+            if (d.subtab) {
+                if (d.tab === 'registrations') window.switchRegistrationAdminTab?.(d.subtab);
+                else if (d.tab === 'schedule') window.switchScheduleSubtab?.(d.subtab);
+                else if (d.tab === 'judge') window.switchJudgeSubtab?.(d.subtab);
+                else if (d.tab === 'students') window.switchStudentsSubtab?.(d.subtab);
+                else if (d.tab === 'events') window.switchEventsSubtab?.(d.subtab);
+                else if (d.tab === 'access') window.switchAccessSubtab?.(d.subtab);
+                else if (d.tab === 'config') window.switchTeamConfigSubtab?.(d.subtab);
+                else if (d.tab === 'downloads') window.switchDownloadSubtab?.(d.subtab);
+            }
+        },
+        'navigate-readiness': () => window.navigateToReadinessQueue?.(d.readinessKey),
         'switch-master-section': () => window.switchMasterSection(d.section),
         'set-guide-language': () => window.setGuideLanguage(d.language),
         'copy-page-link': () => window.copyPageLink(d.url),
@@ -714,6 +727,43 @@ window.updateStats = () => {
     window.renderAdminReadiness?.();
 };
 
+window.navigateToReadinessQueue = (key) => {
+    if (key === 'pending-requests') {
+        window.switchTab('registrations');
+        window.switchRegistrationAdminTab?.('applications');
+        requestAnimationFrame(() => {
+            document.getElementById('registration-requests-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    } else if (key === 'events-not-scheduled') {
+        window.switchTab('schedule');
+        window.switchScheduleSubtab?.('builder');
+        const filter = document.getElementById('schedule-filter-status');
+        if (filter) filter.value = 'unscheduled';
+        if (typeof scheduleFilterState !== 'undefined') scheduleFilterState.status = 'unscheduled';
+        if (typeof renderScheduleBuilder === 'function') renderScheduleBuilder();
+        requestAnimationFrame(() => {
+            document.getElementById('schedule-panel-builder')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    } else if (key === 'events-without-judges') {
+        window.switchTab('judge');
+        window.switchJudgeSubtab?.('assign');
+        const filter = document.getElementById('assign-status-filter');
+        if (filter) filter.value = 'unassigned';
+        if (typeof paginationState !== 'undefined' && paginationState.judges) paginationState.judges.page = 1;
+        if (typeof window.renderJudgeAssignmentOptions === 'function') window.renderJudgeAssignmentOptions();
+        requestAnimationFrame(() => {
+            document.getElementById('judge-assignment-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    } else if (key === 'submitted-to-publish') {
+        window.switchTab('judge');
+        window.switchJudgeSubtab?.('review');
+        if (typeof window.renderJudgeReview === 'function') window.renderJudgeReview();
+        requestAnimationFrame(() => {
+            document.getElementById('judge-score-review')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+};
+
 window.renderAdminReadiness = () => {
     const grid = document.getElementById('admin-attention-grid');
     if(!grid) return;
@@ -724,10 +774,10 @@ window.renderAdminReadiness = () => {
     const publishedEventIds = new Set(results.filter(item => item.status === 'published').map(item => item.eventId || item.id));
     const pendingRequests = registrationRequests.filter(item => (item.status || 'pending') === 'pending').length;
     const checks = [
-        { label:'Pending requests', count:pendingRequests, tab:'participants', icon:'clipboard-list', ready:pendingRequests === 0 },
-        { label:'Events not scheduled', count:Math.max(0, activeEvents.length - scheduled), tab:'schedule', icon:'calendar-clock', ready:activeEvents.length > 0 && scheduled === activeEvents.length },
-        { label:'Events without judges', count:activeEvents.filter(item => !assignedEventIds.has(item.id) && item.resultWorkflow !== 'direct').length, tab:'judge', icon:'scale', ready:activeEvents.length > 0 && activeEvents.every(item => assignedEventIds.has(item.id) || item.resultWorkflow === 'direct') },
-        { label:'Submitted to publish', count:[...judgedEventIds].filter(id => !publishedEventIds.has(id)).length, tab:'judge', icon:'send', ready:[...judgedEventIds].every(id => publishedEventIds.has(id)) }
+        { key:'pending-requests', label:'Pending requests', count:pendingRequests, tab:'registrations', icon:'clipboard-list', ready:pendingRequests === 0 },
+        { key:'events-not-scheduled', label:'Events not scheduled', count:Math.max(0, activeEvents.length - scheduled), tab:'schedule', icon:'calendar-clock', ready:activeEvents.length > 0 && scheduled === activeEvents.length },
+        { key:'events-without-judges', label:'Events without judges', count:activeEvents.filter(item => !assignedEventIds.has(item.id) && item.resultWorkflow !== 'direct').length, tab:'judge', icon:'scale', ready:activeEvents.length > 0 && activeEvents.every(item => assignedEventIds.has(item.id) || item.resultWorkflow === 'direct') },
+        { key:'submitted-to-publish', label:'Submitted to publish', count:[...judgedEventIds].filter(id => !publishedEventIds.has(id)).length, tab:'judge', icon:'send', ready:[...judgedEventIds].every(id => publishedEventIds.has(id)) }
     ];
     const foundation = [teams.length > 0, categories.length > 0, students.length > 0, activeEvents.length > 0];
     const score = [...foundation, ...checks.map(item => item.ready)].filter(Boolean).length;
@@ -735,7 +785,7 @@ window.renderAdminReadiness = () => {
     document.getElementById('admin-readiness-percent').textContent = `${percent}%`;
     document.getElementById('admin-readiness-bar').style.width = `${percent}%`;
     document.getElementById('admin-readiness-summary').textContent = percent === 100 ? 'Festival configuration and operational queues are ready.' : `${foundation.filter(Boolean).length}/${foundation.length} setup foundations complete • ${checks.filter(item => !item.ready).length} queues need attention`;
-    grid.innerHTML = checks.map(item => `<button data-admin-action="switch-tab" data-tab="${item.tab}" class="flex items-center gap-3 rounded-xl border ${item.ready?'border-emerald-100 bg-emerald-50':'border-amber-100 bg-white'} p-3 text-left transition hover:-translate-y-0.5 hover:shadow-sm"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg ${item.ready?'bg-emerald-100 text-emerald-700':'bg-amber-50 text-amber-700'}"><i data-lucide="${item.ready?'check':item.icon}" class="h-4 w-4"></i></span><span class="min-w-0"><strong class="block text-lg font-black text-slate-900">${item.count}</strong><span class="block truncate text-[11px] font-bold text-slate-500">${item.label}</span></span></button>`).join('');
+    grid.innerHTML = checks.map(item => `<button data-admin-action="navigate-readiness" data-readiness-key="${item.key}" class="flex items-center gap-3 rounded-xl border ${item.ready?'border-emerald-100 bg-emerald-50':'border-amber-100 bg-white'} p-3 text-left transition active:scale-95 hover:-translate-y-0.5 hover:shadow-sm cursor-pointer"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg ${item.ready?'bg-emerald-100 text-emerald-700':'bg-amber-50 text-amber-700'}"><i data-lucide="${item.ready?'check':item.icon}" class="h-4 w-4"></i></span><span class="min-w-0"><strong class="block text-lg font-black text-slate-900">${item.count}</strong><span class="block truncate text-[11px] font-bold text-slate-500">${item.label}</span></span></button>`).join('');
     window.lucide?.createIcons?.();
 };
 
