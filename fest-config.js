@@ -8,21 +8,79 @@ const LANDING_ORDER_DEFAULTS={sections:['hero','about','leaders','schedule','gal
 export const DEFAULT_PUBLIC_VIEW = Object.freeze({landing:{sections:{hero:true,about:true,leaders:true,gallery:true,schedule:true,teamStandings:true,social:true,footer:true},orders:LANDING_ORDER_DEFAULTS,menu:{results:true,about:true,leaders:true,gallery:true,schedule:true,registration:true,login:true,teamStandings:false},quickButtons:{results:false,about:true,leaders:true,gallery:true,schedule:true,registration:true,login:true,teamStandings:false},customLinks:[]},resultsPage:{defaultTab:'result',tabs:{result:true,team:true},audiences:{enabled:['student','parent','staff','alumni','public'],default:'student',showAll:true},resultsTab:{showCategories:true,includeGeneral:true,hideEmpty:false,scoreDisplay:'total',cardFields:{category:true,gender:false,team:true,chestNo:true,position:true,grade:true,positionPoints:false,gradePoints:false,totalPoints:true},downloads:{enabled:true,resultCard:true,certificate:true,poster:true}},teamsTab:{cardFields:{rank:true,total:true,medals:true,progress:true},breakdowns:{overall:true,category:true,gender:true,awards:true},showTimeline:true}}});
 const mergePublicView=raw=>{const v=raw||{},l=v.landing||{},r=v.resultsPage||{},rt=r.resultsTab||{},tt=r.teamsTab||{};const ordered=(name)=>{const valid=LANDING_ORDER_DEFAULTS[name],saved=Array.isArray(l.orders?.[name])?l.orders[name]:[];return[...new Set([...saved.filter(key=>valid.includes(key)),...valid])];};return{landing:{sections:{...DEFAULT_PUBLIC_VIEW.landing.sections,...(l.sections||{})},orders:{sections:ordered('sections'),menu:ordered('menu'),quickButtons:ordered('quickButtons')},menu:{...DEFAULT_PUBLIC_VIEW.landing.menu,...(l.menu||{})},quickButtons:{...DEFAULT_PUBLIC_VIEW.landing.quickButtons,...(l.quickButtons||{})},customLinks:Array.isArray(l.customLinks)?l.customLinks.filter(item=>String(item?.label||'').trim()&&String(item?.url||'').trim()).map(item=>({label:String(item.label||'').trim(),url:String(item.url||'').trim(),icon:String(item.icon||'')})):[]},resultsPage:{...DEFAULT_PUBLIC_VIEW.resultsPage,...r,tabs:{...DEFAULT_PUBLIC_VIEW.resultsPage.tabs,...(r.tabs||{})},audiences:{...DEFAULT_PUBLIC_VIEW.resultsPage.audiences,...(r.audiences||{})},resultsTab:{...DEFAULT_PUBLIC_VIEW.resultsPage.resultsTab,...rt,cardFields:{...DEFAULT_PUBLIC_VIEW.resultsPage.resultsTab.cardFields,...(rt.cardFields||{})},downloads:{...DEFAULT_PUBLIC_VIEW.resultsPage.resultsTab.downloads,...(rt.downloads||{})}},teamsTab:{...DEFAULT_PUBLIC_VIEW.resultsPage.teamsTab,...tt,cardFields:{...DEFAULT_PUBLIC_VIEW.resultsPage.teamsTab.cardFields,...(tt.cardFields||{})},breakdowns:{...DEFAULT_PUBLIC_VIEW.resultsPage.teamsTab.breakdowns,...(tt.breakdowns||{})}}}};};
 
+export const DEFAULT_TIER_STRUCTURE = Object.freeze({
+  mode: 'single',
+  activeTier: 'institution',
+  tiers: [
+    { id: 'institution', name: 'Institution Level', level: 1, qualifyCount: 0 }
+  ]
+});
+
+export const DEFAULT_DOMAINS = Object.freeze({
+  enabled: ['arts'],
+  activeDomains: [
+    {
+      id: 'arts',
+      name: 'Arts & Literary',
+      segments: [
+        { id: 'on_stage', name: 'On-Stage', description: 'Auditorium / Stage programs' },
+        { id: 'off_stage', name: 'Off-Stage', description: 'Classroom / Hall competitions' }
+      ]
+    },
+    {
+      id: 'sports',
+      name: 'Sports & Athletics',
+      segments: [
+        { id: 'track', name: 'Track Events', description: 'Races, Relays, Sprints' },
+        { id: 'field', name: 'Field Events', description: 'Jumps, Throws' },
+        { id: 'games', name: 'Games & Tournaments', description: 'Football, Chess, Badminton' }
+      ]
+    },
+    {
+      id: 'academic',
+      name: 'Academic & Quranic',
+      segments: [
+        { id: 'quiz', name: 'Quiz & Debate', description: 'Knowledge and speeches' },
+        { id: 'quran', name: 'Quran & Tahfeez', description: 'Recitation and Hifz' }
+      ]
+    }
+  ]
+});
+
+export const DEFAULT_CATEGORY_DEFINITIONS = Object.freeze([
+  { key: 'Sub-Junior', label: 'Sub-Junior', eligibleClasses: ['1','2','3','4'], color: '#0284c7' },
+  { key: 'Junior', label: 'Junior', eligibleClasses: ['5','6','7'], color: '#16a34a' },
+  { key: 'Senior', label: 'Senior', eligibleClasses: ['8','9','10'], color: '#9333ea' },
+  { key: 'General', label: 'General / Open', eligibleClasses: ['1','2','3','4','5','6','7','8','9','10','+1','+2'], color: '#d97706' }
+]);
+
+export const DEFAULT_GROUP_REGULATIONS = Object.freeze({
+  defaultMinMembers: 2,
+  defaultMaxMembers: 12,
+  defaultGroupsPerTeam: 1,
+  allowCrossCategory: false
+});
+
 export const DEFAULT_FEST_SETUP = Object.freeze({
-  setupVersion: 2,
+  setupVersion: 3,
   preset: 'school_team_fest',
   organisationMode: 'team',
+  tierStructure: DEFAULT_TIER_STRUCTURE,
+  domains: DEFAULT_DOMAINS,
   participantTypes: ['student'],
   participantTypeDefinitions: [
-    { key:'student', label:'Student', description:'Students managed in the Student Directory.', system:true },
-    { key:'parent', label:'Parent', description:'Parents or guardians linked to a student.', system:true },
-    { key:'staff', label:'Staff', description:'Teaching and non-teaching staff participants.', system:true },
-    { key:'alumni', label:'Alumni', description:'Former students and alumni participants.', system:true },
-    { key:'public', label:'Public', description:'Open participants without an existing student record.', system:true },
-    { key:'guest', label:'Guest', description:'Chief guests, special guests, speakers and invitees.', system:true },
-    { key:'volunteer', label:'Volunteer', description:'Festival volunteers with duty and validity details.', system:true }
+    { key:'student', label:'Student', description:'Students managed in the Student Directory.', teamAffiliated:true, system:true },
+    { key:'parent', label:'Parent', description:'Parents or guardians linked to a student.', teamAffiliated:true, system:true },
+    { key:'staff', label:'Staff', description:'Teaching and non-teaching staff participants.', teamAffiliated:false, system:true },
+    { key:'alumni', label:'Alumni', description:'Former students and alumni participants.', teamAffiliated:false, system:true },
+    { key:'public', label:'Public', description:'Open participants without an existing student record.', teamAffiliated:false, system:true },
+    { key:'guest', label:'Guest', description:'Chief guests, special guests, speakers and invitees.', teamAffiliated:false, system:true },
+    { key:'volunteer', label:'Volunteer', description:'Festival volunteers with duty and validity details.', teamAffiliated:false, system:true }
   ],
   allowedGenders: ['Boys', 'Girls'],
+  genderSettings: { mode: 'students_default', allowedGenders: ['Boys', 'Girls'], customGenders: [], mixedPolicy: 'both' },
+  categoryDefinitions: DEFAULT_CATEGORY_DEFINITIONS,
+  groupRegulations: DEFAULT_GROUP_REGULATIONS,
   registrationChannels: ['admin', 'teamLeader'],
   scheduleMode: 'full',
   judgingMode: 'enabled',
@@ -60,7 +118,9 @@ export const FEST_PRESETS = Object.freeze({
   school_team_fest: {},
   simple_direct_fest: { organisationMode:'open', participantTypes:['student','parent','public'], registrationChannels:['admin','self'], scheduleMode:'disabled', judgingMode:'disabled', resultWorkflow:'direct', teamScoringMode:'disabled',eventManagementMode:'basic',eventFeatures:{excelImport:false,customCriteria:false,objectiveScoring:false,timeResults:false,countResults:false,directRank:true,multipleJudges:false,eventOverrides:false,workflowStatuses:false,importHistory:false,teamLedger:false}, publicModules:{schedule:false,registration:true,teamStandings:false} },
   open_registration_fest: { organisationMode:'open', participantTypes:['public'], registrationChannels:['admin','self','onSite'], scheduleMode:'basic', judgingMode:'optional', resultWorkflow:'hybrid', teamScoringMode:'disabled',eventManagementMode:'standard', publicModules:{schedule:true,registration:true,teamStandings:false} },
-  hybrid_community_fest: { organisationMode:'hybrid', participantTypes:['student','parent','staff','public'], registrationChannels:['admin','teamLeader','self','onSite'], scheduleMode:'full', judgingMode:'optional', resultWorkflow:'hybrid', teamScoringMode:'per_event', publicModules:{schedule:true,registration:true,teamStandings:true} }
+  hybrid_community_fest: { organisationMode:'hybrid', participantTypes:['student','parent','staff','public'], registrationChannels:['admin','teamLeader','self','onSite'], scheduleMode:'full', judgingMode:'optional', resultWorkflow:'hybrid', teamScoringMode:'per_event', publicModules:{schedule:true,registration:true,teamStandings:true} },
+  sports_meet_fest: { organisationMode:'team', domains:{enabled:['sports'],activeDomains:DEFAULT_DOMAINS.activeDomains}, participantTypes:['student'], scheduleMode:'full', judgingMode:'optional', resultWorkflow:'hybrid', teamScoringMode:'enabled', eventManagementMode:'advanced', eventFeatures:{excelImport:true,customCriteria:true,objectiveScoring:true,timeResults:true,countResults:true,directRank:true,multipleJudges:false,eventOverrides:true,workflowStatuses:true,importHistory:true,teamLedger:true} },
+  multi_tier_org_fest: { organisationMode:'team', tierStructure:{mode:'multi_tier',activeTier:'zone',tiers:[{id:'zone',name:'Sector / Zone',level:1,qualifyCount:2},{id:'district',name:'District Level',level:2,qualifyCount:2},{id:'state',name:'State / Finals',level:3,qualifyCount:0}]}, participantTypes:['student','public'], scheduleMode:'full', judgingMode:'enabled', resultWorkflow:'judged', teamScoringMode:'enabled' }
 });
 
 export const FEST_PRESET_GUIDES = Object.freeze({
@@ -68,6 +128,8 @@ export const FEST_PRESET_GUIDES = Object.freeze({
   simple_direct_fest:{label:'Simple Direct Result Fest',summary:'Small open fest without judge assignments or detailed scheduling.',workflow:['Open registration','Admin review','Direct result entry','Public results'],pages:['Public Registration','Publishing Desk','Public Results','Poster & Certificate']},
   open_registration_fest:{label:'Open Registration Fest',summary:'Public-first festival with self/on-site registration, basic programme order and optional judging.',workflow:['Public registration','Admin approval','Basic programme order','Optional judging','Result publishing'],pages:['Public Registration','Judge Page when needed','Publishing Desk','Public Results','TV Display']},
   hybrid_community_fest:{label:'Hybrid Community Fest',summary:'Team and open participants together, with per-event judging and scoring policies.',workflow:['Team + public registration','Full schedule','Per-event judging','Publisher review','Team/open results'],pages:['Team Portal','Public Registration','Judge Page','Publishing Desk','Public Results','TV Display','Poster & Certificate']},
+  sports_meet_fest:{label:'Annual Sports Meet',summary:'Athletics and sports championship with track, field, indoor/outdoor games, timing and ranking.',workflow:['Athletes roster','Track/Field events','Time & Rank entries','Judge validation','Team points table'],pages:['Team Portal','Publishing Desk','Public Results','TV Display']},
+  multi_tier_org_fest:{label:'Multi-Tier Championship',summary:'Progressive multi-level tournament: Sector/Zone qualifiers advance to District and State levels.',workflow:['Zonal qualifiers','Advancement verification','District & State stages','Multi-level scoring'],pages:['Team Portal','Judge Page','Publishing Desk','Public Results','TV Display']},
   custom:{label:'Custom',summary:'A manually adjusted setup that no longer exactly matches a built-in preset.',workflow:['Defined by the selected modules and policies'],pages:['Calculated from the enabled capabilities']}
 });
 
@@ -77,17 +139,99 @@ const list = (value, choices, fallback) => {
   return clean.length ? clean : [...fallback];
 };
 
+export function normalizeTierStructure(raw = {}) {
+  const mode = ['single', 'multi_tier'].includes(raw?.mode) ? raw.mode : 'single';
+  const defaultTiers = [
+    { id: 'zone', name: 'Sector / Zone', level: 1, qualifyCount: 2 },
+    { id: 'district', name: 'District Level', level: 2, qualifyCount: 2 },
+    { id: 'state', name: 'State / Finals', level: 3, qualifyCount: 0 }
+  ];
+  const tiers = Array.isArray(raw?.tiers) && raw.tiers.length
+    ? raw.tiers.map((t, idx) => ({
+        id: String(t.id || `tier_${idx + 1}`).trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'),
+        name: String(t.name || `Tier ${idx + 1}`).trim().slice(0, 60),
+        level: Number(t.level) || (idx + 1),
+        qualifyCount: Math.max(0, Number(t.qualifyCount) || 0)
+      }))
+    : (mode === 'multi_tier' ? defaultTiers : [{ id: 'institution', name: 'Institution Level', level: 1, qualifyCount: 0 }]);
+  const activeTier = String(raw?.activeTier || tiers[0]?.id || 'institution').trim();
+  return { mode, activeTier, tiers };
+}
+
+export function normalizeDomains(raw = {}) {
+  const enabled = Array.isArray(raw?.enabled) && raw.enabled.length
+    ? [...new Set(raw.enabled.map(d => String(d).trim().toLowerCase()).filter(Boolean))]
+    : ['arts'];
+  const activeDomains = Array.isArray(raw?.activeDomains) && raw.activeDomains.length
+    ? raw.activeDomains.map(d => ({
+        id: String(d.id || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '_') || 'custom',
+        name: String(d.name || d.id || 'Custom Domain').trim().slice(0, 60),
+        segments: Array.isArray(d.segments) ? d.segments.map(s => ({
+          id: String(s.id || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '_') || 'segment',
+          name: String(s.name || s.id || 'Segment').trim().slice(0, 60),
+          description: String(s.description || '').trim().slice(0, 160)
+        })) : []
+      }))
+    : DEFAULT_DOMAINS.activeDomains;
+  return { enabled, activeDomains };
+}
+
+export function normalizeCategoryDefinitions(raw) {
+  if (Array.isArray(raw) && raw.length) {
+    return raw.map((c, idx) => ({
+      key: String(c.key || c.label || `category_${idx + 1}`).trim(),
+      label: String(c.label || c.key || `Category ${idx + 1}`).trim().slice(0, 60),
+      eligibleClasses: Array.isArray(c.eligibleClasses) ? [...new Set(c.eligibleClasses.map(String).map(s => s.trim()).filter(Boolean))] : [],
+      color: /^#[0-9a-f]{6}$/i.test(c.color || '') ? c.color : '#4f46e5'
+    })).filter(c => c.key);
+  }
+  return [...DEFAULT_CATEGORY_DEFINITIONS];
+}
+
+export function normalizeGroupRegulations(raw = {}) {
+  return {
+    defaultMinMembers: Math.max(1, Number(raw?.defaultMinMembers) || 2),
+    defaultMaxMembers: Math.max(1, Number(raw?.defaultMaxMembers) || 12),
+    defaultGroupsPerTeam: Math.max(1, Number(raw?.defaultGroupsPerTeam) || 1),
+    allowCrossCategory: !!raw?.allowCrossCategory
+  };
+}
+
+export function normalizeAllowedGenders(value) {
+  if (Array.isArray(value) && value.length) {
+    const clean = [...new Set(value.map(g => String(g).trim()).filter(Boolean))];
+    if (clean.length) return clean;
+  }
+  return ['Boys', 'Girls'];
+}
+
 export function normalizeFestSetup(raw = {}) {
   const base = DEFAULT_FEST_SETUP;
   const participantTypeDefinitions = normalizeParticipantTypeDefinitions(raw.participantTypeDefinitions);
   const participantKeys = participantTypeDefinitions.map(item => item.key);
+  const tierStructure = normalizeTierStructure(raw.tierStructure);
+  const domains = normalizeDomains(raw.domains);
+  const categoryDefinitions = normalizeCategoryDefinitions(raw.categoryDefinitions);
+  const groupRegulations = normalizeGroupRegulations(raw.groupRegulations);
+  const allowedGenders = normalizeAllowedGenders(raw.allowedGenders || raw.genderSettings?.allowedGenders);
+  const genderSettings = {
+    mode: raw.genderSettings?.mode || (allowedGenders.includes('Men') ? 'adults' : 'students_default'),
+    allowedGenders,
+    customGenders: Array.isArray(raw.genderSettings?.customGenders) ? raw.genderSettings.customGenders : [],
+    mixedPolicy: raw.genderSettings?.mixedPolicy || 'both'
+  };
   const setup = {
     ...base,
     ...raw,
+    tierStructure,
+    domains,
+    categoryDefinitions,
+    groupRegulations,
+    genderSettings,
+    allowedGenders,
     organisationMode: allowed(raw.organisationMode, ['team', 'open', 'hybrid'], base.organisationMode),
     participantTypeDefinitions,
     participantTypes: list(raw.participantTypes, participantKeys, base.participantTypes),
-    allowedGenders: list(raw.allowedGenders, ['Boys', 'Girls'], base.allowedGenders),
     registrationChannels: list(raw.registrationChannels, ['admin', 'teamLeader', 'self', 'onSite'], base.registrationChannels),
     scheduleMode: allowed(raw.scheduleMode, ['disabled', 'basic', 'full'], base.scheduleMode),
     judgingMode: allowed(raw.judgingMode, ['disabled', 'enabled', 'optional'], base.judgingMode),
@@ -112,7 +256,7 @@ export function normalizeFestSetup(raw = {}) {
 
 export function normalizeParticipantTypeDefinitions(value) {
   const source=Array.isArray(value)&&value.length?value:DEFAULT_FEST_SETUP.participantTypeDefinitions;
-  const clean=source.map((item,index)=>{const key=String(item?.key||item?.label||`participant_${index+1}`).trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');return {key,label:String(item?.label||key).trim().slice(0,50),description:String(item?.description||'').trim().slice(0,240),system:!!item?.system};}).filter(item=>item.key&&item.label);
+  const clean=source.map((item,index)=>{const key=String(item?.key||item?.label||`participant_${index+1}`).trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');return {key,label:String(item?.label||key).trim().slice(0,50),description:String(item?.description||'').trim().slice(0,240),teamAffiliated:item?.teamAffiliated!==false,system:!!item?.system};}).filter(item=>item.key&&item.label);
   const merged=new Map(DEFAULT_FEST_SETUP.participantTypeDefinitions.map(item=>[item.key,{...item}]));clean.forEach(item=>merged.set(item.key,{...(merged.get(item.key)||{}),...item,system:merged.has(item.key)||item.system}));return [...merged.values()];
 }
 

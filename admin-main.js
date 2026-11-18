@@ -6,7 +6,7 @@ import { genderLabel } from './admin-events.js';
 import { EVENT_IMPORT_COLUMNS, RESULT_METHODS, eventDuplicateKey, eventToFirestore, isEventHeadingRow, normalizeEventRow, parseCriteria, suggestEventColumn, validateEvent } from './event-utils.js';
 import { collection, onSnapshot, doc, setDoc, addDoc, deleteDoc, deleteField, updateDoc, getDoc, getDocs, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { initAdminAuth } from './admin-auth.js';
-import { DEFAULT_FEST_SETUP, FEST_PRESET_GUIDES, normalizeFestSetup, normalizeStudentFields, normalizeParticipantTypeDefinitions, normalizeCompetitionPolicies, incompleteCompetitionPolicies, eventFieldRulesForMode, readableTextColor, scheduleEnabled, judgingEnabled, setupForPreset, teamModeEnabled } from './fest-config.js';
+import { DEFAULT_FEST_SETUP, DEFAULT_CATEGORY_DEFINITIONS, DEFAULT_DOMAINS, DEFAULT_TIER_STRUCTURE, DEFAULT_GROUP_REGULATIONS, FEST_PRESET_GUIDES, normalizeFestSetup, normalizeStudentFields, normalizeParticipantTypeDefinitions, normalizeCompetitionPolicies, incompleteCompetitionPolicies, eventFieldRulesForMode, readableTextColor, scheduleEnabled, judgingEnabled, setupForPreset, teamModeEnabled } from './fest-config.js';
 import { deleteApp, initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import { createUserWithEmailAndPassword, getAuth as getSecondaryAuth, signOut as signOutSecondary } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
@@ -570,6 +570,16 @@ document.addEventListener('click', (event) => {
         'add-participant-type': () => window.addMasterParticipantType(),
         'edit-participant-type': () => window.editMasterParticipantType(d.key),
         'remove-participant-type': () => window.removeMasterParticipantType(d.key),
+        'add-tier-level': () => window.addMasterTierLevel(),
+        'remove-tier-level': () => window.removeMasterTierLevel(d.tierId),
+        'add-domain-segment': () => window.addMasterDomainSegment(d.domainId),
+        'remove-domain-segment': () => window.removeMasterDomainSegment(d.domainId, d.segmentId),
+        'set-gender-preset': () => window.setMasterGenderPreset(d.preset),
+        'add-custom-gender': () => window.addMasterCustomGender(),
+        'remove-custom-gender': () => window.removeMasterCustomGender(d.gender),
+        'add-category-definition-modal': () => window.addCategoryDefinition(),
+        'remove-category-definition': () => window.removeCategoryDefinition(d.categoryKey),
+        'edit-category-classes': () => window.editCategoryClasses(d.categoryKey),
         'show-master-info': () => window.showMasterInfo(d.info, btn),
         'close-master-info': () => window.closeMasterInfo(),
         'clear-master-info': () => window.clearMasterInfo(),
@@ -3331,6 +3341,278 @@ window.switchPublicViewPanel=panel=>{activePublicViewPanel=panel||'landing';docu
 window.renderPublicViewSettings=setup=>{const host=document.getElementById('master-public-view-settings');if(!host)return;const view=setup.publicView,r=view.resultsPage,participants=normalizeParticipantTypeDefinitions(setup.participantTypeDefinitions).filter(item=>setup.participantTypes.includes(item.key));host.innerHTML=`${publicViewHelp(setup)}<div class="mb-4 flex flex-wrap gap-2">${[['landing','Landing Page'],['results','Results Tab'],['teams','Teams Tab']].map(([key,label])=>`<button type="button" data-admin-action="switch-public-view-panel" data-panel="${key}" data-public-view-panel-button="${key}" class="rounded-full px-4 py-2 text-xs font-black">${label}</button>`).join('')}</div><div data-public-view-panel="landing" class="grid gap-4 lg:grid-cols-3"><fieldset class="rounded-xl border p-4"><legend class="px-1 text-xs font-black">LANDING SECTIONS</legend><div class="grid gap-2">${publicViewSortable(setup,'sections')}<p class="mt-4 text-[10px] font-black uppercase text-slate-400">Additional visibility</p><div class="mt-2 grid gap-2">${publicViewDependentControl(setup,'landing.sections.teamStandings','teamStandings')}${publicViewGroup(view.landing.sections,'landing.sections',['social','footer'])}</div></div></fieldset><fieldset class="rounded-xl border p-4"><legend class="px-1 text-xs font-black">HAMBURGER MENU</legend><div class="grid gap-2">${publicViewSortable(setup,'menu')}</div></fieldset><fieldset class="rounded-xl border p-4"><legend class="px-1 text-xs font-black">HERO QUICK BUTTONS</legend><div class="grid gap-2">${publicViewSortable(setup,'quickButtons')}</div></fieldset>${renderCustomLandingLinks(setup)}</div><div data-public-view-panel="results" class="grid gap-4 lg:grid-cols-2"><fieldset class="rounded-xl border p-4"><legend class="px-1 text-xs font-black">ALL RESULTS ONLY</legend><div class="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-xs font-bold text-indigo-900"><b class="block text-sm font-black">Public result navigation is fixed to All.</b><p class="mt-1">Student, parent, default table and extra participant result tabs are removed. The public Results button always shows every published result together.</p></div></fieldset><fieldset class="rounded-xl border p-4"><legend class="px-1 text-xs font-black">CATEGORY FILTERS</legend><div class="rounded-2xl border bg-slate-50 p-4 text-xs font-bold text-slate-600">All, General and every configured category are always visible on the public result page, including categories without published results.</div></fieldset></div><div data-public-view-panel="teams" class="grid gap-4 lg:grid-cols-3"><fieldset class="rounded-xl border p-4"><legend class="px-1 text-xs font-black">CHAMPIONSHIP CARDS</legend><p class="mb-3 text-[10px] font-bold text-slate-500">Fixed width: 80% on desktop and 100% on mobile.</p>${publicViewGroup(r.teamsTab.cardFields,'resultsPage.teamsTab.cardFields',Object.keys(r.teamsTab.cardFields))}</fieldset><fieldset class="rounded-xl border p-4"><legend class="px-1 text-xs font-black">BREAKDOWNS</legend><div class="grid gap-2">${publicViewGroup(r.teamsTab.breakdowns,'resultsPage.teamsTab.breakdowns',Object.keys(r.teamsTab.breakdowns))}</div></fieldset><fieldset class="rounded-xl border p-4"><legend class="px-1 text-xs font-black">TIMELINE</legend><div class="grid gap-2">${publicViewControl('resultsPage.teamsTab.showTimeline','Show Team Score Timeline',r.teamsTab.showTimeline!==false)}</div></fieldset></div>`;bindPublicViewDependencies();initImageUploads(host);window.switchPublicViewPanel(activePublicViewPanel);};
 const publicViewFromDom=()=>{const next=structuredClone(normalizeFestSetup(festSetup).publicView);next.resultsPage.tabs={result:true,team:true};next.resultsPage.defaultTab='result';next.resultsPage.audiences={...(next.resultsPage.audiences||{}),enabled:['all'],default:'all',showAll:true};const set=(path,value)=>{const keys=path.split('.');let target=next;keys.slice(0,-1).forEach(key=>target=target[key]??={});target[keys.at(-1)]=value;};document.querySelectorAll('[data-public-view-path]').forEach(input=>{if(input.dataset.publicViewPath.includes('.audience.'))return;set(input.dataset.publicViewPath,input.checked);});next.landing.orders={sections:publicViewOrderFromDom('sections'),menu:publicViewOrderFromDom('menu'),quickButtons:publicViewOrderFromDom('quickButtons')};next.landing.customLinks=customLandingLinksFromDom();const resultAudienceInputs=[...document.querySelectorAll('[data-public-view-path^="resultsPage.audience."]:checked')];next.resultsPage.audiences.enabled=resultAudienceInputs.length?resultAudienceInputs.map(input=>input.dataset.publicViewPath.split('.').at(-1)):['all'];document.querySelectorAll('[data-public-view-value]').forEach(input=>set(input.dataset.publicViewValue,input.type==='number'||/^\d+$/.test(input.value)?Number(input.value):input.value));const tabs=next.resultsPage.tabs||{},firstTab=['result','team'].find(key=>tabs[key]!==false)||'result';next.resultsPage.defaultTab=tabs[next.resultsPage.defaultTab]===false?firstTab:next.resultsPage.defaultTab;const audiences=next.resultsPage.audiences.enabled||[];next.resultsPage.audiences.default=audiences.includes(next.resultsPage.audiences.default)?next.resultsPage.audiences.default:(audiences[0]||(next.resultsPage.audiences.showAll!==false?'all':''));return next;};
 
+window.renderMasterTiers = (setup = festSetup) => {
+    const container = document.getElementById('master-tier-container');
+    if (!container) return;
+    const tierConfig = setup.tierStructure || { mode: 'single', activeTier: 'institution', tiers: [{ id: 'institution', name: 'Institution Level', level: 1, qualifyCount: 0 }] };
+    const isMulti = tierConfig.mode === 'multi_tier';
+    const modeRadios = document.querySelectorAll('input[name="master-tier-mode"]');
+    modeRadios.forEach(r => r.checked = r.value === (isMulti ? 'multi_tier' : 'single'));
+
+    if (!isMulti) {
+        container.innerHTML = `
+            <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-xs font-semibold text-slate-600 flex items-center justify-between">
+                <div><b class="text-slate-800">Single Level Competition:</b> All participants and teams compete directly at this institution/event without multi-stage qualification.</div>
+                <span class="rounded-lg bg-emerald-100 text-emerald-800 px-2.5 py-1 text-[11px] font-black uppercase tracking-wider">Active</span>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="space-y-3">
+            <div class="flex items-center justify-between text-xs font-bold text-slate-600">
+                <span>Configure Tiers &amp; Progression (Lower tier winners advance to higher tiers)</span>
+                <button type="button" data-admin-action="add-tier-level" class="rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 text-xs font-black transition active:scale-95 flex items-center gap-1">+ Add Tier</button>
+            </div>
+            <div class="grid gap-2">
+                ${tierConfig.tiers.map((t, idx) => `
+                    <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3" data-tier-id="${escapeHtml(t.id)}">
+                        <div class="flex items-center gap-2">
+                            <span class="grid h-6 w-6 place-items-center rounded-full bg-indigo-600 text-[11px] font-black text-white">${t.level || idx + 1}</span>
+                            <input type="text" data-tier-name="${escapeHtml(t.id)}" value="${escapeHtml(t.name)}" class="text-input h-8 text-xs font-bold min-w-[160px]" placeholder="Tier Name">
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <label class="flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                                <span>Top</span>
+                                <input type="number" min="0" max="20" data-tier-qualify="${escapeHtml(t.id)}" value="${t.qualifyCount || 0}" class="text-input h-8 w-16 text-center text-xs font-bold">
+                                <span>qualify to next</span>
+                            </label>
+                            <label class="flex items-center gap-1 text-xs font-bold text-indigo-700 cursor-pointer">
+                                <input type="radio" name="master-active-tier" value="${escapeHtml(t.id)}" ${tierConfig.activeTier === t.id ? 'checked' : ''} class="h-4 w-4"> Active Now
+                            </label>
+                            ${tierConfig.tiers.length > 1 ? `<button type="button" data-admin-action="remove-tier-level" data-tier-id="${escapeHtml(t.id)}" class="rounded-lg p-1 text-rose-500 hover:bg-rose-50" title="Remove Tier"><i data-lucide="trash-2" class="h-4 w-4"></i></button>` : ''}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    window.lucide?.createIcons?.();
+};
+
+window.renderMasterDomains = (setup = festSetup) => {
+    const container = document.getElementById('master-domains-container');
+    if (!container) return;
+    const domainsConfig = setup.domains || { enabled: ['arts'], activeDomains: [] };
+    const enabledSet = new Set(domainsConfig.enabled || ['arts']);
+    
+    container.innerHTML = `
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            ${(domainsConfig.activeDomains || []).map(d => {
+                const isEnabled = enabledSet.has(d.id);
+                return `
+                    <div class="rounded-2xl border ${isEnabled ? 'border-indigo-200 bg-indigo-50/40' : 'border-slate-200 bg-slate-50/60 opacity-70'} p-4 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <b class="text-sm font-black text-slate-800">${escapeHtml(d.name)}</b>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" data-domain-toggle="${escapeHtml(d.id)}" ${isEnabled ? 'checked' : ''} class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-1.5">
+                                ${(d.segments || []).map(s => `
+                                    <span class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-700" title="${escapeHtml(s.description || '')}">
+                                        ${escapeHtml(s.name)}
+                                        <button type="button" data-admin-action="remove-domain-segment" data-domain-id="${escapeHtml(d.id)}" data-segment-id="${escapeHtml(s.id)}" class="text-slate-400 hover:text-rose-500 font-black">&times;</button>
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-100 flex gap-1.5">
+                            <input type="text" data-new-segment-input="${escapeHtml(d.id)}" class="text-input h-7 text-[11px] py-1" placeholder="+ Add segment">
+                            <button type="button" data-admin-action="add-domain-segment" data-domain-id="${escapeHtml(d.id)}" class="rounded-lg bg-slate-800 text-white px-2.5 py-1 text-[11px] font-bold">Add</button>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+    window.lucide?.createIcons?.();
+};
+
+window.renderMasterCategoryArchitecture = (setup = festSetup) => {
+    const container = document.getElementById('master-category-architecture');
+    if (!container) return;
+    const categoriesList = setup.categoryDefinitions || DEFAULT_CATEGORY_DEFINITIONS;
+
+    container.innerHTML = categoriesList.map(c => `
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs relative flex flex-col justify-between" data-category-key="${escapeHtml(c.key)}">
+            <div>
+                <div class="flex items-center justify-between">
+                    <span class="inline-block h-3 w-3 rounded-full" style="background-color: ${escapeHtml(c.color || '#4f46e5')}"></span>
+                    <button type="button" data-admin-action="remove-category-definition" data-category-key="${escapeHtml(c.key)}" class="text-slate-400 hover:text-rose-600 p-1 rounded-lg" title="Delete Category"><i data-lucide="trash-2" class="h-3.5 w-3.5"></i></button>
+                </div>
+                <h5 class="mt-2 text-sm font-black text-slate-800">${escapeHtml(c.label || c.key)}</h5>
+                <p class="text-[10px] font-bold text-slate-400 font-mono">${escapeHtml(c.key)}</p>
+                <div class="mt-3">
+                    <span class="text-[10px] font-black uppercase text-slate-400 block mb-1">Eligible Classes:</span>
+                    <div class="flex flex-wrap gap-1">
+                        ${(c.eligibleClasses || []).map(cls => `<span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-700">${escapeHtml(cls)}</span>`).join('') || '<span class="text-[10px] italic text-slate-400">Open to all</span>'}
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3 pt-2 border-t flex items-center justify-between text-[11px]">
+                <button type="button" data-admin-action="edit-category-classes" data-category-key="${escapeHtml(c.key)}" class="text-indigo-600 font-bold hover:underline">Edit Classes</button>
+            </div>
+        </div>
+    `).join('');
+    window.lucide?.createIcons?.();
+};
+
+window.renderMasterGroupRegulations = (setup = festSetup) => {
+    const reg = setup.groupRegulations || DEFAULT_GROUP_REGULATIONS;
+    const minEl = document.getElementById('reg-default-min');
+    const maxEl = document.getElementById('reg-default-max');
+    const sqEl = document.getElementById('reg-default-groups-per-team');
+    if (minEl) minEl.value = reg.defaultMinMembers;
+    if (maxEl) maxEl.value = reg.defaultMaxMembers;
+    if (sqEl) sqEl.value = reg.defaultGroupsPerTeam;
+};
+
+window.renderMasterGenderOptions = (setup = festSetup) => {
+    const container = document.getElementById('master-gender-container');
+    if (!container) return;
+    const allowed = setup.allowedGenders || ['Boys', 'Girls'];
+    container.innerHTML = allowed.map(g => `
+        <label class="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 text-sm font-bold border border-slate-100">
+            <span class="flex items-center gap-2">
+                <input type="checkbox" name="master-genders" value="${escapeHtml(g)}" checked data-master-list="allowedGenders" class="h-4 w-4 rounded text-indigo-600">
+                ${escapeHtml(g)}
+            </span>
+            ${!['Boys', 'Girls'].includes(g) ? `<button type="button" data-admin-action="remove-custom-gender" data-gender="${escapeHtml(g)}" class="text-slate-400 hover:text-rose-500 font-bold px-1">&times;</button>` : ''}
+        </label>
+    `).join('');
+};
+
+window.addMasterTierLevel = async () => {
+    const name = await window.promptAction('Enter Tier Name (e.g. Zone, District, State, Finals):', '');
+    if (!name || !name.trim()) return;
+    const cleanName = name.trim();
+    const id = cleanName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const tiers = festSetup.tierStructure?.tiers || [];
+    if (tiers.some(t => t.id === id)) return window.showToast('Tier already exists', 'error');
+    const newTier = { id, name: cleanName, level: tiers.length + 1, qualifyCount: 2 };
+    festSetup.tierStructure = {
+        ...(festSetup.tierStructure || {}),
+        mode: 'multi_tier',
+        tiers: [...tiers, newTier]
+    };
+    window.renderMasterTiers(festSetup);
+    window.showToast('Tier added');
+};
+
+window.removeMasterTierLevel = async (tierId) => {
+    const tiers = festSetup.tierStructure?.tiers || [];
+    if (tiers.length <= 1) return window.showToast('At least one tier is required', 'error');
+    if (!await window.confirmAction('Delete this tier level?')) return;
+    festSetup.tierStructure = {
+        ...(festSetup.tierStructure || {}),
+        tiers: tiers.filter(t => t.id !== tierId)
+    };
+    if (festSetup.tierStructure.activeTier === tierId) {
+        festSetup.tierStructure.activeTier = festSetup.tierStructure.tiers[0]?.id || 'institution';
+    }
+    window.renderMasterTiers(festSetup);
+    window.showToast('Tier removed');
+};
+
+window.addMasterDomainSegment = (domainId) => {
+    const input = document.querySelector(`[data-new-segment-input="${domainId}"]`);
+    const name = (input?.value || '').trim();
+    if (!name) return window.showToast('Enter segment name (e.g. On-Stage, Track, Off-Stage)', 'error');
+    const id = name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const activeDomains = festSetup.domains?.activeDomains || [];
+    const domain = activeDomains.find(d => d.id === domainId);
+    if (!domain) return;
+    if ((domain.segments || []).some(s => s.id === id)) return window.showToast('Segment already exists', 'error');
+    domain.segments = [...(domain.segments || []), { id, name, description: '' }];
+    if (input) input.value = '';
+    window.renderMasterDomains(festSetup);
+    window.showToast('Segment added');
+};
+
+window.removeMasterDomainSegment = (domainId, segmentId) => {
+    const activeDomains = festSetup.domains?.activeDomains || [];
+    const domain = activeDomains.find(d => d.id === domainId);
+    if (!domain) return;
+    domain.segments = (domain.segments || []).filter(s => s.id !== segmentId);
+    window.renderMasterDomains(festSetup);
+    window.showToast('Segment removed');
+};
+
+window.setMasterGenderPreset = (preset) => {
+    let allowed = ['Boys', 'Girls'];
+    if (preset === 'adults') allowed = ['Men', 'Women'];
+    else if (preset === 'universal') allowed = ['Male', 'Female'];
+    festSetup.allowedGenders = allowed;
+    window.renderMasterGenderOptions(festSetup);
+    window.applyFestCapabilities();
+    window.showToast(`Gender preset changed to ${allowed.join(' / ')}`);
+};
+
+window.addMasterCustomGender = () => {
+    const input = document.getElementById('master-new-gender-label');
+    const val = (input?.value || '').trim();
+    if (!val) return window.showToast('Enter gender label', 'error');
+    const current = festSetup.allowedGenders || ['Boys', 'Girls'];
+    if (current.includes(val)) return window.showToast('Gender already exists', 'error');
+    festSetup.allowedGenders = [...current, val];
+    if (input) input.value = '';
+    window.renderMasterGenderOptions(festSetup);
+    window.applyFestCapabilities();
+    window.showToast(`Gender '${val}' added`);
+};
+
+window.removeMasterCustomGender = (gender) => {
+    const current = festSetup.allowedGenders || ['Boys', 'Girls'];
+    if (current.length <= 1) return window.showToast('At least one gender is required', 'error');
+    festSetup.allowedGenders = current.filter(g => g !== gender);
+    window.renderMasterGenderOptions(festSetup);
+    window.applyFestCapabilities();
+    window.showToast(`Gender '${gender}' removed`);
+};
+
+window.addCategoryDefinition = async () => {
+    const name = await window.promptAction('Enter New Category Name (e.g. Sub-Junior, Under-14, Primary):', '');
+    if (!name || !name.trim()) return;
+    const clean = name.trim();
+    const categoriesList = festSetup.categoryDefinitions || [];
+    if (categoriesList.some(c => c.key.toLowerCase() === clean.toLowerCase())) return window.showToast('Category already exists', 'error');
+    const colors = ['#0284c7', '#16a34a', '#9333ea', '#d97706', '#dc2626', '#0d9488'];
+    const newCat = {
+        key: clean,
+        label: clean,
+        eligibleClasses: ['1','2','3','4','5','6','7','8','9','10','+1','+2'],
+        color: colors[categoriesList.length % colors.length]
+    };
+    festSetup.categoryDefinitions = [...categoriesList, newCat];
+    window.renderMasterCategoryArchitecture(festSetup);
+    window.showToast(`Category '${clean}' added`);
+};
+
+window.removeCategoryDefinition = async (key) => {
+    const categoriesList = festSetup.categoryDefinitions || [];
+    if (categoriesList.length <= 1) return window.showToast('At least one category is required', 'error');
+    if (!await window.confirmAction(`Delete category '${key}'?`)) return;
+    festSetup.categoryDefinitions = categoriesList.filter(c => c.key !== key);
+    window.renderMasterCategoryArchitecture(festSetup);
+    window.showToast(`Category '${key}' removed`);
+};
+
+window.editCategoryClasses = async (key) => {
+    const categoriesList = festSetup.categoryDefinitions || [];
+    const cat = categoriesList.find(c => c.key === key);
+    if (!cat) return;
+    const currentClasses = (cat.eligibleClasses || []).join(', ');
+    const classesInput = await window.promptAction(`Eligible classes for ${cat.label} (comma separated):`, currentClasses);
+    if (classesInput === null) return;
+    cat.eligibleClasses = classesInput.split(',').map(s => s.trim()).filter(Boolean);
+    window.renderMasterCategoryArchitecture(festSetup);
+    window.showToast(`Updated classes for ${cat.label}`);
+};
+
 window.renderMasterSetup = () => {
     const setup = normalizeFestSetup(festSetup);
     const setValue = (id, value) => { const el=document.getElementById(id); if(el) el.value=value; };
@@ -3338,14 +3620,38 @@ window.renderMasterSetup = () => {
     const policy=normalizeCompetitionPolicies(setup.competitionPolicies);setValue('policy-group-first',policy.groupPositionPoints.first??'');setValue('policy-group-second',policy.groupPositionPoints.second??'');setValue('policy-group-third',policy.groupPositionPoints.third??'');setValue('policy-direct-grade',policy.directRankGradeMode);setValue('policy-min-position',policy.minimumPositionPolicy);setValue('policy-min-position-value',policy.minimumPositionPercentage??'');setValue('policy-grade-maximum',normalizeAdminScoringRules().policies.gradeCalculationMaximumMark||100);setValue('policy-joint-position',policy.jointPositionMethod);setValue('policy-multi-judge',policy.multipleJudgeMethod);setValue('policy-trim-judges',policy.trimMinimumJudges??'');setValue('policy-general-gender',policy.generalGenderMode);setValue('policy-result-correction',policy.publishedCorrectionMode);
     document.querySelectorAll('[data-master-list]').forEach(input => { const values=setup[input.dataset.masterList]||[]; input.checked=values.includes(input.value); });
     document.querySelectorAll('[data-master-public]').forEach(input => { input.checked=setup.publicModules[input.dataset.masterPublic] !== false; });
-    renderPresetGuide(setup);renderMasterParticipantTypes(setup);window.renderPublicViewSettings(setup);window.renderEventFieldRules?.();mergeScoringIntoMasterSetup();decorateMasterHelp();window.renderMasterImpactReview();
+    renderPresetGuide(setup);
+    renderMasterParticipantTypes(setup);
+    window.renderMasterTiers?.(setup);
+    window.renderMasterDomains?.(setup);
+    window.renderMasterCategoryArchitecture?.(setup);
+    window.renderMasterGroupRegulations?.(setup);
+    window.renderMasterGenderOptions?.(setup);
+    window.renderPublicViewSettings(setup);
+    window.renderEventFieldRules?.();
+    mergeScoringIntoMasterSetup();
+    decorateMasterHelp();
+    window.renderMasterImpactReview();
     const summary=document.getElementById('master-setup-summary'); if(summary) summary.innerHTML=`<b>Active model:</b> ${setup.organisationMode} organisation • ${setup.scheduleMode} schedule • ${setup.judgingMode} judging • ${setup.resultWorkflow} results`;
     window.renderStudentFieldSettings?.();
     window.renderStudentCustomFields?.();applyEventFieldRules();
     window.updateCompetitionPolicyStatus?.();
     window.renderScoringRules?.();window.lucide?.createIcons?.();
 };
-document.getElementById('view-master-setup')?.addEventListener('change',event=>{if(event.target.matches('[name="master-participants"]')&&!event.target.checked&&!checkedValues('master-participants').length){event.target.checked=true;window.showToast('At least one participant type is required. Enable another type before disabling this one.','error');return}if(event.target.matches('[name="master-participants"],[name="master-registration"]'))window.applyFestCapabilities();const landingSectionChanged=event.target.matches('[data-public-view-path^="landing.sections."]');if(event.target.matches('[data-master-public]')||landingSectionChanged){const draft=publicViewFromDom();festSetup={...festSetup,publicView:draft};window.renderPublicViewSettings(normalizeFestSetup(festSetup));if(event.target.matches('[data-master-public]'))window.showToast(`${event.target.closest('label')?.innerText.trim()||'Module'} ${event.target.checked?'enabled':'disabled'}; dependent landing controls updated.`);else window.showToast(`${PUBLIC_VIEW_LABELS[event.target.dataset.publicViewPath.split('.').at(-1)]||'Landing section'} ${event.target.checked?'enabled':'disabled'}; menu and quick-button controls updated.`);}const section=event.target.closest('[data-master-section]')?.dataset.masterSection||activeMasterSection;masterDirtySections.add(section);updateMasterSubnavStatus();if(event.target.id==='master-preset')return;const preset=document.getElementById('master-preset');if(preset&&preset.value!=='custom'){preset.value='custom';festSetup={...festSetup,preset:'custom'};renderPresetGuide(festSetup);}window.renderMasterImpactReview?.();});
+document.getElementById('view-master-setup')?.addEventListener('change',event=>{
+    if (event.target.matches('[name="master-tier-mode"]')) {
+        festSetup.tierStructure = { ...(festSetup.tierStructure || {}), mode: event.target.value };
+        window.renderMasterTiers(festSetup);
+    } else if (event.target.matches('[data-domain-toggle]')) {
+        const domainId = event.target.dataset.domainToggle;
+        const current = new Set(festSetup.domains?.enabled || ['arts']);
+        if (event.target.checked) current.add(domainId);
+        else current.delete(domainId);
+        if (!current.size) current.add('arts');
+        festSetup.domains = { ...(festSetup.domains || {}), enabled: [...current] };
+        window.renderMasterDomains(festSetup);
+    }
+    if(event.target.matches('[name="master-participants"]')&&!event.target.checked&&!checkedValues('master-participants').length){event.target.checked=true;window.showToast('At least one participant type is required. Enable another type before disabling this one.','error');return}if(event.target.matches('[name="master-participants"],[name="master-registration"]'))window.applyFestCapabilities();const landingSectionChanged=event.target.matches('[data-public-view-path^="landing.sections."]');if(event.target.matches('[data-master-public]')||landingSectionChanged){const draft=publicViewFromDom();festSetup={...festSetup,publicView:draft};window.renderPublicViewSettings(normalizeFestSetup(festSetup));if(event.target.matches('[data-master-public]'))window.showToast(`${event.target.closest('label')?.innerText.trim()||'Module'} ${event.target.checked?'enabled':'disabled'}; dependent landing controls updated.`);else window.showToast(`${PUBLIC_VIEW_LABELS[event.target.dataset.publicViewPath.split('.').at(-1)]||'Landing section'} ${event.target.checked?'enabled':'disabled'}; menu and quick-button controls updated.`);}const section=event.target.closest('[data-master-section]')?.dataset.masterSection||activeMasterSection;masterDirtySections.add(section);updateMasterSubnavStatus();if(event.target.id==='master-preset')return;const preset=document.getElementById('master-preset');if(preset&&preset.value!=='custom'){preset.value='custom';festSetup={...festSetup,preset:'custom'};renderPresetGuide(festSetup);}window.renderMasterImpactReview?.();});
 const checkboxGroupValues=id=>[...document.querySelectorAll(`#${id} [data-checkbox-option]:checked`)].map(input=>input.value);
 const syncCheckboxGroup=id=>{const root=document.getElementById(id),master=root?.querySelector('[data-checkbox-all]'),options=[...(root?.querySelectorAll('[data-checkbox-option]:not(:disabled)')||[])],count=options.filter(input=>input.checked).length;if(master){master.checked=options.length>0&&count===options.length;master.indeterminate=count>0&&count<options.length;master.setAttribute('aria-checked',master.indeterminate?'mixed':String(master.checked));}const output=root?.querySelector('[data-checkbox-count]');if(output)output.textContent=`${count} selected`;};
 const setCheckboxGroupValues=(id,values=[])=>{const root=document.getElementById(id);if(root)root.dataset.checkboxDirty='true';root?.querySelectorAll('[data-checkbox-option]').forEach(input=>input.checked=values.includes(input.value));syncCheckboxGroup(id);};
@@ -3878,10 +4184,61 @@ window.saveMasterSetup = async () => {
         return;
     }
     const selectedParticipantTypes=checkedValues('master-participants'),selectedGenders=checkedValues('master-genders'),selectedRegistrationChannels=checkedValues('master-registration');if(!selectedParticipantTypes.length)return window.showToast('At least one participant type is required. Enable another type before disabling Student.','error');
+
+    const tierMode = document.querySelector('input[name="master-tier-mode"]:checked')?.value || festSetup.tierStructure?.mode || 'single';
+    const activeTier = document.querySelector('input[name="master-active-tier"]:checked')?.value || festSetup.tierStructure?.activeTier || 'institution';
+    const currentTiers = (festSetup.tierStructure?.tiers || []).map(t => {
+        const nameInput = document.querySelector(`[data-tier-name="${t.id}"]`);
+        const qualInput = document.querySelector(`[data-tier-qualify="${t.id}"]`);
+        return {
+            ...t,
+            name: nameInput ? nameInput.value.trim() || t.name : t.name,
+            qualifyCount: qualInput ? Math.max(0, Number(qualInput.value) || 0) : t.qualifyCount
+        };
+    });
+    const tierStructure = {
+        mode: tierMode,
+        activeTier,
+        tiers: currentTiers.length ? currentTiers : [{ id: 'institution', name: 'Institution Level', level: 1, qualifyCount: 0 }]
+    };
+
+    const enabledDomains = [...document.querySelectorAll('[data-domain-toggle]:checked')].map(i => i.dataset.domainToggle);
+    const domains = {
+        enabled: enabledDomains.length ? enabledDomains : ['arts'],
+        activeDomains: festSetup.domains?.activeDomains || DEFAULT_DOMAINS.activeDomains
+    };
+
+    const groupRegulations = {
+        defaultMinMembers: Math.max(1, Number(document.getElementById('reg-default-min')?.value || 2)),
+        defaultMaxMembers: Math.max(1, Number(document.getElementById('reg-default-max')?.value || 12)),
+        defaultGroupsPerTeam: Math.max(1, Number(document.getElementById('reg-default-groups-per-team')?.value || 1)),
+        allowCrossCategory: !!festSetup.groupRegulations?.allowCrossCategory
+    };
+
+    const categoryDefinitions = festSetup.categoryDefinitions && festSetup.categoryDefinitions.length ? festSetup.categoryDefinitions : DEFAULT_CATEGORY_DEFINITIONS;
+
     const next = normalizeFestSetup({
-        ...festSetup, preset:masterValue('master-preset'), organisationMode:masterValue('master-organisation'), scheduleMode:masterValue('master-schedule'), judgingMode:masterValue('master-judging'), resultWorkflow:masterValue('master-results'), teamScoringMode:masterValue('master-team-scoring'),eventManagementMode:masterValue('master-event-management'),eventFieldProfile:JSON.stringify(eventFieldRulesFromDom().map(({key,requirement})=>({key,requirement})))===JSON.stringify(eventFieldRulesForMode(masterValue('master-event-management')).map(({key,requirement})=>({key,requirement})))?masterValue('master-event-management'):'custom',eventFieldRules:eventFieldRulesFromDom(),eventFeatures:Object.fromEntries([...document.querySelectorAll('[data-master-event-feature]')].map(input=>[input.dataset.masterEventFeature,input.checked])),eligibleClasses:(document.querySelector('[data-student-field-options="class"]')?.value||'').split(',').map(value=>value.trim()).filter(Boolean),
-        participantTypes:selectedParticipantTypes, allowedGenders:selectedGenders, registrationChannels:selectedRegistrationChannels,
-        publicModules:Object.fromEntries([...document.querySelectorAll('[data-master-public]')].map(input=>[input.dataset.masterPublic,input.checked])),publicView:publicViewFromDom(),
+        ...festSetup,
+        preset:masterValue('master-preset'),
+        organisationMode:masterValue('master-organisation'),
+        scheduleMode:masterValue('master-schedule'),
+        judgingMode:masterValue('master-judging'),
+        resultWorkflow:masterValue('master-results'),
+        teamScoringMode:masterValue('master-team-scoring'),
+        eventManagementMode:masterValue('master-event-management'),
+        tierStructure,
+        domains,
+        groupRegulations,
+        categoryDefinitions,
+        eventFieldProfile:JSON.stringify(eventFieldRulesFromDom().map(({key,requirement})=>({key,requirement})))===JSON.stringify(eventFieldRulesForMode(masterValue('master-event-management')).map(({key,requirement})=>({key,requirement})))?masterValue('master-event-management'):'custom',
+        eventFieldRules:eventFieldRulesFromDom(),
+        eventFeatures:Object.fromEntries([...document.querySelectorAll('[data-master-event-feature]')].map(input=>[input.dataset.masterEventFeature,input.checked])),
+        eligibleClasses:(document.querySelector('[data-student-field-options="class"]')?.value||'').split(',').map(value=>value.trim()).filter(Boolean),
+        participantTypes:selectedParticipantTypes,
+        allowedGenders:selectedGenders,
+        registrationChannels:selectedRegistrationChannels,
+        publicModules:Object.fromEntries([...document.querySelectorAll('[data-master-public]')].map(input=>[input.dataset.masterPublic,input.checked])),
+        publicView:publicViewFromDom(),
         studentFields:normalizeStudentFields(festSetup.studentFields).map(field=>({...field,options:field.type==='select'?(document.querySelector(`[data-student-field-options="${field.key}"]`)?.value||'').split(',').map(value=>value.trim()).filter(Boolean):[],enabled:field.key==='name'||document.querySelector(`[data-student-field-enabled="${field.key}"]`)?.checked===true,required:field.key==='name'||document.querySelector(`[data-student-field-required="${field.key}"]`)?.checked===true})),
         competitionPolicies:competitionPoliciesFromForm()
     });
@@ -3893,7 +4250,14 @@ window.saveMasterSetup = async () => {
     const currentScoring=readScoringConfigFromDom();
     currentScoring.policies={gradeCalculationMaximumMark:Math.max(1,Number(document.getElementById('policy-grade-maximum')?.value||100)),directRankGradeMode:next.competitionPolicies.directRankGradeMode,minimumPositionPolicy:next.competitionPolicies.minimumPositionPolicy,minimumPositionPercentage:next.competitionPolicies.minimumPositionPercentage,jointPositionMethod:next.competitionPolicies.jointPositionMethod,multipleJudgeMethod:next.competitionPolicies.multipleJudgeMethod,trimMinimumJudges:next.competitionPolicies.trimMinimumJudges,generalGenderMode:next.competitionPolicies.generalGenderMode,publishedCorrectionMode:next.competitionPolicies.publishedCorrectionMode};
     const scoringIssue=scoringValidationIssue(currentScoring);if(scoringIssue)return window.showToast(scoringIssue,'error');
-    festSetup=next;savedFestSetup=normalizeFestSetup(next);await Promise.all([setDoc(doc(db,'settings','general'),{festSetup:next},{merge:true}),setDoc(doc(db,'settings','scoring_rules'),{...currentScoring,updatedAt:Date.now()},{merge:false}),addDoc(collection(db,'auditLogs'),{action:'master_setup_updated',preset:next.preset,changedKeys,removedParticipantTypes:removedTypes,operationalRecordCount:operationalCount,uid:auth.currentUser?.uid||'',createdAt:Date.now()})]);scoringRules=currentScoring;window.applyFestCapabilities();window.renderMasterSetup();window.renderStudentCustomFields();window.renderScoringRules();masterDirtySections.clear();updateMasterSubnavStatus();window.showToast('Master Setup and competition policies saved');
+    const newCategoryKeys = next.categoryDefinitions.map(c => c.key);
+    festSetup=next;savedFestSetup=normalizeFestSetup(next);
+    await Promise.all([
+        setDoc(doc(db,'settings','general'),{festSetup:next, categories:newCategoryKeys},{merge:true}),
+        setDoc(doc(db,'settings','scoring_rules'),{...currentScoring,updatedAt:Date.now()},{merge:false}),
+        addDoc(collection(db,'auditLogs'),{action:'master_setup_updated',preset:next.preset,changedKeys,removedParticipantTypes:removedTypes,operationalRecordCount:operationalCount,uid:auth.currentUser?.uid||'',createdAt:Date.now()})
+    ]);
+    scoringRules=currentScoring;window.applyFestCapabilities();window.renderMasterSetup();window.renderStudentCustomFields();window.renderScoringRules();masterDirtySections.clear();updateMasterSubnavStatus();window.showToast('Master Setup and competition policies saved');
 };
 
 document.getElementById('form-student')?.addEventListener('submit', async (e) => {
