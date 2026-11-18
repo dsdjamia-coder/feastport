@@ -542,6 +542,9 @@ document.addEventListener('click', (event) => {
         'add-item': () => window.addItem(d.type, d.input),
         'create-team': () => window.createTeam(),
         'switch-team-config-subtab': () => window.switchTeamConfigSubtab(d.configSubtab || btn.dataset.configSubtab),
+        'switch-students-subtab': () => window.switchStudentsSubtab(d.studentsSubtab || btn.dataset.studentsSubtab),
+        'switch-events-subtab': () => window.switchEventsSubtab(d.eventsSubtab || btn.dataset.eventsSubtab),
+        'switch-access-subtab': () => window.switchAccessSubtab(d.accessSubtab || btn.dataset.accessSubtab),
         'save-team-display-name': () => window.saveTeamDisplayName(d.team),
         'save-category-display-name': () => window.saveCategoryDisplayName(d.category),
         'save-chest-config': () => window.saveChestNoConfig(),
@@ -817,7 +820,7 @@ window.switchTab = (tab) => {
 
     const titles = { 'dashboard': 'Dashboard', 'registrations': 'Registrations', 'students': 'Students Directory', 'events': 'Events Management', 'schedule': 'Time Schedule', 'config': 'Team Setup', 'master-setup': 'Master Setup', 'access': 'Access Management', 'scoring': 'Scoring Settings', 'judge': 'Judgement Desk', 'public-content': 'Public Page Control & Contents', 'poster-certificate':'Poster & Certificate', 'tv-display': 'TV Display Settings', 'danger': 'Data Reset', 'downloads': 'Downloads', 'guide': 'User Guide' };
     document.getElementById('page-title').innerText = titles[tab] || 'Admin Panel';const masterActive=tab==='master-setup';document.getElementById('master-header-actions')?.classList.toggle('hidden',!masterActive);document.getElementById('master-header-actions')?.classList.toggle('flex',masterActive);if(!masterActive){document.getElementById('page-context')?.classList.add('hidden');document.getElementById('page-status')?.classList.add('hidden');}
-    if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].border-indigo-600')?.dataset?.downloadTab || document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') { window.renderDropdowns?.(); renderStudentTable(); } if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.();renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') { window.switchScheduleSubtab?.(activeScheduleSubtab); window.renderSchedule(); } if(tab === 'schedule-review') window.renderScheduleReview?.(); if(tab === 'registrations') renderRegList(); if(tab === 'config') { window.switchTeamConfigSubtab?.(activeTeamConfigSubtab); window.renderSetupLists?.(); window.renderChestGrid?.(); } if(tab === 'access') window.renderAccessManagement?.(); if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
+    if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].border-indigo-600')?.dataset?.downloadTab || document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') { window.switchStudentsSubtab?.(activeStudentsSubtab); window.renderDropdowns?.(); renderStudentTable(); } if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.(); window.switchEventsSubtab?.(activeEventsSubtab); renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') { window.switchScheduleSubtab?.(activeScheduleSubtab); window.renderSchedule(); } if(tab === 'schedule-review') window.renderScheduleReview?.(); if(tab === 'registrations') renderRegList(); if(tab === 'config') { window.switchTeamConfigSubtab?.(activeTeamConfigSubtab); window.renderSetupLists?.(); window.renderChestGrid?.(); } if(tab === 'access') { window.switchAccessSubtab?.(activeAccessSubtab); window.renderAccessManagement?.(); } if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
     resetAdminContentScroll();
 };
 
@@ -1737,6 +1740,27 @@ function renderTeamLeadersGrouped(tlItems) {
     }).join('');
 }
 
+let activeAccessSubtab = 'accounts';
+window.switchAccessSubtab = (subtab = 'accounts') => {
+    activeAccessSubtab = ['accounts', 'form'].includes(subtab) ? subtab : 'accounts';
+    const accountsPanel = document.getElementById('access-panel-accounts');
+    const formPanel = document.getElementById('access-panel-form');
+    if (accountsPanel) accountsPanel.classList.toggle('hidden', activeAccessSubtab !== 'accounts');
+    if (formPanel) formPanel.classList.toggle('hidden', activeAccessSubtab !== 'form');
+    document.querySelectorAll('.access-subtab-btn').forEach(btn => {
+        const active = btn.dataset.accessSubtab === activeAccessSubtab;
+        btn.classList.toggle('border-indigo-600', active);
+        btn.classList.toggle('text-indigo-700', active);
+        btn.classList.toggle('bg-indigo-50/70', active);
+        btn.classList.toggle('font-black', active);
+        btn.classList.toggle('border-transparent', !active);
+        btn.classList.toggle('text-slate-500', !active);
+        btn.classList.toggle('font-bold', !active);
+        btn.setAttribute('aria-selected', String(active));
+    });
+    window.lucide?.createIcons?.();
+};
+
 window.renderAccessManagement = () => {
     const profiles = visibleAccessUsers();
     const config = accessListFilterConfig[selectedAccessListFilter] || accessListFilterConfig.teamLeader;
@@ -1892,6 +1916,7 @@ window.editAccessUser = (uid) => {
     window.toggleAccessTeamField();
     window.refreshImageUploadPreviews?.();
     window.switchTab('access');
+    window.switchAccessSubtab?.('form');
 };
 
 const writeAccessProfile = async (docId, profile, syncRoleMirror = true) => {
@@ -2744,6 +2769,27 @@ window.rejectStudent = async (regId, studentId, team, eventName, studentName, ev
     window.showToast("Student Removed");
 };
 
+let activeStudentsSubtab = 'directory';
+window.switchStudentsSubtab = (subtab = 'directory') => {
+    activeStudentsSubtab = ['directory', 'add'].includes(subtab) ? subtab : 'directory';
+    const dirPanel = document.getElementById('students-panel-directory');
+    const addPanel = document.getElementById('students-panel-add');
+    if (dirPanel) dirPanel.classList.toggle('hidden', activeStudentsSubtab !== 'directory');
+    if (addPanel) addPanel.classList.toggle('hidden', activeStudentsSubtab !== 'add');
+    document.querySelectorAll('.students-subtab-btn').forEach(btn => {
+        const active = btn.dataset.studentsSubtab === activeStudentsSubtab;
+        btn.classList.toggle('border-indigo-600', active);
+        btn.classList.toggle('text-indigo-700', active);
+        btn.classList.toggle('bg-indigo-50/70', active);
+        btn.classList.toggle('font-black', active);
+        btn.classList.toggle('border-transparent', !active);
+        btn.classList.toggle('text-slate-500', !active);
+        btn.classList.toggle('font-bold', !active);
+        btn.setAttribute('aria-selected', String(active));
+    });
+    window.lucide?.createIcons?.();
+};
+
 // --- STUDENTS TABLE ---
 const studentAvatar = (student,size='h-10 w-10') => student.photoData ? `<img src="${escapeHtml(student.photoData)}" alt="" class="${size} shrink-0 rounded-full border border-slate-200 object-cover">` : `<span class="${size} grid shrink-0 place-items-center rounded-full bg-indigo-100 text-xs font-black text-indigo-700">${escapeHtml((student.name||'?').trim().charAt(0).toUpperCase())}</span>`;
 const studentDisplayName = student => `${student.name || 'Student'}${student.details?.class || student.class ? ` (${student.details?.class || student.class})` : ''}`;
@@ -2785,6 +2831,29 @@ window.renderStudentTable = (force = false) => {
             <div class="flex gap-2"><button data-admin-action="edit-student" data-id="${escapeHtml(s.id)}" class="p-2 bg-slate-50 border border-slate-100 rounded-lg text-indigo-600 active:bg-indigo-50"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button data-admin-action="delete-student" data-id="${escapeHtml(s.id)}" class="p-2 bg-red-50 border border-red-100 rounded-lg text-red-500 active:bg-red-100"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>
         </div>`).join('');
     renderPaginationBar('pagination-students', paged, 'students', 'students');
+    window.lucide?.createIcons?.();
+};
+
+let activeEventsSubtab = 'list';
+window.switchEventsSubtab = (subtab = 'list') => {
+    activeEventsSubtab = ['list', 'create', 'history'].includes(subtab) ? subtab : 'list';
+    const listPanel = document.getElementById('events-panel-list');
+    const createPanel = document.getElementById('events-panel-create');
+    const historyPanel = document.getElementById('events-panel-history');
+    if (listPanel) listPanel.classList.toggle('hidden', activeEventsSubtab !== 'list');
+    if (createPanel) createPanel.classList.toggle('hidden', activeEventsSubtab !== 'create');
+    if (historyPanel) historyPanel.classList.toggle('hidden', activeEventsSubtab !== 'history');
+    document.querySelectorAll('.events-subtab-btn').forEach(btn => {
+        const active = btn.dataset.eventsSubtab === activeEventsSubtab;
+        btn.classList.toggle('border-purple-600', active);
+        btn.classList.toggle('text-purple-700', active);
+        btn.classList.toggle('bg-purple-50/70', active);
+        btn.classList.toggle('font-black', active);
+        btn.classList.toggle('border-transparent', !active);
+        btn.classList.toggle('text-slate-500', !active);
+        btn.classList.toggle('font-bold', !active);
+        btn.setAttribute('aria-selected', String(active));
+    });
     window.lucide?.createIcons?.();
 };
 
