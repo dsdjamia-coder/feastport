@@ -859,7 +859,118 @@
                                 </div>
                             </div>
                         </section>
-                        <section data-master-section="public-view" class="rounded-2xl border border-indigo-100 bg-white p-5 lg:col-span-3"><h4 class="flex items-center gap-2 font-black">Landing Navigation &amp; Public Sections <button data-admin-action="show-master-info" data-info="public_modules" class="rounded-lg p-1 text-indigo-600"><i data-lucide="info" class="h-4 w-4"></i></button></h4><p class="mt-1 text-xs font-semibold text-slate-500">Only checked destinations appear in the landing menu, quick buttons and matching content sections. Enabled empty sections show a clear not-yet-published state.</p><div class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3"><label class="rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" data-master-public="results" class="mr-2">Results</label><label class="rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" data-master-public="about" class="mr-2">About</label><label class="rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" data-master-public="leaders" class="mr-2">Leaders</label><label class="rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" data-master-public="gallery" class="mr-2">Gallery</label><label class="rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" data-master-public="schedule" class="mr-2">Schedule</label><label class="rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" data-master-public="registration" class="mr-2">Register</label><label class="rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" data-master-public="login" class="mr-2">Login</label><label class="rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" data-master-public="teamStandings" class="mr-2">Team Standings</label><label class="rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" data-master-public="tv" class="mr-2">TV Display</label></div><div id="master-public-view-settings" class="mt-5 border-t pt-5"></div></section>
+                        <section data-master-section="public-view" class="overflow-hidden rounded-2xl border border-indigo-100 bg-white shadow-sm lg:col-span-3">
+                            <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b bg-indigo-50/70 p-4 sm:p-5">
+                                <div>
+                                    <h4 class="font-black text-slate-800 flex items-center gap-2">
+                                        <i data-lucide="panels-top-left" class="h-4 w-4 text-indigo-600"></i>
+                                        Public Portal Core Modules &amp; Display Navigation
+                                        <button type="button" data-admin-action="show-master-info" data-info="public_modules" class="rounded-lg p-1 text-indigo-600 hover:bg-indigo-100 transition" title="Show Information"><i data-lucide="info" class="h-4 w-4"></i></button>
+                                    </h4>
+                                    <p class="mt-1 text-xs font-semibold text-slate-500">Checked modules activate across the public portal, landing menus, and quick shortcuts. Unchecking a module here automatically locks related buttons and sections below.</p>
+                                </div>
+                                <span class="rounded-full bg-white px-3 py-1 text-[11px] font-black text-indigo-700 border border-indigo-200 shadow-2xs self-start sm:self-auto shrink-0">Global Switches</span>
+                            </header>
+                            <div class="p-4 sm:p-5">
+                                <div class="mb-3 flex items-center justify-between">
+                                    <span class="text-xs font-black uppercase tracking-wider text-slate-400">Available Public Modules</span>
+                                    <span class="text-[11px] font-bold text-slate-400">Toggle ON to enable</span>
+                                </div>
+                                <div class="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                                    <label class="group flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 transition hover:border-indigo-300 hover:bg-white has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50/20 has-[:checked]:shadow-2xs">
+                                        <div class="flex items-center gap-2.5 min-w-0">
+                                            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-amber-50 text-amber-600 border border-amber-200/60 shadow-2xs group-hover:scale-105 transition"><i data-lucide="trophy" class="h-4 w-4"></i></span>
+                                            <div class="min-w-0">
+                                                <span class="block text-xs font-bold text-slate-800 leading-tight">Results</span>
+                                                <span class="block text-[10px] font-semibold text-slate-400">Published scores &amp; ranks</span>
+                                            </div>
+                                        </div>
+                                        <input type="checkbox" data-master-public="results" class="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500">
+                                    </label>
+                                    <label class="group flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 transition hover:border-indigo-300 hover:bg-white has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50/20 has-[:checked]:shadow-2xs">
+                                        <div class="flex items-center gap-2.5 min-w-0">
+                                            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-600 border border-blue-200/60 shadow-2xs group-hover:scale-105 transition"><i data-lucide="info" class="h-4 w-4"></i></span>
+                                            <div class="min-w-0">
+                                                <span class="block text-xs font-bold text-slate-800 leading-tight">About</span>
+                                                <span class="block text-[10px] font-semibold text-slate-400">Festival overview &amp; rules</span>
+                                            </div>
+                                        </div>
+                                        <input type="checkbox" data-master-public="about" class="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500">
+                                    </label>
+                                    <label class="group flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 transition hover:border-indigo-300 hover:bg-white has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50/20 has-[:checked]:shadow-2xs">
+                                        <div class="flex items-center gap-2.5 min-w-0">
+                                            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-purple-50 text-purple-600 border border-purple-200/60 shadow-2xs group-hover:scale-105 transition"><i data-lucide="award" class="h-4 w-4"></i></span>
+                                            <div class="min-w-0">
+                                                <span class="block text-xs font-bold text-slate-800 leading-tight">Leaders</span>
+                                                <span class="block text-[10px] font-semibold text-slate-400">Individual toppers</span>
+                                            </div>
+                                        </div>
+                                        <input type="checkbox" data-master-public="leaders" class="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500">
+                                    </label>
+                                    <label class="group flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 transition hover:border-indigo-300 hover:bg-white has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50/20 has-[:checked]:shadow-2xs">
+                                        <div class="flex items-center gap-2.5 min-w-0">
+                                            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200/60 shadow-2xs group-hover:scale-105 transition"><i data-lucide="image" class="h-4 w-4"></i></span>
+                                            <div class="min-w-0">
+                                                <span class="block text-xs font-bold text-slate-800 leading-tight">Gallery</span>
+                                                <span class="block text-[10px] font-semibold text-slate-400">Festival media &amp; photos</span>
+                                            </div>
+                                        </div>
+                                        <input type="checkbox" data-master-public="gallery" class="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500">
+                                    </label>
+                                    <label class="group flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 transition hover:border-indigo-300 hover:bg-white has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50/20 has-[:checked]:shadow-2xs">
+                                        <div class="flex items-center gap-2.5 min-w-0">
+                                            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-cyan-50 text-cyan-600 border border-cyan-200/60 shadow-2xs group-hover:scale-105 transition"><i data-lucide="calendar" class="h-4 w-4"></i></span>
+                                            <div class="min-w-0">
+                                                <span class="block text-xs font-bold text-slate-800 leading-tight">Schedule</span>
+                                                <span class="block text-[10px] font-semibold text-slate-400">Time table &amp; stages</span>
+                                            </div>
+                                        </div>
+                                        <input type="checkbox" data-master-public="schedule" class="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500">
+                                    </label>
+                                    <label class="group flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 transition hover:border-indigo-300 hover:bg-white has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50/20 has-[:checked]:shadow-2xs">
+                                        <div class="flex items-center gap-2.5 min-w-0">
+                                            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-200/60 shadow-2xs group-hover:scale-105 transition"><i data-lucide="user-plus" class="h-4 w-4"></i></span>
+                                            <div class="min-w-0">
+                                                <span class="block text-xs font-bold text-slate-800 leading-tight">Register</span>
+                                                <span class="block text-[10px] font-semibold text-slate-400">Public candidate signup</span>
+                                            </div>
+                                        </div>
+                                        <input type="checkbox" data-master-public="registration" class="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500">
+                                    </label>
+                                    <label class="group flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 transition hover:border-indigo-300 hover:bg-white has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50/20 has-[:checked]:shadow-2xs">
+                                        <div class="flex items-center gap-2.5 min-w-0">
+                                            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs group-hover:scale-105 transition"><i data-lucide="log-in" class="h-4 w-4"></i></span>
+                                            <div class="min-w-0">
+                                                <span class="block text-xs font-bold text-slate-800 leading-tight">Login</span>
+                                                <span class="block text-[10px] font-semibold text-slate-400">Portal auth &amp; accounts</span>
+                                            </div>
+                                        </div>
+                                        <input type="checkbox" data-master-public="login" class="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500">
+                                    </label>
+                                    <label class="group flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 transition hover:border-indigo-300 hover:bg-white has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50/20 has-[:checked]:shadow-2xs">
+                                        <div class="flex items-center gap-2.5 min-w-0">
+                                            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-pink-50 text-pink-600 border border-pink-200/60 shadow-2xs group-hover:scale-105 transition"><i data-lucide="users" class="h-4 w-4"></i></span>
+                                            <div class="min-w-0">
+                                                <span class="block text-xs font-bold text-slate-800 leading-tight">Team Standings</span>
+                                                <span class="block text-[10px] font-semibold text-slate-400">Championship points table</span>
+                                            </div>
+                                        </div>
+                                        <input type="checkbox" data-master-public="teamStandings" class="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500">
+                                    </label>
+                                    <label class="group flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 transition hover:border-indigo-300 hover:bg-white has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50/20 has-[:checked]:shadow-2xs">
+                                        <div class="flex items-center gap-2.5 min-w-0">
+                                            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-violet-50 text-violet-600 border border-violet-200/60 shadow-2xs group-hover:scale-105 transition"><i data-lucide="tv" class="h-4 w-4"></i></span>
+                                            <div class="min-w-0">
+                                                <span class="block text-xs font-bold text-slate-800 leading-tight">TV Display</span>
+                                                <span class="block text-[10px] font-semibold text-slate-400">Stage screen live board</span>
+                                            </div>
+                                        </div>
+                                        <input type="checkbox" data-master-public="tv" class="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500">
+                                    </label>
+                                </div>
+                                <div id="master-public-view-settings" class="mt-6 border-t border-slate-200 pt-5"></div>
+                            </div>
+                        </section>
                     </div>
                     <section data-master-section="events-schedule" class="overflow-hidden rounded-2xl border border-indigo-100 bg-white shadow-sm">
                         <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b bg-indigo-50/70 p-5">
