@@ -386,16 +386,133 @@
 
 
                 <!-- 5. TIME SCHEDULE -->
-                <div id="view-schedule" class="tab-view max-w-[1600px] mx-auto space-y-4 md:space-y-6"><section id="basic-schedule-editor" class="hidden overflow-hidden rounded-2xl border border-indigo-100 bg-white shadow-sm"><div class="flex items-center justify-between border-b bg-indigo-50 p-5"><div><h3 class="font-black">Basic Program Order</h3><p class="text-xs font-bold text-slate-500">Order programs without dates, times or stages.</p></div><button data-admin-action="save-basic-program-order" class="rounded-xl bg-indigo-600 px-5 py-3 text-xs font-black text-white">Save Order</button></div><div id="basic-program-order-list" class="space-y-2 p-4"></div></section>
-                    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3"><div class="bg-white rounded-2xl p-4 border"><p class="text-[10px] font-black uppercase text-slate-400">Programs</p><b id="schedule-stat-total" class="text-2xl">0</b></div><div class="bg-white rounded-2xl p-4 border"><p class="text-[10px] font-black uppercase text-slate-400">Scheduled</p><b id="schedule-stat-scheduled" class="text-2xl text-emerald-600">0</b></div><div class="bg-white rounded-2xl p-4 border"><p class="text-[10px] font-black uppercase text-slate-400">Unscheduled</p><b id="schedule-stat-unscheduled" class="text-2xl text-amber-600">0</b></div><div class="bg-white rounded-2xl p-4 border"><p class="text-[10px] font-black uppercase text-slate-400">Breaks</p><b id="schedule-stat-breaks" class="text-2xl text-indigo-600">0</b></div><div class="bg-white rounded-2xl p-4 border"><p class="text-[10px] font-black uppercase text-slate-400">Conflicts</p><b id="schedule-stat-conflicts" class="text-2xl text-red-600">0</b></div></div>
-                    <section class="rounded-2xl border border-indigo-100 bg-white shadow-sm overflow-hidden"><div class="border-b bg-indigo-50 p-4"><div><h3 class="font-black text-slate-900">Schedule Master Setup</h3><p class="text-xs font-bold text-slate-500">Days, stages and duration presets save automatically when you add them.</p></div></div><div class="grid gap-4 p-4 lg:grid-cols-3">
-                      <div class="rounded-2xl border p-3 space-y-2"><b class="text-sm">Fest Days</b><div class="grid grid-cols-2 gap-2"><input id="setup-day-label" class="text-input" placeholder="Day 1"><input id="setup-day-date" type="date" class="text-input"><input id="setup-day-start" type="time" class="text-input"><input id="setup-day-end" type="time" class="text-input"></div><button data-admin-action="add-schedule-day" class="w-full rounded-xl bg-blue-600 p-2 text-xs font-black text-white">+ Add Day</button><div id="schedule-days-list" class="space-y-1"></div></div>
-                      <div class="rounded-2xl border p-3 space-y-2"><b class="text-sm">Stages</b><input id="setup-stage-name" class="text-input" placeholder="Stage name"><button data-admin-action="add-schedule-stage" class="w-full rounded-xl bg-violet-600 p-2 text-xs font-black text-white">+ Add Stage</button><div id="schedule-stages-list" class="space-y-1"></div></div>
-                      <div class="rounded-2xl border p-3 space-y-2"><b class="text-sm">Duration Presets</b><div class="flex gap-2"><input id="setup-duration-value" type="number" min="1" class="text-input" placeholder="Minutes"><button data-admin-action="add-schedule-duration" class="rounded-xl bg-emerald-600 px-4 text-xs font-black text-white">Add</button></div><div id="schedule-durations-list" class="flex flex-wrap gap-2"></div><p class="text-[10px] font-bold text-slate-400">Default: 5, 10, 20, 30, 60 minutes.</p></div>
-                    </div></section>
-                    <section class="rounded-2xl border bg-white shadow-sm overflow-hidden"><div class="border-b bg-slate-50 p-4 space-y-3"><div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between"><div><h3 class="font-black">Bulk Schedule Builder</h3><p class="text-xs font-bold text-slate-500">Compact controls: import/export first, keep local drafts private, auto-fill missing day/stage/duration/start time, then Save Now.</p></div><div class="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-4"><button data-admin-action="export-schedule-excel" class="rounded-xl bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">Export Excel</button><label class="cursor-pointer rounded-xl bg-blue-50 px-4 py-2 text-center text-xs font-black text-blue-700">Import Excel<input id="schedule-import-file" type="file" accept=".xlsx,.xls,.csv" class="hidden"></label><button data-admin-action="auto-fill-schedule" class="rounded-xl bg-violet-600 px-4 py-2 text-xs font-black text-white">Auto Fill</button><button data-admin-action="save-bulk-schedule" class="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-black text-white">Save Now</button></div></div><div class="flex flex-wrap items-center gap-2"><span id="schedule-selection-count" class="rounded-xl bg-blue-100 px-3 py-2 text-xs font-black text-blue-700">0 selected</span><span id="schedule-dirty-count" class="rounded-xl bg-amber-100 px-3 py-2 text-xs font-black text-amber-700">0 draft changes</span><button data-admin-action="discard-schedule-drafts" class="rounded-xl border bg-white px-4 py-2 text-xs font-black text-slate-600">Keep Draft</button><span class="rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-bold text-slate-500">Drafts stay only on this admin screen until Save Now.</span></div>
-                      <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2"><input id="schedule-search" data-admin-input="schedule-filter" class="text-input col-span-2" placeholder="Search programs..."><select id="schedule-filter-status" data-admin-change="schedule-filter" class="text-input"><option value="">All Status</option><option value="unscheduled">Unscheduled</option><option value="scheduled">Scheduled</option><option value="conflict">Conflicts</option><option value="changed">Changed</option></select><select id="schedule-filter-cat" data-admin-change="schedule-filter" class="text-input select-cat-filter"></select><select id="schedule-filter-gender" data-admin-change="schedule-filter" class="text-input"><option value="">All Gender</option><option>Both</option><option>Boys</option><option>Girls</option></select><select id="schedule-filter-stage-type" data-admin-change="schedule-filter" class="text-input"><option value="">All Stage Types</option><option>On-Stage</option><option>Off-Stage</option></select><select id="schedule-filter-day" data-admin-change="schedule-filter" class="text-input"><option value="">All Days</option></select><select id="schedule-filter-stage" data-admin-change="schedule-filter" class="text-input"><option value="">All Stages</option></select></div>
-                    </div><div class="overflow-x-auto"><table class="w-full min-w-[1320px] text-left text-xs"><thead class="bg-slate-50 text-[10px] uppercase text-slate-500"><tr><th class="p-3"><input id="schedule-select-all" data-admin-change="toggle-schedule-select-all" type="checkbox"></th><th class="p-3">Program</th><th class="p-3">Category / Gender</th><th class="p-3">Day</th><th class="p-3">Stage</th><th class="p-3">Duration</th><th class="p-3">Start</th><th class="p-3">End</th><th class="p-3">Status</th><th class="p-3">Actions</th></tr></thead><tbody id="schedule-builder-body" class="divide-y"></tbody></table></div></section>
+                <div id="view-schedule" class="tab-view max-w-[1600px] mx-auto space-y-4 md:space-y-6">
+                    <!-- Sticky Subtabs Bar -->
+                    <div class="sticky top-0 z-20 flex gap-2 overflow-x-auto border-b border-slate-200 bg-white/95 px-4 pt-3 pb-0 backdrop-blur shadow-xs" role="tablist" aria-label="Schedule subtabs">
+                        <button type="button" data-schedule-subtab="builder" data-admin-action="switch-schedule-subtab" class="schedule-subtab-btn flex items-center gap-2 border-b-2 border-indigo-600 px-4 py-2.5 text-xs font-black text-indigo-700 bg-indigo-50/70 rounded-t-xl transition" aria-selected="true">
+                            <i data-lucide="calendar" class="w-4 h-4"></i> Schedule Builder
+                        </button>
+                        <button type="button" data-schedule-subtab="setup" data-admin-action="switch-schedule-subtab" class="schedule-subtab-btn flex items-center gap-2 border-b-2 border-transparent px-4 py-2.5 text-xs font-black text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl transition" aria-selected="false">
+                            <i data-lucide="sliders-horizontal" class="w-4 h-4"></i> Schedule Setup
+                        </button>
+                    </div>
+
+                    <!-- Panel 1: Schedule Builder -->
+                    <div id="schedule-panel-builder" class="space-y-4 md:space-y-6">
+                        <section id="basic-schedule-editor" class="hidden overflow-hidden rounded-2xl border border-indigo-100 bg-white shadow-sm">
+                            <div class="flex items-center justify-between border-b bg-indigo-50 p-5">
+                                <div><h3 class="font-black">Basic Program Order</h3><p class="text-xs font-bold text-slate-500">Order programs without dates, times or stages.</p></div>
+                                <button data-admin-action="save-basic-program-order" class="rounded-xl bg-indigo-600 px-5 py-3 text-xs font-black text-white">Save Order</button>
+                            </div>
+                            <div id="basic-program-order-list" class="space-y-2 p-4"></div>
+                        </section>
+
+                        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                            <div class="bg-white rounded-2xl p-4 border"><p class="text-[10px] font-black uppercase text-slate-400">Programs</p><b id="schedule-stat-total" class="text-2xl">0</b></div>
+                            <div class="bg-white rounded-2xl p-4 border"><p class="text-[10px] font-black uppercase text-slate-400">Scheduled</p><b id="schedule-stat-scheduled" class="text-2xl text-emerald-600">0</b></div>
+                            <div class="bg-white rounded-2xl p-4 border"><p class="text-[10px] font-black uppercase text-slate-400">Unscheduled</p><b id="schedule-stat-unscheduled" class="text-2xl text-amber-600">0</b></div>
+                            <div class="bg-white rounded-2xl p-4 border"><p class="text-[10px] font-black uppercase text-slate-400">Breaks</p><b id="schedule-stat-breaks" class="text-2xl text-indigo-600">0</b></div>
+                            <div class="bg-white rounded-2xl p-4 border"><p class="text-[10px] font-black uppercase text-slate-400">Conflicts</p><b id="schedule-stat-conflicts" class="text-2xl text-red-600">0</b></div>
+                        </div>
+
+                        <section class="rounded-2xl border bg-white shadow-sm overflow-hidden">
+                            <div class="border-b bg-slate-50 p-4 space-y-3">
+                                <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                                    <div><h3 class="font-black">Bulk Schedule Builder</h3><p class="text-xs font-bold text-slate-500">Compact controls: import/export first, keep local drafts private, auto-fill missing day/stage/duration/start time, then Save Now.</p></div>
+                                    <div class="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-4">
+                                        <button data-admin-action="export-schedule-excel" class="rounded-xl bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">Export Excel</button>
+                                        <label class="cursor-pointer rounded-xl bg-blue-50 px-4 py-2 text-center text-xs font-black text-blue-700">Import Excel<input id="schedule-import-file" type="file" accept=".xlsx,.xls,.csv" class="hidden"></label>
+                                        <button data-admin-action="auto-fill-schedule" class="rounded-xl bg-violet-600 px-4 py-2 text-xs font-black text-white">Auto Fill</button>
+                                        <button data-admin-action="save-bulk-schedule" class="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-black text-white">Save Now</button>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span id="schedule-selection-count" class="rounded-xl bg-blue-100 px-3 py-2 text-xs font-black text-blue-700">0 selected</span>
+                                    <span id="schedule-dirty-count" class="rounded-xl bg-amber-100 px-3 py-2 text-xs font-black text-amber-700">0 draft changes</span>
+                                    <button data-admin-action="discard-schedule-drafts" class="rounded-xl border bg-white px-4 py-2 text-xs font-black text-slate-600">Keep Draft</button>
+                                    <span class="rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-bold text-slate-500">Drafts stay only on this admin screen until Save Now.</span>
+                                </div>
+                                <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2">
+                                    <input id="schedule-search" data-admin-input="schedule-filter" class="text-input col-span-2" placeholder="Search programs...">
+                                    <select id="schedule-filter-status" data-admin-change="schedule-filter" class="text-input"><option value="">All Status</option><option value="unscheduled">Unscheduled</option><option value="scheduled">Scheduled</option><option value="conflict">Conflicts</option><option value="changed">Changed</option></select>
+                                    <select id="schedule-filter-cat" data-admin-change="schedule-filter" class="text-input select-cat-filter"></select>
+                                    <select id="schedule-filter-gender" data-admin-change="schedule-filter" class="text-input"><option value="">All Gender</option><option>Both</option><option>Boys</option><option>Girls</option></select>
+                                    <select id="schedule-filter-stage-type" data-admin-change="schedule-filter" class="text-input"><option value="">All Stage Types</option><option>On-Stage</option><option>Off-Stage</option></select>
+                                    <select id="schedule-filter-day" data-admin-change="schedule-filter" class="text-input"><option value="">All Days</option></select>
+                                    <select id="schedule-filter-stage" data-admin-change="schedule-filter" class="text-input"><option value="">All Stages</option></select>
+                                </div>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full min-w-[1320px] text-left text-xs">
+                                    <thead class="bg-slate-50 text-[10px] uppercase text-slate-500">
+                                        <tr><th class="p-3"><input id="schedule-select-all" data-admin-change="toggle-schedule-select-all" type="checkbox"></th><th class="p-3">Program</th><th class="p-3">Category / Gender</th><th class="p-3">Day</th><th class="p-3">Stage</th><th class="p-3">Duration</th><th class="p-3">Start</th><th class="p-3">End</th><th class="p-3">Status</th><th class="p-3">Actions</th></tr>
+                                    </thead>
+                                    <tbody id="schedule-builder-body" class="divide-y"></tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Panel 2: Schedule Setup -->
+                    <div id="schedule-panel-setup" class="hidden space-y-4 md:space-y-6">
+                        <section class="rounded-2xl border border-indigo-100 bg-white shadow-sm overflow-hidden">
+                            <div class="border-b bg-indigo-50 p-4">
+                                <div><h3 class="font-black text-slate-900">Schedule Master Setup</h3><p class="text-xs font-bold text-slate-500">Days, stages and duration presets save automatically when you add or edit them.</p></div>
+                            </div>
+                            <div class="grid gap-4 p-4 lg:grid-cols-3">
+                                <!-- Fest Days Setup Card -->
+                                <div class="rounded-2xl border p-3 space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <b class="text-sm">Fest Days</b>
+                                        <span id="setup-day-badge" class="hidden rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-black text-indigo-700">Editing</span>
+                                    </div>
+                                    <input type="hidden" id="setup-day-edit-id">
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <input id="setup-day-label" class="text-input" placeholder="Day 1">
+                                        <input id="setup-day-date" type="date" class="text-input">
+                                        <input id="setup-day-start" type="time" class="text-input">
+                                        <input id="setup-day-end" type="time" class="text-input">
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button data-admin-action="add-schedule-day" id="btn-add-schedule-day" class="flex-1 rounded-xl bg-blue-600 p-2 text-xs font-black text-white hover:bg-blue-700 transition">+ Add Day</button>
+                                        <button type="button" data-admin-action="cancel-edit-schedule-day" id="btn-cancel-schedule-day" class="hidden rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200 transition">Cancel</button>
+                                    </div>
+                                    <div id="schedule-days-list" class="space-y-2 pt-1"></div>
+                                </div>
+
+                                <!-- Stages Setup Card -->
+                                <div class="rounded-2xl border p-3 space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <b class="text-sm">Stages</b>
+                                        <span id="setup-stage-badge" class="hidden rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-black text-violet-700">Editing</span>
+                                    </div>
+                                    <input type="hidden" id="setup-stage-edit-id">
+                                    <input id="setup-stage-name" class="text-input" placeholder="Stage name">
+                                    <div class="flex gap-2">
+                                        <button data-admin-action="add-schedule-stage" id="btn-add-schedule-stage" class="flex-1 rounded-xl bg-violet-600 p-2 text-xs font-black text-white hover:bg-violet-700 transition">+ Add Stage</button>
+                                        <button type="button" data-admin-action="cancel-edit-schedule-stage" id="btn-cancel-schedule-stage" class="hidden rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200 transition">Cancel</button>
+                                    </div>
+                                    <div id="schedule-stages-list" class="space-y-2 pt-1"></div>
+                                </div>
+
+                                <!-- Duration Presets Setup Card -->
+                                <div class="rounded-2xl border p-3 space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <b class="text-sm">Duration Presets</b>
+                                        <span id="setup-duration-badge" class="hidden rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700">Editing</span>
+                                    </div>
+                                    <input type="hidden" id="setup-duration-edit-val">
+                                    <div class="flex gap-2">
+                                        <input id="setup-duration-value" type="number" min="1" class="text-input" placeholder="Minutes">
+                                        <button data-admin-action="add-schedule-duration" id="btn-add-schedule-duration" class="rounded-xl bg-emerald-600 px-4 text-xs font-black text-white hover:bg-emerald-700 transition">Add</button>
+                                        <button type="button" data-admin-action="cancel-edit-schedule-duration" id="btn-cancel-schedule-duration" class="hidden rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200 transition">Cancel</button>
+                                    </div>
+                                    <div id="schedule-durations-list" class="flex flex-wrap gap-2 pt-1"></div>
+                                    <p class="text-[10px] font-bold text-slate-400">Default: 5, 10, 20, 30, 60 minutes.</p>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
                 </div>
 
                 <!-- 6. SCHEDULE PRINT -->

@@ -597,13 +597,25 @@ document.addEventListener('click', (event) => {
         'move-basic-program': () => window.moveBasicProgram(d.id, Number(d.direction)),
         'discard-schedule-drafts': () => window.discardScheduleDrafts(),
         'clear-schedule-selection': () => window.clearScheduleSelection(),
+        'switch-schedule-subtab': () => window.switchScheduleSubtab(d.scheduleSubtab || btn.dataset.scheduleSubtab),
         'auto-fill-schedule': () => window.autoFillSchedule(),
         'add-schedule-day': () => window.addScheduleDay(),
+        'edit-schedule-day': () => window.editScheduleDay(d.id),
+        'delete-schedule-day': () => window.deleteScheduleDay(d.id),
+        'cancel-edit-schedule-day': () => window.cancelEditScheduleDay(),
+        'remove-schedule-day': () => window.deleteScheduleDay(d.id),
+
         'add-schedule-stage': () => window.addScheduleStage(),
+        'edit-schedule-stage': () => window.editScheduleStage(d.id),
+        'delete-schedule-stage': () => window.deleteScheduleStage(d.id),
+        'cancel-edit-schedule-stage': () => window.cancelEditScheduleStage(),
+        'remove-schedule-stage': () => window.deleteScheduleStage(d.id),
+
         'add-schedule-duration': () => window.addScheduleDuration(),
-        'remove-schedule-day': () => window.removeScheduleSetup('day', d.id),
-        'remove-schedule-stage': () => window.removeScheduleSetup('stage', d.id),
-        'remove-schedule-duration': () => window.removeScheduleSetup('duration', d.id),
+        'edit-schedule-duration': () => window.editScheduleDuration(d.id),
+        'delete-schedule-duration': () => window.deleteScheduleDuration(d.id),
+        'cancel-edit-schedule-duration': () => window.cancelEditScheduleDuration(),
+        'remove-schedule-duration': () => window.deleteScheduleDuration(d.id),
         'save-schedule-master': () => window.saveScheduleMaster(),
         'add-inline-break': () => window.addInlineBreak(d.id),
         'clear-builder-row': () => window.clearBuilderRow(d.id),
@@ -804,7 +816,7 @@ window.switchTab = (tab) => {
 
     const titles = { 'dashboard': 'Dashboard', 'registrations': 'Registrations', 'students': 'Students Directory', 'events': 'Events Management', 'schedule': 'Time Schedule', 'config': 'Team Setup', 'master-setup': 'Master Setup', 'access': 'Access Management', 'scoring': 'Scoring Settings', 'judge': 'Judgement Desk', 'public-content': 'Public Page Control & Contents', 'poster-certificate':'Poster & Certificate', 'tv-display': 'TV Display Settings', 'danger': 'Data Reset', 'downloads': 'Downloads', 'guide': 'User Guide' };
     document.getElementById('page-title').innerText = titles[tab] || 'Admin Panel';const masterActive=tab==='master-setup';document.getElementById('master-header-actions')?.classList.toggle('hidden',!masterActive);document.getElementById('master-header-actions')?.classList.toggle('flex',masterActive);if(!masterActive){document.getElementById('page-context')?.classList.add('hidden');document.getElementById('page-status')?.classList.add('hidden');}
-    if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].border-indigo-600')?.dataset?.downloadTab || document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') { window.renderDropdowns?.(); renderStudentTable(); } if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.();renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') window.renderSchedule(); if(tab === 'schedule-review') window.renderScheduleReview?.(); if(tab === 'registrations') renderRegList(); if(tab === 'config') { window.renderSetupLists?.(); window.renderChestGrid?.(); } if(tab === 'access') window.renderAccessManagement?.(); if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
+    if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].border-indigo-600')?.dataset?.downloadTab || document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') { window.renderDropdowns?.(); renderStudentTable(); } if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.();renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') { window.switchScheduleSubtab?.(activeScheduleSubtab); window.renderSchedule(); } if(tab === 'schedule-review') window.renderScheduleReview?.(); if(tab === 'registrations') renderRegList(); if(tab === 'config') { window.renderSetupLists?.(); window.renderChestGrid?.(); } if(tab === 'access') window.renderAccessManagement?.(); if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
     resetAdminContentScroll();
 };
 
@@ -914,6 +926,7 @@ const scheduleGenderText = gender => String(gender || 'Both').toLowerCase() === 
 const DEFAULT_COLUMNS = ['category','program','gender','date','time','end','duration','stage'];
 const scheduleDrafts = new Map(), scheduleBreakDrafts = new Map(), deletedScheduleBreakIds = new Set(), selectedScheduleRows = new Set();
 let scheduleVersions = [], selectedScheduleVersionId = 'latest', visibleScheduleRowIds = [], schedulePdfBlob = null, schedulePdfUrl = '';
+let activeScheduleSubtab = 'builder';
 const scheduleFilterState = { search:'', status:'', category:'', gender:'', stageType:'', day:'', stage:'' };
 const setup = () => ({ days:Array.isArray(scheduleConfig.scheduleDays)?scheduleConfig.scheduleDays:[], stages:Array.isArray(scheduleConfig.scheduleStages)?scheduleConfig.scheduleStages:[], durations:Array.isArray(scheduleConfig.durationPresets)&&scheduleConfig.durationPresets.length?scheduleConfig.durationPresets:[5,10,20,30,60] });
 const uid = prefix => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
@@ -951,7 +964,99 @@ const dayOptionHtml=(days,value,label='Select Day')=>`<option value="">${label}<
 function updateDraft(id,field,value,isBreak=false){const map=isBreak?scheduleBreakDrafts:scheduleDrafts,row=candidateRows().find(x=>x.id===id&&x.isBreak===isBreak),patch={...(map.get(id)||{}),[field]:value};if(field==='dayId'){const day=dayFor(value);patch.date=day?.date||'';}if(field==='stageId'){const stage=stageFor(value);patch.stage=stage?.name||'';}if(field==='stageIds'){const ids=Array.isArray(value)?value:[value];patch.stageIds=ids.includes('__all')?['__all']:ids;patch.stages=patch.stageIds.includes('__all')?['All Stages']:setup().stages.filter(stage=>patch.stageIds.includes(stage.id)).map(stage=>stage.name);patch.stageId=patch.stageIds[0]||'';patch.stage=patch.stages.join(', ');}if(field==='time'){patch.time=toAmPm(value);patch.manualStart=true;}if(field==='duration')patch.duration=Number(value||0);if(field==='endTime'&&row?.isBreak){patch.endTime=toAmPm(value);patch.duration=Math.max(1,timeToMinutes(patch.endTime)-timeToMinutes(patch.time||row.time));}if(row?.isBreak&&['time','duration'].includes(field))patch.endTime=minutesToTime(timeToMinutes(patch.time||row.time)+Number(patch.duration||row.duration));map.set(id,patch);renderScheduleBuilder();}
 function actionButton(action,id,icon,title,color='slate'){return `<button data-admin-action="${action}" data-id="${escapeHtml(id)}" class="rounded-lg bg-${color}-50 p-2 text-${color}-700" title="${title}"><i data-lucide="${icon}" class="h-4 w-4"></i></button>`;}
 function builderRow(row,validation){const key=`${row.isBreak?'break:':'event:'}${row.id}`,issues=validation.get(key)||[],scheduled=row.dayId&&(row.isBreak?(row.stageIds||[]).length:row.stageId)&&row.duration&&row.time,conflict=issues.some(x=>x.includes('overlap')||x.includes('End time')),status=row.cancelled?'Cancelled':conflict?'Conflict':scheduled?'Scheduled':'Unscheduled',days=setup().days,stages=setup().stages,durations=setup().durations,checked=selectedScheduleRows.has(key),title=row.isBreak?`<input data-schedule-id="${escapeHtml(row.id)}" data-schedule-break="1" data-schedule-field="title" class="text-input min-w-[170px] font-black" value="${escapeHtml(row.title)}"><small class="font-black text-amber-600">BREAK</small>`:`<b>${escapeHtml(row.name)}</b>${row.cancelled?`<span class="ml-2 rounded-full bg-red-600 px-2 py-0.5 text-[9px] font-black uppercase text-white">Cancelled</span>`:''}<small class="block text-slate-400">${escapeHtml(row.stageType)}${row.cancelReason?` • ${escapeHtml(row.cancelReason)}`:''}</small>`,actions=row.isBreak?`${actionButton('save-schedule-row',key,'save','Save break','emerald')}${actionButton('edit-schedule-break-row',row.id,'pencil','Edit break','blue')}${actionButton('delete-schedule-break-row',row.id,'trash-2','Delete break','red')}`:`${actionButton('save-schedule-row',key,'save','Save','emerald')}${actionButton('clear-builder-row',row.id,'eraser','Clear Schedule')}${actionButton('add-inline-break',row.id,'coffee','Insert Break','amber')}`;return `<tr class="${row.isBreak?'bg-amber-50/50':row.cancelled?'bg-red-50/70 border-l-4 border-red-500':'bg-white'}"><td class="p-3"><input class="schedule-row-select" data-key="${key}" type="checkbox" ${checked?'checked':''}></td><td class="p-3">${title}</td><td class="p-3 text-[10px] font-bold text-slate-500">${row.isBreak?'':`${escapeHtml(row.category)} • ${escapeHtml(row.gender)}`}</td><td class="p-2"><select data-schedule-id="${escapeHtml(row.id)}" data-schedule-break="${row.isBreak?'1':'0'}" data-schedule-field="dayId" class="text-input min-w-[135px]">${dayOptionHtml(days,row.dayId)}</select></td><td class="p-2">${row.isBreak?`<fieldset data-schedule-stage-group data-id="${escapeHtml(row.id)}" class="min-w-[170px] rounded-xl border bg-white p-2"><legend class="sr-only">Break Stages</legend><label class="mb-1 flex cursor-pointer items-center gap-2 border-b pb-1 text-[9px] font-black text-indigo-700"><input type="checkbox" data-schedule-stage-all ${((row.stageIds||[]).includes('__all')||(stages.length>0&&stages.every(stage=>(row.stageIds||[]).includes(stage.id))))?'checked':''}> All Stages</label>${stages.map(stage=>`<label class="flex min-h-8 cursor-pointer items-center gap-2 text-[10px] font-bold"><input type="checkbox" data-schedule-stage-option value="${escapeHtml(stage.id)}" ${((row.stageIds||[]).includes('__all')||(row.stageIds||[]).includes(stage.id))?'checked':''}> ${escapeHtml(stage.name)}</label>`).join('')}</fieldset>`:`<select data-schedule-id="${escapeHtml(row.id)}" data-schedule-break="0" data-schedule-field="stageId" class="text-input min-w-[135px]">${optionHtml(stages,row.stageId,'Select Stage')}</select>`}</td><td class="p-2"><select data-schedule-id="${escapeHtml(row.id)}" data-schedule-break="${row.isBreak?'1':'0'}" data-schedule-field="duration" class="text-input min-w-[100px]">${optionHtml(durations,row.duration,'Duration')}</select></td><td class="p-2"><input data-schedule-id="${escapeHtml(row.id)}" data-schedule-break="${row.isBreak?'1':'0'}" data-schedule-field="time" type="time" class="text-input min-w-[110px]" value="${escapeHtml(time24FromAmPm(row.time))}"></td><td class="p-2 font-black">${row.isBreak?`<input data-schedule-id="${escapeHtml(row.id)}" data-schedule-break="1" data-schedule-field="endTime" type="time" class="text-input min-w-[110px]" value="${escapeHtml(time24FromAmPm(rowEnd(row)))}">`:escapeHtml(rowEnd(row)||'—')}</td><td class="p-3"><span class="rounded-lg px-2 py-1 text-[9px] font-black ${row.cancelled?'bg-red-600 text-white':conflict?'bg-red-100 text-red-700':scheduled?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${status}</span>${issues.length?`<p class="mt-1 max-w-[180px] whitespace-normal text-[9px] font-bold ${conflict?'text-red-600':'text-amber-600'}">${escapeHtml(issues.join(' • '))}</p>`:''}</td><td class="p-2"><div class="flex gap-1">${actions}</div></td></tr>`;}
-function renderMasterSetup(){const {days,stages,durations}=setup(),chip=(text,action,id)=>`<div class="flex items-center justify-between rounded-lg bg-slate-50 px-2 py-1 text-[10px] font-bold"><span>${escapeHtml(text)}</span><button data-admin-action="${action}" data-id="${escapeHtml(id)}" class="text-red-600">×</button></div>`;const dayBox=document.getElementById('schedule-days-list'),stageBox=document.getElementById('schedule-stages-list'),durationBox=document.getElementById('schedule-durations-list');if(dayBox)dayBox.innerHTML=days.map(x=>chip(`${x.label} • ${dateDisplay(x.date)} • ${toAmPm(x.startTime)}–${toAmPm(x.endTime)}`,'remove-schedule-day',x.id)).join('');if(stageBox)stageBox.innerHTML=stages.map(x=>chip(x.name,'remove-schedule-stage',x.id)).join('');if(durationBox)durationBox.innerHTML=durations.map(x=>`<span class="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-700">${x} min <button data-admin-action="remove-schedule-duration" data-id="${x}" class="ml-1 text-red-500">×</button></span>`).join('');for(const [id,list,label] of [['schedule-filter-day',days,'All Days'],['schedule-filter-stage',stages,'All Stages']]){const select=document.getElementById(id);if(select){const old=select.value;select.innerHTML=id==='schedule-filter-day'?dayOptionHtml(list,old,label):optionHtml(list,old,label);select.value=old;}}}
+window.switchScheduleSubtab = (subtab = 'builder') => {
+  const target = ['builder', 'setup'].includes(subtab) ? subtab : 'builder';
+  activeScheduleSubtab = target;
+  const builderPanel = document.getElementById('schedule-panel-builder');
+  const setupPanel = document.getElementById('schedule-panel-setup');
+  if (builderPanel) builderPanel.classList.toggle('hidden', target !== 'builder');
+  if (setupPanel) setupPanel.classList.toggle('hidden', target !== 'setup');
+  document.querySelectorAll('[data-schedule-subtab]').forEach(btn => {
+    const isCurrent = btn.dataset.scheduleSubtab === target;
+    btn.classList.toggle('border-indigo-600', isCurrent);
+    btn.classList.toggle('text-indigo-700', isCurrent);
+    btn.classList.toggle('bg-indigo-50/70', isCurrent);
+    btn.classList.toggle('border-transparent', !isCurrent);
+    btn.classList.toggle('text-slate-500', !isCurrent);
+    btn.classList.toggle('bg-transparent', !isCurrent);
+    btn.setAttribute('aria-selected', isCurrent ? 'true' : 'false');
+  });
+  if (target === 'setup') {
+    renderMasterSetup();
+  } else {
+    renderScheduleBuilder();
+  }
+};
+
+function renderMasterSetup() {
+  const { days, stages, durations } = setup();
+  const dayBox = document.getElementById('schedule-days-list');
+  const stageBox = document.getElementById('schedule-stages-list');
+  const durationBox = document.getElementById('schedule-durations-list');
+
+  if (dayBox) {
+    dayBox.innerHTML = days.length ? days.map(x => `
+      <div class="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 transition hover:bg-slate-100/80">
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2">
+            <b class="text-xs text-slate-800">${escapeHtml(x.label)}</b>
+            <span class="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold text-indigo-700">${escapeHtml(shortScheduleDate(x.date))}</span>
+          </div>
+          <p class="text-[10px] text-slate-500 font-medium">${escapeHtml(toAmPm(x.startTime))} – ${escapeHtml(toAmPm(x.endTime))}</p>
+        </div>
+        <div class="flex items-center gap-1 ml-2">
+          <button type="button" data-admin-action="edit-schedule-day" data-id="${escapeHtml(x.id)}" class="rounded-lg p-1.5 text-blue-600 hover:bg-blue-100 transition" title="Edit Day">
+            <i data-lucide="pencil" class="h-3.5 w-3.5 pointer-events-none"></i>
+          </button>
+          <button type="button" data-admin-action="delete-schedule-day" data-id="${escapeHtml(x.id)}" class="rounded-lg p-1.5 text-red-600 hover:bg-red-100 transition" title="Delete Day">
+            <i data-lucide="trash-2" class="h-3.5 w-3.5 pointer-events-none"></i>
+          </button>
+        </div>
+      </div>
+    `).join('') : '<p class="text-xs text-slate-400 py-2 text-center">No fest days added yet.</p>';
+  }
+
+  if (stageBox) {
+    stageBox.innerHTML = stages.length ? stages.map(x => `
+      <div class="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 transition hover:bg-slate-100/80">
+        <b class="text-xs text-slate-800 truncate">${escapeHtml(x.name)}</b>
+        <div class="flex items-center gap-1 ml-2">
+          <button type="button" data-admin-action="edit-schedule-stage" data-id="${escapeHtml(x.id)}" class="rounded-lg p-1.5 text-violet-600 hover:bg-violet-100 transition" title="Edit Stage">
+            <i data-lucide="pencil" class="h-3.5 w-3.5 pointer-events-none"></i>
+          </button>
+          <button type="button" data-admin-action="delete-schedule-stage" data-id="${escapeHtml(x.id)}" class="rounded-lg p-1.5 text-red-600 hover:bg-red-100 transition" title="Delete Stage">
+            <i data-lucide="trash-2" class="h-3.5 w-3.5 pointer-events-none"></i>
+          </button>
+        </div>
+      </div>
+    `).join('') : '<p class="text-xs text-slate-400 py-2 text-center">No stages added yet.</p>';
+  }
+
+  if (durationBox) {
+    durationBox.innerHTML = durations.length ? durations.map(x => `
+      <div class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">
+        <span>${x} min</span>
+        <button type="button" data-admin-action="edit-schedule-duration" data-id="${x}" class="text-emerald-700 hover:text-blue-600 transition" title="Edit Duration">
+          <i data-lucide="pencil" class="h-3 w-3 inline pointer-events-none"></i>
+        </button>
+        <button type="button" data-admin-action="delete-schedule-duration" data-id="${x}" class="text-emerald-700 hover:text-red-600 transition" title="Delete Duration">
+          <i data-lucide="trash-2" class="h-3 w-3 inline pointer-events-none"></i>
+        </button>
+      </div>
+    `).join('') : '<p class="text-xs text-slate-400 py-2 text-center w-full">No duration presets.</p>';
+  }
+
+  for(const [id,list,label] of [['schedule-filter-day',days,'All Days'],['schedule-filter-stage',stages,'All Stages']]){
+    const select=document.getElementById(id);
+    if(select){
+      const old=select.value;
+      select.innerHTML=id==='schedule-filter-day'?dayOptionHtml(list,old,label):optionHtml(list,old,label);
+      select.value=old;
+    }
+  }
+  window.lucide?.createIcons?.();
+}
+
 function updateSelectionUi(){const visibleSelected=visibleScheduleRowIds.filter(id=>selectedScheduleRows.has(id)).length,master=document.getElementById('schedule-select-all');if(master){master.checked=visibleScheduleRowIds.length>0&&visibleSelected===visibleScheduleRowIds.length;master.indeterminate=visibleSelected>0&&visibleSelected<visibleScheduleRowIds.length;}const count=document.getElementById('schedule-selection-count');if(count)count.textContent=`${selectedScheduleRows.size} selected`;}
 function syncScheduleStageGroups(){document.querySelectorAll('[data-schedule-stage-group]').forEach(root=>{const master=root.querySelector('[data-schedule-stage-all]'),options=[...root.querySelectorAll('[data-schedule-stage-option]')],count=options.filter(input=>input.checked).length;if(master){master.checked=options.length>0&&count===options.length;master.indeterminate=count>0&&count<options.length;master.setAttribute('aria-checked',master.indeterminate?'mixed':String(master.checked));}});}
 function renderScheduleBuilder(){syncFilterState();renderMasterSetup();const rows=candidateRows(),validation=scheduleValidation(rows),visible=rows.filter(row=>matchesFilter(row,validation)).sort(scheduleBuilderSort);visibleScheduleRowIds=visible.map(row=>`${row.isBreak?'break:':'event:'}${row.id}`);const body=document.getElementById('schedule-builder-body');if(body)body.innerHTML=visible.length?visible.map(row=>builderRow(row,validation)).join(''):'<tr><td colspan="10" class="p-12 text-center font-bold text-slate-400">No rows match all selected filters.</td></tr>';const schedulableEvents=events.filter(e=>e.cancelled!==true),scheduled=schedulableEvents.filter(e=>{const row=rows.find(x=>!x.isBreak&&x.id===e.id);return row?.dayId&&row?.stageId&&row?.duration&&row?.time;}).length,set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};set('schedule-stat-total',schedulableEvents.length);set('schedule-stat-scheduled',scheduled);set('schedule-stat-unscheduled',schedulableEvents.length-scheduled);set('schedule-stat-breaks',rows.filter(x=>x.isBreak).length);set('schedule-stat-conflicts',[...validation.values()].filter(x=>x.some(y=>y.includes('overlap'))).length);set('schedule-dirty-count',`${dirtyCount()} changes`);updateSelectionUi();syncScheduleStageGroups();window.lucide?.createIcons?.();}
@@ -959,10 +1064,230 @@ window.renderSchedule=renderScheduleBuilder;
 window.applyScheduleFilters=()=>renderScheduleBuilder();
 window.toggleScheduleSelectAll=()=>{const checked=!!document.getElementById('schedule-select-all')?.checked;visibleScheduleRowIds.forEach(id=>checked?selectedScheduleRows.add(id):selectedScheduleRows.delete(id));renderScheduleBuilder();};
 window.clearScheduleSelection=()=>{selectedScheduleRows.clear();renderScheduleBuilder();};
-window.addScheduleDay=async()=>{const label=document.getElementById('setup-day-label')?.value.trim(),date=document.getElementById('setup-day-date')?.value,startTime=document.getElementById('setup-day-start')?.value,endTime=document.getElementById('setup-day-end')?.value;if(!label||!date||!startTime||!endTime||timeToMinutes(endTime)<=timeToMinutes(startTime))return window.showToast('Enter valid day label, date, start and end time','error');scheduleConfig.scheduleDays=[...setup().days,{id:uid('day'),label,date,startTime:toAmPm(startTime),endTime:toAmPm(endTime)}];renderScheduleBuilder();await window.saveScheduleMaster({silent:true,message:'Day saved automatically'});['setup-day-label','setup-day-date','setup-day-start','setup-day-end'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});};
-window.addScheduleStage=async()=>{const name=document.getElementById('setup-stage-name')?.value.trim();if(!name)return window.showToast('Enter stage name','error');if(setup().stages.some(stage=>stage.name.toLowerCase()===name.toLowerCase()))return window.showToast('This stage already exists','error');scheduleConfig.scheduleStages=[...setup().stages,{id:uid('stage'),name}];renderScheduleBuilder();await window.saveScheduleMaster({silent:true,message:'Stage saved automatically'});const input=document.getElementById('setup-stage-name');if(input)input.value='';};
-window.addScheduleDuration=async()=>{const value=Number(document.getElementById('setup-duration-value')?.value||0);if(value<=0)return window.showToast('Enter a valid duration','error');scheduleConfig.durationPresets=[...new Set([...setup().durations,value])].sort((a,b)=>a-b);renderScheduleBuilder();await window.saveScheduleMaster({silent:true,message:'Duration preset saved automatically'});const input=document.getElementById('setup-duration-value');if(input)input.value='';};
-window.removeScheduleSetup=(kind,id)=>{if(kind==='day')scheduleConfig.scheduleDays=setup().days.filter(x=>x.id!==id);if(kind==='stage')scheduleConfig.scheduleStages=setup().stages.filter(x=>x.id!==id);if(kind==='duration')scheduleConfig.durationPresets=setup().durations.filter(x=>Number(x)!==Number(id));renderScheduleBuilder();};
+
+window.editScheduleDay = (id) => {
+  const day = setup().days.find(x => x.id === id);
+  if (!day) return;
+  const editInput = document.getElementById('setup-day-edit-id');
+  const labelInput = document.getElementById('setup-day-label');
+  const dateInput = document.getElementById('setup-day-date');
+  const startInput = document.getElementById('setup-day-start');
+  const endInput = document.getElementById('setup-day-end');
+  const badge = document.getElementById('setup-day-badge');
+  const addBtn = document.getElementById('btn-add-schedule-day');
+  const cancelBtn = document.getElementById('btn-cancel-schedule-day');
+
+  if (editInput) editInput.value = day.id;
+  if (labelInput) labelInput.value = day.label || '';
+  if (dateInput) dateInput.value = day.date || '';
+  if (startInput) startInput.value = time24FromAmPm(day.startTime) || '';
+  if (endInput) endInput.value = time24FromAmPm(day.endTime) || '';
+  if (badge) badge.classList.remove('hidden');
+  if (cancelBtn) cancelBtn.classList.remove('hidden');
+  if (addBtn) addBtn.textContent = 'Update Day';
+  labelInput?.focus();
+};
+
+window.cancelEditScheduleDay = () => {
+  const editInput = document.getElementById('setup-day-edit-id');
+  const badge = document.getElementById('setup-day-badge');
+  const addBtn = document.getElementById('btn-add-schedule-day');
+  const cancelBtn = document.getElementById('btn-cancel-schedule-day');
+
+  if (editInput) editInput.value = '';
+  ['setup-day-label', 'setup-day-date', 'setup-day-start', 'setup-day-end'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  if (badge) badge.classList.add('hidden');
+  if (cancelBtn) cancelBtn.classList.add('hidden');
+  if (addBtn) addBtn.textContent = '+ Add Day';
+};
+
+window.addScheduleDay = async () => {
+  const label = document.getElementById('setup-day-label')?.value.trim();
+  const date = document.getElementById('setup-day-date')?.value;
+  const startTime = document.getElementById('setup-day-start')?.value;
+  const endTime = document.getElementById('setup-day-end')?.value;
+  const editId = document.getElementById('setup-day-edit-id')?.value;
+
+  if (!label || !date || !startTime || !endTime || timeToMinutes(endTime) <= timeToMinutes(startTime)) {
+    return window.showToast('Enter valid day label, date, start and end time', 'error');
+  }
+
+  if (editId) {
+    scheduleConfig.scheduleDays = setup().days.map(x => x.id === editId ? { id: editId, label, date, startTime: toAmPm(startTime), endTime: toAmPm(endTime) } : x);
+    window.cancelEditScheduleDay();
+    renderScheduleBuilder();
+    await window.saveScheduleMaster({ silent: true, message: 'Fest day updated' });
+  } else {
+    scheduleConfig.scheduleDays = [...setup().days, { id: uid('day'), label, date, startTime: toAmPm(startTime), endTime: toAmPm(endTime) }];
+    ['setup-day-label', 'setup-day-date', 'setup-day-start', 'setup-day-end'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    renderScheduleBuilder();
+    await window.saveScheduleMaster({ silent: true, message: 'Fest day saved automatically' });
+  }
+};
+
+window.deleteScheduleDay = async (id) => {
+  const day = setup().days.find(x => x.id === id);
+  const dayName = day?.label || 'this day';
+  const rows = candidateRows();
+  const assignedCount = rows.filter(r => r.dayId === id).length;
+  const warning = assignedCount > 0 ? `\n\nWarning: ${assignedCount} scheduled program(s)/break(s) are currently assigned to this day.` : '';
+  const ok = await window.confirmAction(`Are you sure you want to delete ${dayName}?${warning}`);
+  if (!ok) return;
+
+  if (document.getElementById('setup-day-edit-id')?.value === id) {
+    window.cancelEditScheduleDay();
+  }
+  scheduleConfig.scheduleDays = setup().days.filter(x => x.id !== id);
+  renderScheduleBuilder();
+  await window.saveScheduleMaster({ silent: true, message: `${dayName} deleted` });
+};
+
+window.editScheduleStage = (id) => {
+  const stage = setup().stages.find(x => x.id === id);
+  if (!stage) return;
+  const editInput = document.getElementById('setup-stage-edit-id');
+  const nameInput = document.getElementById('setup-stage-name');
+  const badge = document.getElementById('setup-stage-badge');
+  const addBtn = document.getElementById('btn-add-schedule-stage');
+  const cancelBtn = document.getElementById('btn-cancel-schedule-stage');
+
+  if (editInput) editInput.value = stage.id;
+  if (nameInput) nameInput.value = stage.name || '';
+  if (badge) badge.classList.remove('hidden');
+  if (cancelBtn) cancelBtn.classList.remove('hidden');
+  if (addBtn) addBtn.textContent = 'Update Stage';
+  nameInput?.focus();
+};
+
+window.cancelEditScheduleStage = () => {
+  const editInput = document.getElementById('setup-stage-edit-id');
+  const nameInput = document.getElementById('setup-stage-name');
+  const badge = document.getElementById('setup-stage-badge');
+  const addBtn = document.getElementById('btn-add-schedule-stage');
+  const cancelBtn = document.getElementById('btn-cancel-schedule-stage');
+
+  if (editInput) editInput.value = '';
+  if (nameInput) nameInput.value = '';
+  if (badge) badge.classList.add('hidden');
+  if (cancelBtn) cancelBtn.classList.add('hidden');
+  if (addBtn) addBtn.textContent = '+ Add Stage';
+};
+
+window.addScheduleStage = async () => {
+  const name = document.getElementById('setup-stage-name')?.value.trim();
+  const editId = document.getElementById('setup-stage-edit-id')?.value;
+
+  if (!name) return window.showToast('Enter stage name', 'error');
+  if (setup().stages.some(s => s.name.toLowerCase() === name.toLowerCase() && s.id !== editId)) {
+    return window.showToast('This stage already exists', 'error');
+  }
+
+  if (editId) {
+    scheduleConfig.scheduleStages = setup().stages.map(x => x.id === editId ? { id: editId, name } : x);
+    window.cancelEditScheduleStage();
+    renderScheduleBuilder();
+    await window.saveScheduleMaster({ silent: true, message: 'Stage updated successfully' });
+  } else {
+    scheduleConfig.scheduleStages = [...setup().stages, { id: uid('stage'), name }];
+    const input = document.getElementById('setup-stage-name');
+    if (input) input.value = '';
+    renderScheduleBuilder();
+    await window.saveScheduleMaster({ silent: true, message: 'Stage saved automatically' });
+  }
+};
+
+window.deleteScheduleStage = async (id) => {
+  const stage = setup().stages.find(x => x.id === id);
+  const stageName = stage?.name || 'this stage';
+  const rows = candidateRows();
+  const assignedCount = rows.filter(r => r.stageId === id || (Array.isArray(r.stageIds) && r.stageIds.includes(id))).length;
+  const warning = assignedCount > 0 ? `\n\nWarning: ${assignedCount} scheduled program(s)/break(s) are currently assigned to this stage.` : '';
+  const ok = await window.confirmAction(`Are you sure you want to delete stage "${stageName}"?${warning}`);
+  if (!ok) return;
+
+  if (document.getElementById('setup-stage-edit-id')?.value === id) {
+    window.cancelEditScheduleStage();
+  }
+  scheduleConfig.scheduleStages = setup().stages.filter(x => x.id !== id);
+  renderScheduleBuilder();
+  await window.saveScheduleMaster({ silent: true, message: `${stageName} deleted` });
+};
+
+window.editScheduleDuration = (val) => {
+  const num = Number(val);
+  if (!num) return;
+  const editInput = document.getElementById('setup-duration-edit-val');
+  const valInput = document.getElementById('setup-duration-value');
+  const badge = document.getElementById('setup-duration-badge');
+  const addBtn = document.getElementById('btn-add-schedule-duration');
+  const cancelBtn = document.getElementById('btn-cancel-schedule-duration');
+
+  if (editInput) editInput.value = num;
+  if (valInput) valInput.value = num;
+  if (badge) badge.classList.remove('hidden');
+  if (cancelBtn) cancelBtn.classList.remove('hidden');
+  if (addBtn) addBtn.textContent = 'Update';
+  valInput?.focus();
+};
+
+window.cancelEditScheduleDuration = () => {
+  const editInput = document.getElementById('setup-duration-edit-val');
+  const valInput = document.getElementById('setup-duration-value');
+  const badge = document.getElementById('setup-duration-badge');
+  const addBtn = document.getElementById('btn-add-schedule-duration');
+  const cancelBtn = document.getElementById('btn-cancel-schedule-duration');
+
+  if (editInput) editInput.value = '';
+  if (valInput) valInput.value = '';
+  if (badge) badge.classList.add('hidden');
+  if (cancelBtn) cancelBtn.classList.add('hidden');
+  if (addBtn) addBtn.textContent = 'Add';
+};
+
+window.addScheduleDuration = async () => {
+  const val = Number(document.getElementById('setup-duration-value')?.value || 0);
+  const editVal = Number(document.getElementById('setup-duration-edit-val')?.value || 0);
+
+  if (val <= 0) return window.showToast('Enter a valid duration', 'error');
+
+  if (editVal) {
+    scheduleConfig.durationPresets = [...new Set(setup().durations.map(d => d === editVal ? val : d))].sort((a,b) => a - b);
+    window.cancelEditScheduleDuration();
+    renderScheduleBuilder();
+    await window.saveScheduleMaster({ silent: true, message: 'Duration preset updated' });
+  } else {
+    scheduleConfig.durationPresets = [...new Set([...setup().durations, val])].sort((a,b) => a - b);
+    const input = document.getElementById('setup-duration-value');
+    if (input) input.value = '';
+    renderScheduleBuilder();
+    await window.saveScheduleMaster({ silent: true, message: 'Duration preset saved automatically' });
+  }
+};
+
+window.deleteScheduleDuration = async (val) => {
+  const num = Number(val);
+  const ok = await window.confirmAction(`Are you sure you want to delete the ${num} min duration preset?`);
+  if (!ok) return;
+
+  if (Number(document.getElementById('setup-duration-edit-val')?.value || 0) === num) {
+    window.cancelEditScheduleDuration();
+  }
+  scheduleConfig.durationPresets = setup().durations.filter(x => Number(x) !== num);
+  renderScheduleBuilder();
+  await window.saveScheduleMaster({ silent: true, message: `${num} min preset deleted` });
+};
+
+window.removeScheduleSetup = (kind, id) => {
+  if (kind === 'day') return window.deleteScheduleDay(id);
+  if (kind === 'stage') return window.deleteScheduleStage(id);
+  if (kind === 'duration') return window.deleteScheduleDuration(id);
+};
 window.saveScheduleMaster=async(options={})=>{
   const payload={scheduleDays:setup().days,scheduleStages:setup().stages,durationPresets:setup().durations,updatedAt:Date.now()};
   try{
