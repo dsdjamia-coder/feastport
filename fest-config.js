@@ -53,6 +53,48 @@ export const DEFAULT_GROUP_REGULATIONS = Object.freeze({
   allowCrossCategory: false
 });
 
+export const DEFAULT_PARTICIPANT_FIELDS = Object.freeze({
+  student: [
+    { key: 'name', label: 'Student Name', type: 'text', enabled: true, required: true, system: true },
+    { key: 'admissionNo', label: 'Admission No', type: 'text', enabled: true, required: false },
+    { key: 'class', label: 'Class', type: 'select', options: ['1','2','3','4','5','6','7','8','9','10','+1','+2'], enabled: true, required: true },
+    { key: 'division', label: 'Division', type: 'text', enabled: true, required: false },
+    { key: 'phone', label: 'Contact Phone', type: 'tel', enabled: true, required: false },
+    { key: 'bloodGroup', label: 'Blood Group', type: 'select', options: ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'], enabled: true, required: false },
+    { key: 'guardianName', label: 'Guardian Name', type: 'text', enabled: true, required: false }
+  ],
+  parent: [
+    { key: 'name', label: 'Parent Name', type: 'text', enabled: true, required: true, system: true },
+    { key: 'linkedStudent', label: 'Ward / Student Name', type: 'text', enabled: true, required: true },
+    { key: 'relation', label: 'Relationship', type: 'select', options: ['Father', 'Mother', 'Guardian'], enabled: true, required: false },
+    { key: 'phone', label: 'Contact Phone', type: 'tel', enabled: true, required: true },
+    { key: 'email', label: 'Email Address', type: 'email', enabled: true, required: false },
+    { key: 'address', label: 'Residential Address', type: 'text', enabled: true, required: false }
+  ],
+  staff: [
+    { key: 'name', label: 'Staff Name', type: 'text', enabled: true, required: true, system: true },
+    { key: 'empId', label: 'Staff / Employee ID', type: 'text', enabled: true, required: true },
+    { key: 'department', label: 'Department / Section', type: 'text', enabled: true, required: false },
+    { key: 'designation', label: 'Designation / Role', type: 'text', enabled: true, required: false },
+    { key: 'phone', label: 'Contact Phone', type: 'tel', enabled: true, required: true },
+    { key: 'email', label: 'Email Address', type: 'email', enabled: true, required: false }
+  ],
+  alumni: [
+    { key: 'name', label: 'Alumni Name', type: 'text', enabled: true, required: true, system: true },
+    { key: 'batchYear', label: 'Batch / Passing Year', type: 'text', enabled: true, required: true },
+    { key: 'course', label: 'Course / Department', type: 'text', enabled: true, required: false },
+    { key: 'phone', label: 'Contact Phone', type: 'tel', enabled: true, required: true },
+    { key: 'email', label: 'Email Address', type: 'email', enabled: true, required: false },
+    { key: 'occupation', label: 'Current Occupation', type: 'text', enabled: true, required: false }
+  ],
+  public: [
+    { key: 'name', label: 'Participant Name', type: 'text', enabled: true, required: true, system: true },
+    { key: 'place', label: 'City / Location', type: 'text', enabled: true, required: false },
+    { key: 'phone', label: 'Contact Phone', type: 'tel', enabled: true, required: true },
+    { key: 'email', label: 'Email Address', type: 'email', enabled: true, required: false }
+  ]
+});
+
 export const DEFAULT_FEST_SETUP = Object.freeze({
   setupVersion: 3,
   preset: 'school_team_fest',
@@ -193,7 +235,8 @@ export function normalizeAllowedGenders(value) {
 
 export function normalizeFestSetup(raw = {}) {
   const base = DEFAULT_FEST_SETUP;
-  const participantTypeDefinitions = normalizeParticipantTypeDefinitions(raw.participantTypeDefinitions);
+  const studentFields = normalizeStudentFields(raw.studentFields);
+  const participantTypeDefinitions = normalizeParticipantTypeDefinitions(raw.participantTypeDefinitions, studentFields);
   const participantKeys = participantTypeDefinitions.map(item => item.key);
   const tierStructure = normalizeTierStructure(raw.tierStructure);
   const domains = normalizeDomains(raw.domains);
@@ -230,7 +273,7 @@ export function normalizeFestSetup(raw = {}) {
     eligibleClasses:Array.isArray(raw.eligibleClasses)?[...new Set(raw.eligibleClasses.map(value=>String(value).trim()).filter(Boolean))]:base.eligibleClasses,
     publicModules: { ...base.publicModules, ...(raw.publicModules || {}) },
     publicView: mergePublicView(raw.publicView),
-    studentFields: normalizeStudentFields(raw.studentFields),
+    studentFields,
     competitionPolicies: normalizeCompetitionPolicies(raw.competitionPolicies)
   };
   const classField=setup.studentFields.find(field=>field.key==='class');if(classField){const legacy=setup.eligibleClasses||[];if(!classField.options.length)classField.options=[...legacy];setup.eligibleClasses=[...classField.options];}
@@ -240,30 +283,38 @@ export function normalizeFestSetup(raw = {}) {
   return setup;
 }
 
-export function normalizeParticipantTypeDefinitions(value) {
-  const source=Array.isArray(value)&&value.length?value:DEFAULT_FEST_SETUP.participantTypeDefinitions;
-  const clean=source.map((item,index)=>{
-    const key=String(item?.key||item?.label||`participant_${index+1}`).trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+export function normalizeParticipantTypeDefinitions(value, studentFieldsFallback = null) {
+  const source = Array.isArray(value) && value.length ? value : DEFAULT_FEST_SETUP.participantTypeDefinitions;
+  const clean = source.map((item, index) => {
+    const key = String(item?.key || item?.label || `participant_${index + 1}`).trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
     const isStudent = key === 'student';
+    const defaultFields = DEFAULT_PARTICIPANT_FIELDS[key] || [
+      { key: 'name', label: `${String(item?.label || key).trim()} Name`, type: 'text', enabled: true, required: true, system: true },
+      { key: 'phone', label: 'Contact Phone', type: 'tel', enabled: true, required: false }
+    ];
+    let fields = Array.isArray(item?.fields) && item.fields.length ? item.fields : (isStudent && studentFieldsFallback ? studentFieldsFallback : defaultFields);
+    fields = normalizeStudentFields(fields);
     return {
       key,
-      label:String(item?.label||key).trim().slice(0,50),
-      description:String(item?.description||'').trim().slice(0,240),
-      teamAffiliated:item?.teamAffiliated!==false,
-      system:isStudent,
-      allowedGenders:Array.isArray(item?.allowedGenders)&&item.allowedGenders.length?item.allowedGenders:['Boys','Girls'],
-      registrationChannels:Array.isArray(item?.registrationChannels)&&item.registrationChannels.length?item.registrationChannels:(item?.teamAffiliated!==false?['admin','teamLeader']:['admin','self','onSite'])
+      label: String(item?.label || key).trim().slice(0, 50),
+      description: String(item?.description || '').trim().slice(0, 240),
+      teamAffiliated: item?.teamAffiliated !== false,
+      system: isStudent,
+      allowedGenders: Array.isArray(item?.allowedGenders) && item.allowedGenders.length ? item.allowedGenders : ['Boys', 'Girls'],
+      registrationChannels: Array.isArray(item?.registrationChannels) && item.registrationChannels.length ? item.registrationChannels : (item?.teamAffiliated !== false ? ['admin', 'teamLeader'] : ['admin', 'self', 'onSite']),
+      fields
     };
-  }).filter(item=>item.key&&item.label&&!['guest', 'volunteer'].includes(item.key));
-  if(!clean.some(item=>item.key==='student')){
+  }).filter(item => item.key && item.label && !['guest', 'volunteer'].includes(item.key));
+  if (!clean.some(item => item.key === 'student')) {
     clean.unshift({
-      key:'student',
-      label:'Student',
-      description:'Students managed in the Student Directory.',
-      teamAffiliated:true,
-      system:true,
-      allowedGenders:['Boys','Girls'],
-      registrationChannels:['admin','teamLeader']
+      key: 'student',
+      label: 'Student',
+      description: 'Students managed in the Student Directory.',
+      teamAffiliated: true,
+      system: true,
+      allowedGenders: ['Boys', 'Girls'],
+      registrationChannels: ['admin', 'teamLeader'],
+      fields: studentFieldsFallback ? normalizeStudentFields(studentFieldsFallback) : DEFAULT_PARTICIPANT_FIELDS.student
     });
   }
   return clean;

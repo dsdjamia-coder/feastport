@@ -458,6 +458,10 @@ const adminInputActions = {
         window.renderRegList(true);
     },
     'render-final-entry-add': (target) => { finalEntryAddState.query = target.value || ''; window.renderFinalEntryAddModal(); },
+    'on-participant-type-change': (target) => {
+        window.renderStudentCustomFields(target.value);
+        window.previewChestNo?.();
+    },
     'preview-chest-no': () => window.previewChestNo(),
     'render-student-table': () => {
         paginationState.students.page = 1;
@@ -742,7 +746,15 @@ document.addEventListener('click', (event) => {
 
 window.copyPageLink = async (path) => {const url=new URL(path,window.location.href).href;try{await navigator.clipboard.writeText(url);}catch(_){const input=document.createElement('textarea');input.value=url;input.style.position='fixed';input.style.opacity='0';document.body.append(input);input.select();document.execCommand('copy');input.remove();}window.showToast?.('Page link copied');};
 
-window.setGuideLanguage = (language = 'en') => {const selected=language==='ml'?'ml':'en';sessionStorage.setItem('adminGuideLanguage',selected);document.querySelectorAll('[data-guide-language]').forEach(section=>section.classList.toggle('hidden',section.dataset.guideLanguage!==selected));const en=document.getElementById('guide-language-en'),ml=document.getElementById('guide-language-ml');[[en,'en'],[ml,'ml']].forEach(([button,value])=>{if(!button)return;const active=value===selected;button.classList.toggle('bg-indigo-600',active);button.classList.toggle('text-white',active);button.classList.toggle('text-slate-600',!active);button.setAttribute('aria-pressed',String(active));});const title=document.querySelector('[data-guide-title]'),subtitle=document.querySelector('[data-guide-subtitle]');if(title)title.textContent=selected==='ml'?'ഉപയോഗ മാർഗ്ഗനിർദ്ദേശം':'User Guide';if(subtitle)subtitle.textContent=selected==='ml'?'ആപ്ലിക്കേഷന്റെ modes, roles, എല്ലാ ഭാഗങ്ങളും മനസ്സിലാക്കുക.':'Learn every mode, role and workspace in this application.';window.lucide?.createIcons?.();};
+window.setGuideLanguage = (language = 'en') => {
+    sessionStorage.setItem('adminGuideLanguage', 'en');
+    document.querySelectorAll('[data-guide-language]').forEach(section => section.classList.toggle('hidden', section.dataset.guideLanguage !== 'en'));
+    const title = document.querySelector('[data-guide-title]');
+    const subtitle = document.querySelector('[data-guide-subtitle]');
+    if (title) title.textContent = 'User Guide';
+    if (subtitle) subtitle.textContent = 'Learn every mode, role and workspace in this application.';
+    window.lucide?.createIcons?.();
+};
 
 window.updateStats = () => {
     if(document.getElementById('stat-students')) document.getElementById('stat-students').innerText = students.length;
@@ -893,9 +905,9 @@ window.switchTab = (tab) => {
     if(tab==='master-setup')window.switchMasterSection(new URL(location.href).searchParams.get('section')||activeMasterSection,{scroll:false});
     if(window.innerWidth < 768) window.closeSidebar();
 
-    const titles = { 'dashboard': 'Dashboard', 'registrations': 'Registrations', 'students': 'Students Directory', 'events': 'Events Management', 'schedule': 'Time Schedule', 'config': 'Team Setup', 'master-setup': 'Master Setup', 'access': 'Access Management', 'scoring': 'Scoring Settings', 'judge': 'Judgement Desk', 'public-content': 'Public Page Control & Contents', 'poster-certificate':'Poster & Certificate', 'tv-display': 'TV Display Settings', 'danger': 'Data Reset', 'downloads': 'Downloads', 'guide': 'User Guide' };
+    const titles = { 'dashboard': 'Dashboard', 'registrations': 'Registrations', 'students': 'Participants', 'events': 'Events Management', 'schedule': 'Time Schedule', 'config': 'Team Setup', 'master-setup': 'Master Setup', 'access': 'Access Management', 'scoring': 'Scoring Settings', 'judge': 'Judgement Desk', 'public-content': 'Public Page Control & Contents', 'poster-certificate':'Poster & Certificate', 'tv-display': 'TV Display Settings', 'danger': 'Data Reset', 'downloads': 'Downloads', 'guide': 'User Guide' };
     document.getElementById('page-title').innerText = titles[tab] || 'Admin Panel';const masterActive=tab==='master-setup';document.getElementById('master-header-actions')?.classList.toggle('hidden',!masterActive);document.getElementById('master-header-actions')?.classList.toggle('flex',masterActive);if(!masterActive){document.getElementById('page-context')?.classList.add('hidden');document.getElementById('page-status')?.classList.add('hidden');}
-    if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].border-indigo-600')?.dataset?.downloadTab || document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') { window.switchStudentsSubtab?.(activeStudentsSubtab); window.renderDropdowns?.(); renderStudentTable(); } if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.(); window.switchEventsSubtab?.(activeEventsSubtab); renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') { window.switchScheduleSubtab?.(activeScheduleSubtab); window.renderSchedule(); } if(tab === 'schedule-review') window.renderScheduleReview?.(); if(tab === 'registrations') renderRegList(); if(tab === 'config') { window.switchTeamConfigSubtab?.(activeTeamConfigSubtab); window.renderSetupLists?.(); window.renderChestGrid?.(); } if(tab === 'access') { window.switchAccessSubtab?.(activeAccessSubtab); window.renderAccessManagement?.(); } if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
+    if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].border-indigo-600')?.dataset?.downloadTab || document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') { window.populateParticipantTypes?.(); window.switchStudentsSubtab?.(activeStudentsSubtab); window.renderDropdowns?.(); renderStudentTable(); } if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.(); window.switchEventsSubtab?.(activeEventsSubtab); renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') { window.switchScheduleSubtab?.(activeScheduleSubtab); window.renderSchedule(); } if(tab === 'schedule-review') window.renderScheduleReview?.(); if(tab === 'registrations') renderRegList(); if(tab === 'config') { window.switchTeamConfigSubtab?.(activeTeamConfigSubtab); window.renderSetupLists?.(); window.renderChestGrid?.(); } if(tab === 'access') { window.switchAccessSubtab?.(activeAccessSubtab); window.renderAccessManagement?.(); } if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
     resetAdminContentScroll();
 };
 
@@ -913,6 +925,8 @@ const bindStaticTabNavigation = () => {
 bindStaticTabNavigation();
 
 window.renderDropdowns = () => {
+    window.populateParticipantTypes?.();
+    window.renderStudentCustomFields?.();
     const studentCategories = categories.filter(c => c !== 'General');
     const studentCatOpts = studentCategories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(categoryLabel(c))} (${escapeHtml(c)})</option>`).join('');
     const eventCatOpts = categories.filter(c => c !== 'General').map(c => `<option value="${escapeHtml(c)}">${escapeHtml(categoryLabel(c))} (${escapeHtml(c)})</option>`).join('');
@@ -2862,19 +2876,30 @@ window.switchStudentsSubtab = (subtab = 'directory') => {
         btn.classList.toggle('font-bold', !active);
         btn.setAttribute('aria-selected', String(active));
     });
+    if (activeStudentsSubtab === 'add') {
+        window.populateParticipantTypes?.();
+        window.renderStudentCustomFields?.();
+    }
     window.lucide?.createIcons?.();
 };
 
-// --- STUDENTS TABLE ---
+// --- PARTICIPANTS TABLE ---
 const studentAvatar = (student,size='h-10 w-10') => student.photoData ? `<img src="${escapeHtml(student.photoData)}" alt="" class="${size} shrink-0 rounded-full border border-slate-200 object-cover">` : `<span class="${size} grid shrink-0 place-items-center rounded-full bg-indigo-100 text-xs font-black text-indigo-700">${escapeHtml((student.name||'?').trim().charAt(0).toUpperCase())}</span>`;
-const studentDisplayName = student => `${student.name || 'Student'}${student.details?.class || student.class ? ` (${student.details?.class || student.class})` : ''}`;
+const studentDisplayName = s => {
+    let extra = s.details?.class || s.class || '';
+    if (!extra && s.details?.linkedStudent) extra = `Ward: ${s.details.linkedStudent}`;
+    if (!extra && s.details?.designation) extra = s.details.designation;
+    if (!extra && s.details?.batchYear) extra = `Batch: ${s.details.batchYear}`;
+    return `${s.name || 'Participant'}${extra ? ` (${extra})` : ''}`;
+};
 window.renderStudentTable = (force = false) => {
-    const teamFilter = document.getElementById('filter-std-team').value;
-    const catFilter = document.getElementById('filter-std-cat').value;
+    const typeFilter = document.getElementById('filter-std-type')?.value || '';
+    const teamFilter = document.getElementById('filter-std-team')?.value || '';
+    const catFilter = document.getElementById('filter-std-cat')?.value || '';
     const classFilter = document.getElementById('filter-std-class')?.value || '';
-    const genderFilter = document.getElementById('filter-std-gender').value;
-    const searchQuery = document.getElementById('inp-search-std').value.toLowerCase();
-    const currentHash = generateHash(students) + teamFilter + catFilter + classFilter + genderFilter + searchQuery + paginationState.students.page + paginationState.students.limit;
+    const genderFilter = document.getElementById('filter-std-gender')?.value || '';
+    const searchQuery = (document.getElementById('inp-search-std')?.value || '').toLowerCase();
+    const currentHash = generateHash(students) + typeFilter + teamFilter + catFilter + classFilter + genderFilter + searchQuery + paginationState.students.page + paginationState.students.limit;
     if(!force && lastRenderHash.students === currentHash) return;
     lastRenderHash.students = currentHash;
 
@@ -2882,29 +2907,49 @@ window.renderStudentTable = (force = false) => {
     const mobileList = document.getElementById('list-students-mobile');
 
     let filteredStudents = students;
+    if (typeFilter) filteredStudents = filteredStudents.filter(s => (s.participantType || 'student') === typeFilter);
     if (teamFilter) filteredStudents = filteredStudents.filter(s => s.team === teamFilter);
     if (catFilter) { if(catFilter !== 'General') filteredStudents = filteredStudents.filter(s => s.category === catFilter); }
     if (classFilter) filteredStudents = filteredStudents.filter(s => (s.details?.class || s.class) === classFilter);
     if (genderFilter) filteredStudents = filteredStudents.filter(s => studentGender(s) === genderFilter);
-    if (searchQuery) filteredStudents = filteredStudents.filter(s => `${s.name} ${s.chestNo||''} ${Object.values(s.details||{}).join(' ')}`.toLowerCase().includes(searchQuery));
+    if (searchQuery) filteredStudents = filteredStudents.filter(s => `${s.name} ${s.chestNo||''} ${s.participantType||''} ${Object.values(s.details||{}).join(' ')}`.toLowerCase().includes(searchQuery));
     const sorted = [...filteredStudents].sort((a,b) => String(a.chestNo ?? '').localeCompare(String(b.chestNo ?? ''), undefined, {numeric:true, sensitivity:'case'}));
-    document.getElementById('count-students').innerText = sorted.length;
+    const countEl = document.getElementById('count-students');
+    if (countEl) countEl.innerText = sorted.length;
 
-    if(sorted.length===0) { const emptyMsg = `<div class="p-8 text-center text-slate-400 italic">No students found</div>`; desktopBody.innerHTML = `<tr><td colspan="6">${emptyMsg}</td></tr>`; mobileList.innerHTML = emptyMsg; renderPaginationBar('pagination-students', { total: 0 }, 'students', 'students'); return; }
+    if(sorted.length===0) { const emptyMsg = `<div class="p-8 text-center text-slate-400 italic">No participants found</div>`; if (desktopBody) desktopBody.innerHTML = `<tr><td colspan="7">${emptyMsg}</td></tr>`; if (mobileList) mobileList.innerHTML = emptyMsg; renderPaginationBar('pagination-students', { total: 0 }, 'students', 'students'); return; }
 
     const paged = paginateList(sorted, 'students');
+    const definitions = normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions, festSetup.studentFields);
 
-    desktopBody.innerHTML = paged.pagedItems.map(s => `
-        <tr class="hover:bg-slate-50 border-b border-slate-100 last:border-0 group animate-enter">
-            <td class="px-6 py-4 font-mono text-indigo-600 font-bold">${escapeHtml(s.chestNo || '-')}</td><td class="px-6 py-4 font-medium text-slate-800"><div class="flex items-center gap-3">${studentAvatar(s)}<span>${escapeHtml(studentDisplayName(s))}</span></div></td><td class="px-6 py-4"><span class="bg-white border border-slate-200 px-2.5 py-1 rounded-md text-xs font-bold text-slate-600 shadow-sm">${escapeHtml(s.team)}</span></td><td class="px-6 py-4 text-xs uppercase font-bold text-slate-500">${escapeHtml(s.category)}</td><td class="px-6 py-4 text-xs uppercase font-bold text-slate-500">${escapeHtml(studentGender(s))}</td>
-            <td class="px-6 py-4 text-right"><div class="flex justify-end gap-1 opacity-100 transition-opacity"><button data-admin-action="edit-student" data-id="${escapeHtml(s.id)}" class="p-2 rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 transition active:scale-95 shadow-2xs" title="Edit Student"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button data-admin-action="delete-student" data-id="${escapeHtml(s.id)}" class="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 transition active:scale-95 shadow-2xs" title="Delete Student"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td>
-        </tr>`).join('');
+    if (desktopBody) {
+        desktopBody.innerHTML = paged.pagedItems.map(s => {
+            const ptKey = s.participantType || 'student';
+            const ptDef = definitions.find(d => d.key === ptKey) || { label: ptKey.charAt(0).toUpperCase() + ptKey.slice(1) };
+            return `
+            <tr class="hover:bg-slate-50 border-b border-slate-100 last:border-0 group animate-enter">
+                <td class="px-6 py-4 font-mono text-indigo-600 font-bold">${escapeHtml(s.chestNo || '-')}</td>
+                <td class="px-6 py-4 font-medium text-slate-800"><div class="flex items-center gap-3">${studentAvatar(s)}<span>${escapeHtml(studentDisplayName(s))}</span></div></td>
+                <td class="px-6 py-4"><span class="bg-indigo-50 border border-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded text-xs font-bold shadow-2xs">${escapeHtml(ptDef.label)}</span></td>
+                <td class="px-6 py-4"><span class="bg-white border border-slate-200 px-2.5 py-1 rounded-md text-xs font-bold text-slate-600 shadow-sm">${escapeHtml(s.team || 'No Team')}</span></td>
+                <td class="px-6 py-4 text-xs uppercase font-bold text-slate-500">${escapeHtml(s.category)}</td>
+                <td class="px-6 py-4 text-xs uppercase font-bold text-slate-500">${escapeHtml(studentGender(s))}</td>
+                <td class="px-6 py-4 text-right"><div class="flex justify-end gap-1 opacity-100 transition-opacity"><button data-admin-action="edit-student" data-id="${escapeHtml(s.id)}" class="p-2 rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 transition active:scale-95 shadow-2xs" title="Edit Participant"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button data-admin-action="delete-student" data-id="${escapeHtml(s.id)}" class="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 transition active:scale-95 shadow-2xs" title="Delete Participant"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td>
+            </tr>`;
+        }).join('');
+    }
 
-    mobileList.innerHTML = paged.pagedItems.map(s => `
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center animate-enter">
-            <div class="flex min-w-0 items-center gap-3">${studentAvatar(s)}<div><div class="flex items-center gap-2 mb-1"><span class="font-mono text-indigo-600 font-bold text-xs bg-indigo-50 px-2 py-0.5 rounded">${escapeHtml(s.chestNo || '-')}</span><span class="font-bold text-slate-800 text-sm">${escapeHtml(studentDisplayName(s))}</span></div><div class="text-[10px] text-slate-500 font-bold uppercase tracking-wide flex gap-2"><span>${escapeHtml(s.team)}</span><span class="text-slate-300">•</span><span>${escapeHtml(s.category)}</span><span class="text-slate-300">•</span><span>${escapeHtml(studentGender(s))}</span></div></div></div>
-            <div class="flex gap-2"><button data-admin-action="edit-student" data-id="${escapeHtml(s.id)}" class="p-2 rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition active:scale-95 shadow-2xs" title="Edit Student"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button data-admin-action="delete-student" data-id="${escapeHtml(s.id)}" class="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition active:scale-95 shadow-2xs" title="Delete Student"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>
-        </div>`).join('');
+    if (mobileList) {
+        mobileList.innerHTML = paged.pagedItems.map(s => {
+            const ptKey = s.participantType || 'student';
+            const ptDef = definitions.find(d => d.key === ptKey) || { label: ptKey.charAt(0).toUpperCase() + ptKey.slice(1) };
+            return `
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center animate-enter">
+                <div class="flex min-w-0 items-center gap-3">${studentAvatar(s)}<div><div class="flex items-center gap-2 mb-1"><span class="font-mono text-indigo-600 font-bold text-xs bg-indigo-50 px-2 py-0.5 rounded">${escapeHtml(s.chestNo || '-')}</span><span class="font-bold text-slate-800 text-sm">${escapeHtml(studentDisplayName(s))}</span></div><div class="text-[10px] text-slate-500 font-bold uppercase tracking-wide flex flex-wrap items-center gap-1.5"><span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-1.5 py-0.5 rounded font-bold">${escapeHtml(ptDef.label)}</span><span class="text-slate-300">•</span><span>${escapeHtml(s.team || 'No Team')}</span><span class="text-slate-300">•</span><span>${escapeHtml(s.category)}</span><span class="text-slate-300">•</span><span>${escapeHtml(studentGender(s))}</span></div></div></div>
+                <div class="flex gap-2"><button data-admin-action="edit-student" data-id="${escapeHtml(s.id)}" class="p-2 rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition active:scale-95 shadow-2xs" title="Edit Participant"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button data-admin-action="delete-student" data-id="${escapeHtml(s.id)}" class="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition active:scale-95 shadow-2xs" title="Delete Participant"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>
+            </div>`;
+        }).join('');
+    }
     renderPaginationBar('pagination-students', paged, 'students', 'students');
     window.lucide?.createIcons?.();
 };
@@ -3005,25 +3050,41 @@ window.renderChestGrid = () => {
 };
 
 window.exportToCSV = () => {
-    const teamFilter = document.getElementById('filter-std-team').value;
-    const catFilter = document.getElementById('filter-std-cat').value;
+    const typeFilter = document.getElementById('filter-std-type')?.value || '';
+    const teamFilter = document.getElementById('filter-std-team')?.value || '';
+    const catFilter = document.getElementById('filter-std-cat')?.value || '';
     const classFilter = document.getElementById('filter-std-class')?.value || '';
-    const genderFilter = document.getElementById('filter-std-gender').value;
-    const searchQuery = document.getElementById('inp-search-std').value.toLowerCase();
+    const genderFilter = document.getElementById('filter-std-gender')?.value || '';
+    const searchQuery = (document.getElementById('inp-search-std')?.value || '').toLowerCase();
     let filteredStudents = students;
+    if (typeFilter) filteredStudents = filteredStudents.filter(s => (s.participantType || 'student') === typeFilter);
     if (teamFilter) filteredStudents = filteredStudents.filter(s => s.team === teamFilter);
     if (catFilter) { if(catFilter !== 'General') filteredStudents = filteredStudents.filter(s => s.category === catFilter); }
     if (classFilter) filteredStudents = filteredStudents.filter(s => (s.details?.class || s.class) === classFilter);
     if (genderFilter) filteredStudents = filteredStudents.filter(s => studentGender(s) === genderFilter);
-    if (searchQuery) filteredStudents = filteredStudents.filter(s => s.name.toLowerCase().includes(searchQuery) || (s.chestNo && s.chestNo.toString().includes(searchQuery)));
+    if (searchQuery) filteredStudents = filteredStudents.filter(s => `${s.name} ${s.chestNo||''} ${s.participantType||''} ${Object.values(s.details||{}).join(' ')}`.toLowerCase().includes(searchQuery));
 
-    if(!filteredStudents.length) return window.showToast('No students to export', 'error');
+    if(!filteredStudents.length) return window.showToast('No participants to export', 'error');
     const sorted = [...filteredStudents].sort((a,b) => String(a.chestNo ?? '').localeCompare(String(b.chestNo ?? ''), undefined, {numeric:true, sensitivity:'case'}));
-    const data = sorted.map(s => ({ "Chest No": s.chestNo || '', "Name": s.name, "Team": s.team, "Category": s.category, "Gender": studentGender(s), ...Object.fromEntries(enabledStudentFields().filter(field=>field.key!=='name').map(field=>[field.label,s.details?.[field.key]||s[field.key]||''])), "Has Photo": s.photoData ? 'Yes' : 'No' }));
+    const definitions = normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions, festSetup.studentFields);
+    const data = sorted.map(s => {
+        const ptKey = s.participantType || 'student';
+        const ptDef = definitions.find(d => d.key === ptKey) || { label: ptKey.charAt(0).toUpperCase() + ptKey.slice(1) };
+        return {
+            "Chest No": s.chestNo || '',
+            "Name": s.name,
+            "Type": ptDef.label,
+            "Team": s.team || '',
+            "Category": s.category,
+            "Gender": studentGender(s),
+            ...Object.fromEntries(enabledParticipantFields(ptKey).filter(field => field.key !== 'name').map(field => [field.label, s.details?.[field.key] || s[field.key] || ''])),
+            "Has Photo": s.photoData ? 'Yes' : 'No'
+        };
+    });
     const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Filtered_Students");
-    XLSX.writeFile(wb, "Student_List.xlsx");
-    window.showToast('Downloading Filtered List...');
+    XLSX.utils.book_append_sheet(wb, ws, "Participants");
+    XLSX.writeFile(wb, "Participants_List.xlsx");
+    window.showToast('Downloading Participants List...');
 };
 
 // --- ADMIN HELPERS ---
@@ -3410,10 +3471,13 @@ window.updateModalGenderScheme = (scheme, preselectedGenders = null) => {
     }
 };
 
+let currentModalPtKey = 'student';
+let modalPtFields = [];
+
 window.renderModalStudentFields = () => {
     const box = document.getElementById('modal-student-field-settings');
     if (!box) return;
-    const fields = normalizeStudentFields(festSetup.studentFields);
+    const fields = normalizeStudentFields(modalPtFields);
     box.innerHTML = fields.map(field => `
         <div class="grid items-center gap-2 rounded-xl border bg-slate-50 p-3 sm:grid-cols-[1fr_auto_auto_auto]">
             <div>
@@ -3442,49 +3506,34 @@ window.addModalStudentField = () => {
     if (type === 'select' && !options.length) return window.showToast('Add at least one dropdown choice', 'error');
     const key = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
     if (!key) return window.showToast('Use an English field label', 'error');
-    const existing = normalizeStudentFields(festSetup.studentFields);
+    const existing = normalizeStudentFields(modalPtFields);
     if (existing.some(f => f.key === key)) return window.showToast('Field already exists', 'error');
-    festSetup = {
-        ...festSetup,
-        studentFields: [...existing, { key, label, type, options, enabled: true, required: false }]
-    };
+    modalPtFields = [...existing, { key, label, type, options, enabled: true, required: false }];
     if (input) input.value = '';
     const optInput = document.getElementById('modal-new-student-field-options');
     if (optInput) optInput.value = '';
     window.renderModalStudentFields();
-    masterDirtySections.add('people-registration');
-    updateMasterSubnavStatus();
     window.showToast(`Field "${label}" added`);
 };
 
 window.editModalStudentField = async key => {
-    const fields = normalizeStudentFields(festSetup.studentFields);
+    const fields = normalizeStudentFields(modalPtFields);
     const field = fields.find(item => item.key === key);
     if (!field || field.system) return;
     const label = (await window.promptAction('Edit field label:', field.label))?.trim();
     if (!label) return;
-    festSetup = {
-        ...festSetup,
-        studentFields: fields.map(item => item.key === key ? { ...item, label } : item)
-    };
+    modalPtFields = fields.map(item => item.key === key ? { ...item, label } : item);
     window.renderModalStudentFields();
-    masterDirtySections.add('people-registration');
-    updateMasterSubnavStatus();
     window.showToast(`Updated label for "${label}"`);
 };
 
 window.removeModalStudentField = async key => {
-    const fields = normalizeStudentFields(festSetup.studentFields);
+    const fields = normalizeStudentFields(modalPtFields);
     const field = fields.find(item => item.key === key);
     if (!field || field.system) return;
     if (!await window.confirmAction(`Delete field "${field.label}"?`)) return;
-    festSetup = {
-        ...festSetup,
-        studentFields: fields.filter(f => f.key !== key)
-    };
+    modalPtFields = fields.filter(f => f.key !== key);
     window.renderModalStudentFields();
-    masterDirtySections.add('people-registration');
-    updateMasterSubnavStatus();
     window.showToast(`Field "${field.label}" deleted`);
 };
 
@@ -3494,11 +3543,14 @@ window.editStudentField = key => window.editModalStudentField(key);
 window.removeStudentField = key => window.removeModalStudentField(key);
 
 window.openParticipantTypeModal = key => {
-    const definitions = normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions);
+    const definitions = normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions, festSetup.studentFields);
     const item = definitions.find(d => d.key === key);
     if (!item) return;
     const modal = document.getElementById('participant-type-edit-modal');
     if (!modal) return;
+
+    currentModalPtKey = key;
+    modalPtFields = normalizeStudentFields(item.fields || []);
 
     window.switchParticipantTypeModalTab('general');
 
@@ -3577,8 +3629,8 @@ window.saveParticipantTypeModal = async () => {
     const selectedChannels = [...document.querySelectorAll('input[name="edit-pt-channel-opt"]:checked')].map(i => i.value);
     if (!selectedChannels.length) return window.showToast('Select at least one registration channel', 'error');
 
-    // Read student fields if configured in modal
-    const updatedStudentFields = normalizeStudentFields(festSetup.studentFields).map(field => {
+    // Read updated fields from modal DOM
+    const updatedFields = normalizeStudentFields(modalPtFields).map(field => {
         const optInput = document.querySelector(`[data-student-field-options="${field.key}"]`);
         const enabledInput = document.querySelector(`[data-student-field-enabled="${field.key}"]`);
         const requiredInput = document.querySelector(`[data-student-field-required="${field.key}"]`);
@@ -3592,30 +3644,35 @@ window.saveParticipantTypeModal = async () => {
 
     if (!await window.confirmAction(`Update configuration for "${label}"?`, { okText: 'Update', cancelText: 'Cancel' })) return;
 
-    const definitions = normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions);
+    const definitions = normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions, festSetup.studentFields);
+    const newDefinitions = definitions.map(item => {
+        if (item.key === key) {
+            return {
+                ...item,
+                label,
+                description,
+                teamAffiliated: affiliation === 'team',
+                allowedGenders: selectedGenders,
+                registrationChannels: selectedChannels,
+                fields: updatedFields
+            };
+        }
+        return item;
+    });
+
     festSetup = {
         ...festSetup,
         preset: 'custom',
-        studentFields: updatedStudentFields,
-        participantTypeDefinitions: definitions.map(item => {
-            if (item.key === key) {
-                return {
-                    ...item,
-                    label,
-                    description,
-                    teamAffiliated: affiliation === 'team',
-                    allowedGenders: selectedGenders,
-                    registrationChannels: selectedChannels
-                };
-            }
-            return item;
-        })
+        ...(key === 'student' ? { studentFields: updatedFields } : {}),
+        participantTypeDefinitions: newDefinitions
     };
 
     window.closeParticipantTypeModal();
     masterDirtySections.add('people-registration');
     updateMasterSubnavStatus();
     window.renderMasterSetup();
+    window.populateParticipantTypes?.();
+    window.renderStudentCustomFields?.();
     window.showToast(`Updated "${label}" configuration`);
 };
 
@@ -3690,7 +3747,7 @@ const renderMasterParticipantTypes = setup => {
                     <div>
                         <span class="text-[10px] font-black uppercase text-slate-400 block mb-1">Eligible Genders:</span>
                         <div class="flex flex-wrap gap-1">
-                            ${genders.length === 1 && genders[0] === 'All' ? '<span class="rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-bold text-emerald-700">All / Unisex (ലിംഗഭേദമില്ലാതെ)</span>' : genders.map(g => `<span class="rounded-lg bg-blue-50 border border-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">${escapeHtml(g)}</span>`).join('')}
+                            ${genders.length === 1 && genders[0] === 'All' ? '<span class="rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-bold text-emerald-700">All / Combined (Single Pool)</span>' : genders.map(g => `<span class="rounded-lg bg-blue-50 border border-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">${escapeHtml(g)}</span>`).join('')}
                         </div>
                     </div>
                     <div>
@@ -4591,11 +4648,65 @@ document.getElementById('participant-form')?.addEventListener('submit',async eve
 ${text}
 
 Add anyway as Admin override?`);if(!ok)return window.showToast('Over-limit registration cancelled','info');}await setDoc(participantRef,{...data,...(!id?{createdAt:Date.now()}:{})},{merge:true});let saved=0;for(const eventId of selectedEventIds){const eventItem=events.find(item=>item.id===eventId);if(duplicates.includes(eventItem?.name||'Event')){window.showToast(`${eventItem?.name||'Event'}: participant already registered; duplicate skipped`,'error');continue;}const state=eventItem?participantEventLimitState(eventItem,data.team||''):{current:0},slotIndex=eventItem?.type==='Group'?state.current+1:state.current+1,now=Date.now();await setDoc(doc(db,'registrations',registrationDocumentId(eventId,personId)),{eventId,eventName:eventItem?.name||'',team:data.team||'',slotIndex,studentIds:student?[student.id]:[],participantIds:student?[]:[participantRef.id],participantMeta:{[personId]:{name:data.name,participantType:data.participantType,team:data.team,gender:data.gender,category:data.category,chestNo:student?.chestNo||'',addedByUid:auth.currentUser?.uid||'',addedByName:'Fest Committee',addedByRole:'fest_committee',addedAt:now}},registrationSource:'admin-participant-directory',adminOverride:true,createdByUid:auth.currentUser?.uid||'',createdByName:'Fest Committee',createdByRole:'fest_committee',createdAt:now,lastUpdatedByUid:auth.currentUser?.uid||'',lastUpdatedByName:'Fest Committee',lastUpdatedByRole:'fest_committee',lastUpdatedAt:now});saved++;}window.renderRegList?.(true);window.clearParticipantForm();window.showToast(saved?`Participant saved and ${saved} final entr${saved===1?'y':'ies'} updated`:'Participant saved');});
-const enabledStudentFields = () => normalizeStudentFields(festSetup.studentFields).filter(field => field.enabled);
-const studentDetails = (prefix = 'inp') => Object.fromEntries(enabledStudentFields().filter(field => field.key !== 'name').map(field => [field.key, document.getElementById(`${prefix}-std-custom-${field.key}`)?.value?.trim?.() || '']));
-const fieldInput = (field, prefix, value = '') => `<label class="input-group"><span class="input-label">${escapeHtml(field.label)}${field.required?' <span class="text-red-500">*</span>':''}</span>${field.type==='select'?`<select id="${prefix}-std-custom-${field.key}" ${field.required?'required':''} class="text-input"><option value="">Select ${escapeHtml(field.label)}</option>${(field.options||[]).map(option=>`<option value="${escapeHtml(option)}" ${option===value?'selected':''}>${escapeHtml(option)}</option>`).join('')}</select>`:`<input id="${prefix}-std-custom-${field.key}" type="${field.type}" value="${escapeHtml(value)}" ${field.required?'required':''} class="text-input" dir="auto">`}</label>`;
-window.renderStudentCustomFields = () => {
-    const add=document.getElementById('student-custom-fields');if(add)add.innerHTML=enabledStudentFields().filter(field=>field.key!=='name').map(field=>fieldInput(field,'inp')).join('');
+const getParticipantTypeDefinition = (typeKey = 'student') => {
+    const definitions = normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions, festSetup.studentFields);
+    return definitions.find(d => d.key === typeKey) || definitions[0] || { key: 'student', label: 'Student', teamAffiliated: true, allowedGenders: ['Boys', 'Girls'], fields: normalizeStudentFields(festSetup.studentFields) };
+};
+
+const enabledParticipantFields = (typeKey = null) => {
+    const currentType = typeKey || document.getElementById('inp-std-type')?.value || 'student';
+    const def = getParticipantTypeDefinition(currentType);
+    const fields = Array.isArray(def.fields) && def.fields.length ? def.fields : (currentType === 'student' ? festSetup.studentFields : (DEFAULT_PARTICIPANT_FIELDS[currentType] || []));
+    return normalizeStudentFields(fields).filter(field => field.enabled);
+};
+
+const enabledStudentFields = (typeKey = null) => enabledParticipantFields(typeKey);
+const studentDetails = (prefix = 'inp', typeKey = null) => Object.fromEntries(enabledParticipantFields(typeKey).filter(field => field.key !== 'name').map(field => [field.key, document.getElementById(`${prefix}-std-custom-${field.key}`)?.value?.trim?.() || '']));
+const fieldInput = (field, prefix, value = '') => `<label class="input-group"><span class="input-label">${escapeHtml(field.label)}${field.required ? ' <span class="text-rose-500 font-bold ml-0.5">*</span>' : ''}</span>${field.type === 'select' ? `<select id="${prefix}-std-custom-${field.key}" ${field.required ? 'required' : ''} class="text-input"><option value="">Select ${escapeHtml(field.label)}</option>${(field.options || []).map(option => `<option value="${escapeHtml(option)}" ${option === value ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('')}</select>` : `<input id="${prefix}-std-custom-${field.key}" type="${field.type}" value="${escapeHtml(value)}" ${field.required ? 'required' : ''} class="text-input" dir="auto">`}</label>`;
+
+window.renderStudentCustomFields = (typeKey = null) => {
+    const selectedType = typeKey || document.getElementById('inp-std-type')?.value || 'student';
+    const typeDef = getParticipantTypeDefinition(selectedType);
+    const add = document.getElementById('student-custom-fields');
+    if (add) {
+        const fields = enabledParticipantFields(selectedType).filter(field => field.key !== 'name');
+        add.innerHTML = fields.map(field => fieldInput(field, 'inp')).join('');
+    }
+    const teamStar = document.getElementById('star-std-team');
+    if (teamStar) {
+        teamStar.style.display = typeDef.teamAffiliated !== false ? 'inline' : 'none';
+    }
+    const genderSelect = document.getElementById('inp-std-gender');
+    if (genderSelect && typeDef.allowedGenders?.length) {
+        const cur = genderSelect.value;
+        genderSelect.innerHTML = typeDef.allowedGenders.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+        if (typeDef.allowedGenders.includes(cur)) genderSelect.value = cur;
+    }
+    const nameInput = document.getElementById('inp-std-name');
+    if (nameInput) {
+        nameInput.placeholder = `${typeDef.label || 'Participant'} Name`;
+    }
+};
+
+window.populateParticipantTypes = () => {
+    const definitions = normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions, festSetup.studentFields);
+    const filterSelect = document.getElementById('filter-std-type');
+    if (filterSelect) {
+        const cur = filterSelect.value;
+        filterSelect.innerHTML = `<option value="">All Participant Types</option>` +
+            definitions.map(d => `<option value="${escapeHtml(d.key)}">${escapeHtml(d.label)}</option>`).join('');
+        if (cur && definitions.some(d => d.key === cur)) filterSelect.value = cur;
+    }
+    const inpSelect = document.getElementById('inp-std-type');
+    if (inpSelect) {
+        const cur = inpSelect.value;
+        inpSelect.innerHTML = definitions.map(d => `<option value="${escapeHtml(d.key)}">${escapeHtml(d.label)}</option>`).join('');
+        if (cur && definitions.some(d => d.key === cur)) {
+            inpSelect.value = cur;
+        } else if (definitions.length) {
+            inpSelect.value = definitions[0].key;
+        }
+    }
 };
 window.applyEventProfile=profile=>{const profiles={basic:{scheduleMode:'basic',judgingMode:'disabled',resultWorkflow:'direct',teamScoringMode:'disabled',features:{excelImport:false,customCriteria:false,objectiveScoring:false,timeResults:false,countResults:false,multipleJudges:false,eventOverrides:false,teamLedger:false}},standard:{scheduleMode:'full',judgingMode:'enabled',resultWorkflow:'judged',teamScoringMode:'enabled',features:{excelImport:true,customCriteria:true,objectiveScoring:false,timeResults:false,countResults:false,multipleJudges:false,eventOverrides:false,teamLedger:true}},advanced:{scheduleMode:'full',judgingMode:'optional',resultWorkflow:'hybrid',teamScoringMode:'per_event',features:{excelImport:true,customCriteria:true,objectiveScoring:true,timeResults:true,countResults:true,multipleJudges:true,eventOverrides:true,teamLedger:true}}},chosen=profiles[profile];if(!chosen)return;festSetup=normalizeFestSetup({...festSetup,preset:'custom',eventManagementMode:profile,eventFieldProfile:profile,eventFieldRules:eventFieldRulesForMode(profile),scheduleMode:chosen.scheduleMode,judgingMode:chosen.judgingMode,resultWorkflow:chosen.resultWorkflow,teamScoringMode:chosen.teamScoringMode,eventFeatures:{...festSetup.eventFeatures,...chosen.features}});window.renderMasterSetup();window.showToast(`${profile[0].toUpperCase()+profile.slice(1)} profile applied to draft`);};
 const CORE_EVENT_FIELDS=[
@@ -4801,28 +4912,48 @@ window.discardMasterDraft = async () => {
 
 document.getElementById('form-student')?.addEventListener('submit', async (e) => {
     e.preventDefault(); setLoading('btn-save-std', true);
-    const team = document.getElementById('inp-std-team').value; const cat = document.getElementById('inp-std-cat').value; const gender = document.getElementById('inp-std-gender').value; const isBulk = !document.getElementById('inp-std-name-bulk').classList.contains('hidden');
-    if(!team || !cat || !gender) { setLoading('btn-save-std', false, 'Save'); return window.showToast('Fill team, category and gender', 'error'); }
-    if(cat === 'General') { setLoading('btn-save-std', false, 'Save'); return window.showToast('General is for events only. Choose a student category.', 'error'); }
+    const selectedType = document.getElementById('inp-std-type')?.value || 'student';
+    const typeDef = getParticipantTypeDefinition(selectedType);
+    const teamRequired = typeDef.teamAffiliated !== false;
+    const team = document.getElementById('inp-std-team').value;
+    const cat = document.getElementById('inp-std-cat').value;
+    const gender = document.getElementById('inp-std-gender').value;
+    const isBulk = !document.getElementById('inp-std-name-bulk').classList.contains('hidden');
+
+    if (teamRequired && !team) { setLoading('btn-save-std', false, 'Save'); return window.showToast('Please select a Team', 'error'); }
+    if (!cat || !gender) { setLoading('btn-save-std', false, 'Save'); return window.showToast('Fill category and gender', 'error'); }
+    if (cat === 'General') { setLoading('btn-save-std', false, 'Save'); return window.showToast('General is for events only. Choose a participant category.', 'error'); }
+
     let nextChest = window.generateChestNo(team, cat, gender);
-    if(!nextChest) { setLoading('btn-save-std', false, 'Save'); return window.showToast('Chest No Config Missing', 'error'); }
+    if (!nextChest) { setLoading('btn-save-std', false, 'Save'); return window.showToast('Chest No Config Missing', 'error'); }
     try {
-        if(isBulk) {
-            if(enabledStudentFields().some(field=>field.key!=='name'&&field.required)) { setLoading('btn-save-std', false, 'Save'); return window.showToast('Use Excel import when required custom fields are enabled', 'error'); }
+        if (isBulk) {
+            if (enabledParticipantFields(selectedType).some(field => field.key !== 'name' && field.required)) {
+                setLoading('btn-save-std', false, 'Save');
+                return window.showToast('Use Excel import when required fields are enabled', 'error');
+            }
             const names = document.getElementById('inp-std-name-bulk').value.split('\n').map(n => n.trim()).filter(Boolean);
-            if(!names.length) { setLoading('btn-save-std', false, 'Save'); return window.showToast('Enter at least one student name', 'error'); }
+            if (!names.length) { setLoading('btn-save-std', false, 'Save'); return window.showToast(`Enter at least one ${typeDef.label} name`, 'error'); }
             const plannedChestNos = names.map((_, i) => nextChest + i);
             const duplicateChest = students.find(s => plannedChestNos.includes(Number(s.chestNo)) && s.team === team && s.category === cat && studentGender(s) === gender);
-            if(duplicateChest) { setLoading('btn-save-std', false, 'Save'); return window.showToast(`Duplicate chest number ${duplicateChest.chestNo} for this team/category/gender`, 'error'); }
-            const batch = names.map(async name => addDoc(collection(db, "students"), { name, team, category: cat, gender, chestNo: nextChest++ }));
-            await Promise.all(batch); document.getElementById('inp-std-name-bulk').value = ''; window.showToast(`${names.length} Students Added`);
+            if (duplicateChest) { setLoading('btn-save-std', false, 'Save'); return window.showToast(`Duplicate chest number ${duplicateChest.chestNo} for this team/category/gender`, 'error'); }
+            const batch = names.map(async name => addDoc(collection(db, "students"), { participantType: selectedType, name, team: team || '', category: cat, gender, chestNo: nextChest++ }));
+            await Promise.all(batch);
+            document.getElementById('inp-std-name-bulk').value = '';
+            window.showToast(`${names.length} ${typeDef.label}s Added`);
         } else {
             const name = document.getElementById('inp-std-name').value.trim();
-            if(!name) { setLoading('btn-save-std', false, 'Save'); return window.showToast('Enter student name', 'error'); }
-            const details=studentDetails('inp'),missing=enabledStudentFields().find(field=>field.key!=='name'&&field.required&&!details[field.key]);
-            if(missing) { setLoading('btn-save-std', false, 'Save'); return window.showToast(`${missing.label} is required`, 'error'); }
-            if(students.some(s => Number(s.chestNo) === Number(nextChest) && s.team === team && s.category === cat && studentGender(s) === gender)) { setLoading('btn-save-std', false, 'Save'); return window.showToast('Duplicate chest number for this team/category/gender', 'error'); }
-            await addDoc(collection(db, "students"), { name, team, category: cat, gender, chestNo: nextChest, details, photoData:document.getElementById('inp-std-photo')?.value||'' }); document.getElementById('inp-std-name').value = '';document.getElementById('inp-std-photo').value='';window.renderStudentCustomFields();window.refreshImageUploadPreviews?.(); window.showToast('Student Added');
+            if (!name) { setLoading('btn-save-std', false, 'Save'); return window.showToast(`Enter ${typeDef.label.toLowerCase()} name`, 'error'); }
+            const details = studentDetails('inp', selectedType);
+            const missing = enabledParticipantFields(selectedType).find(field => field.key !== 'name' && field.required && !details[field.key]);
+            if (missing) { setLoading('btn-save-std', false, 'Save'); return window.showToast(`${missing.label} is required`, 'error'); }
+            if (students.some(s => Number(s.chestNo) === Number(nextChest) && s.team === team && s.category === cat && studentGender(s) === gender)) { setLoading('btn-save-std', false, 'Save'); return window.showToast('Duplicate chest number for this team/category/gender', 'error'); }
+            await addDoc(collection(db, "students"), { participantType: selectedType, name, team: team || '', category: cat, gender, chestNo: nextChest, details, photoData: document.getElementById('inp-std-photo')?.value || '' });
+            document.getElementById('inp-std-name').value = '';
+            document.getElementById('inp-std-photo').value = '';
+            window.renderStudentCustomFields(selectedType);
+            window.refreshImageUploadPreviews?.();
+            window.showToast(`${typeDef.label} Added`);
         }
         window.previewChestNo();
     } catch(e) { console.error(e); window.showToast('Save Failed', 'error'); }
@@ -4876,9 +5007,50 @@ window.deleteStudent = async (id) => {
     } catch(error) { console.error('Student cascade deletion failed', error); window.showToast('Student deletion failed. No further action should be taken until checked.', 'error'); }
     finally { document.getElementById('app-loader')?.classList.add('hide'); }
 };
-window.openEditStudent = (id) => { const s = students.find(x => x.id === id); if(!s) return; document.getElementById('edit-std-id').value = s.id; document.getElementById('edit-std-name').value = s.name; document.getElementById('edit-std-team').value = s.team; document.getElementById('edit-std-cat').value = s.category; document.getElementById('edit-std-gender').value = studentGender(s); document.getElementById('edit-std-chest').value = s.chestNo; document.getElementById('edit-std-photo').value=s.photoData||'';const custom=document.getElementById('edit-student-custom-fields');if(custom)custom.innerHTML=enabledStudentFields().filter(field=>field.key!=='name').map(field=>fieldInput(field,'edit',s.details?.[field.key]||s[field.key]||'')).join('');window.refreshImageUploadPreviews?.(); document.getElementById('edit-student-modal').classList.remove('hidden'); };
+window.openEditStudent = (id) => {
+    const s = students.find(x => x.id === id);
+    if (!s) return;
+    const ptKey = s.participantType || 'student';
+    document.getElementById('edit-std-id').value = s.id;
+    document.getElementById('edit-std-name').value = s.name;
+    document.getElementById('edit-std-team').value = s.team;
+    document.getElementById('edit-std-cat').value = s.category;
+    document.getElementById('edit-std-gender').value = studentGender(s);
+    document.getElementById('edit-std-chest').value = s.chestNo;
+    document.getElementById('edit-std-photo').value = s.photoData || '';
+    const custom = document.getElementById('edit-student-custom-fields');
+    if (custom) custom.innerHTML = enabledParticipantFields(ptKey).filter(field => field.key !== 'name').map(field => fieldInput(field, 'edit', s.details?.[field.key] || s[field.key] || '')).join('');
+    window.refreshImageUploadPreviews?.();
+    document.getElementById('edit-student-modal').classList.remove('hidden');
+};
 window.closeEditStudentModal = () => document.getElementById('edit-student-modal').classList.add('hidden');
-document.getElementById('edit-student-form')?.addEventListener('submit', async (e) => { e.preventDefault(); const id = document.getElementById('edit-std-id').value,details=studentDetails('edit'); const d = { name: document.getElementById('edit-std-name').value.trim(), team: document.getElementById('edit-std-team').value, category: document.getElementById('edit-std-cat').value, gender: document.getElementById('edit-std-gender').value, chestNo: normalizeChestCode(document.getElementById('edit-std-chest').value), details, photoData:document.getElementById('edit-std-photo').value||'' }; if(!d.name || !d.team || !d.category || !d.gender || !d.chestNo) return window.showToast('Fill all student fields', 'error');if(!validChestCode(d.chestNo))return window.showToast('Chest No may contain only English letters, numbers, hyphens or underscores', 'error');const missing=enabledStudentFields().find(field=>field.key!=='name'&&field.required&&!details[field.key]);if(missing)return window.showToast(`${missing.label} is required`,'error'); if(d.category === 'General') return window.showToast('General is for events only. Choose a student category.', 'error'); if(students.some(s => s.id !== id && normalizeChestCode(s.chestNo) === d.chestNo && s.team === d.team && s.category === d.category && studentGender(s) === d.gender)) return window.showToast('Duplicate chest number for this team/category/gender', 'error'); await updateDoc(doc(db, "students", id), d); window.closeEditStudentModal(); window.showToast('Updated'); });
+document.getElementById('edit-student-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('edit-std-id').value;
+    const s = students.find(x => x.id === id);
+    const ptKey = s?.participantType || 'student';
+    const typeDef = getParticipantTypeDefinition(ptKey);
+    const teamRequired = typeDef.teamAffiliated !== false;
+    const details = studentDetails('edit', ptKey);
+    const d = {
+        name: document.getElementById('edit-std-name').value.trim(),
+        team: document.getElementById('edit-std-team').value,
+        category: document.getElementById('edit-std-cat').value,
+        gender: document.getElementById('edit-std-gender').value,
+        chestNo: normalizeChestCode(document.getElementById('edit-std-chest').value),
+        details,
+        photoData: document.getElementById('edit-std-photo').value || ''
+    };
+    if (!d.name || (teamRequired && !d.team) || !d.category || !d.gender || !d.chestNo) return window.showToast('Fill all core fields', 'error');
+    if (!validChestCode(d.chestNo)) return window.showToast('Chest No may contain only English letters, numbers, hyphens or underscores', 'error');
+    const missing = enabledParticipantFields(ptKey).find(field => field.key !== 'name' && field.required && !details[field.key]);
+    if (missing) return window.showToast(`${missing.label} is required`, 'error');
+    if (d.category === 'General') return window.showToast('General is for events only. Choose a participant category.', 'error');
+    if (students.some(item => item.id !== id && normalizeChestCode(item.chestNo) === d.chestNo && item.team === d.team && item.category === d.category && studentGender(item) === d.gender)) return window.showToast('Duplicate chest number for this team/category/gender', 'error');
+    await updateDoc(doc(db, "students", id), d);
+    window.closeEditStudentModal();
+    window.showToast('Participant Updated');
+});
 
 const normalizeEventStage = (value) => {
     const v = String(value || '').trim().toLowerCase();
