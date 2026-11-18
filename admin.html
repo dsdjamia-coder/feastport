@@ -563,6 +563,39 @@
                 </div>
 
                 <div id="view-master-setup" class="tab-view max-w-6xl mx-auto space-y-5">
+                    <!-- Sticky Master Setup Subtabs Bar -->
+                    <nav class="sticky top-0 z-20 flex gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white/95 px-3 pt-2 pb-0 backdrop-blur shadow-xs" role="tablist" aria-label="Master Setup sections">
+                        <button type="button" data-admin-action="switch-master-section" data-section="overview" data-master-tab="overview" class="master-tab-btn flex items-center gap-2 border-b-2 border-indigo-600 px-4 py-2.5 text-xs font-black text-indigo-700 bg-indigo-50/70 rounded-t-xl transition-all whitespace-nowrap" aria-selected="true">
+                            <i data-lucide="compass" class="w-4 h-4 shrink-0 pointer-events-none"></i>
+                            <span>Overview &amp; Mode</span>
+                            <span data-master-tab-status="overview" class="ml-1 text-[11px] font-black text-emerald-600">✓</span>
+                        </button>
+                        <button type="button" data-admin-action="switch-master-section" data-section="people-registration" data-master-tab="people-registration" class="master-tab-btn flex items-center gap-2 border-b-2 border-transparent px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl transition-all whitespace-nowrap" aria-selected="false">
+                            <i data-lucide="users-round" class="w-4 h-4 shrink-0 pointer-events-none"></i>
+                            <span>People &amp; Registration</span>
+                            <span data-master-tab-status="people-registration" class="ml-1 text-[11px] font-black text-emerald-600">✓</span>
+                        </button>
+                        <button type="button" data-admin-action="switch-master-section" data-section="public-view" data-master-tab="public-view" class="master-tab-btn flex items-center gap-2 border-b-2 border-transparent px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl transition-all whitespace-nowrap" aria-selected="false">
+                            <i data-lucide="panels-top-left" class="w-4 h-4 shrink-0 pointer-events-none"></i>
+                            <span>Public View</span>
+                            <span data-master-tab-status="public-view" class="ml-1 text-[11px] font-black text-emerald-600">✓</span>
+                        </button>
+                        <button type="button" data-admin-action="switch-master-section" data-section="events-schedule" data-master-tab="events-schedule" class="master-tab-btn flex items-center gap-2 border-b-2 border-transparent px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl transition-all whitespace-nowrap" aria-selected="false">
+                            <i data-lucide="calendar-range" class="w-4 h-4 shrink-0 pointer-events-none"></i>
+                            <span>Events &amp; Schedule</span>
+                            <span data-master-tab-status="events-schedule" class="ml-1 text-[11px] font-black text-emerald-600">✓</span>
+                        </button>
+                        <button type="button" data-admin-action="switch-master-section" data-section="judging-scoring" data-master-tab="judging-scoring" class="master-tab-btn flex items-center gap-2 border-b-2 border-transparent px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl transition-all whitespace-nowrap" aria-selected="false">
+                            <i data-lucide="scale" class="w-4 h-4 shrink-0 pointer-events-none"></i>
+                            <span>Judging &amp; Scoring</span>
+                            <span data-master-tab-status="judging-scoring" class="ml-1 text-[11px] font-black text-emerald-600">✓</span>
+                        </button>
+                        <button type="button" data-admin-action="switch-master-section" data-section="review-activate" data-master-tab="review-activate" class="master-tab-btn flex items-center gap-2 border-b-2 border-transparent px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl transition-all whitespace-nowrap" aria-selected="false">
+                            <i data-lucide="shield-check" class="w-4 h-4 shrink-0 pointer-events-none"></i>
+                            <span>Review &amp; Activate</span>
+                            <span data-master-tab-status="review-activate" class="ml-1 text-[11px] font-black text-emerald-600">✓</span>
+                        </button>
+                    </nav>
                     <section data-master-section-container class="overflow-hidden rounded-2xl border border-indigo-100 bg-white shadow-sm"><div data-master-section="overview" class="flex flex-col gap-3 border-b bg-indigo-50 p-5 md:flex-row md:items-center md:justify-between"><div><h3 class="flex items-center gap-2 text-lg font-black text-slate-900"><i data-lucide="sliders-horizontal" class="h-5 w-5 text-indigo-600"></i> Master Setup</h3><p class="mt-1 text-xs font-bold text-slate-500">Choose how this fest operates. Disabled modules keep their data but disappear from every portal.</p></div><span class="rounded-xl bg-white px-4 py-2 text-xs font-black text-indigo-700">Changes apply after Save & Activate</span></div><div class="grid gap-4 p-5 md:grid-cols-2">
                         <section data-master-section="overview" class="md:col-span-2"><h4 class="flex items-center gap-2 font-black">Festival complexity profile <button data-admin-action="show-master-info" data-info="festival_profile" class="rounded-lg p-1 text-indigo-600" aria-label="Festival profile information"><i data-lucide="info" class="h-4 w-4"></i></button></h4><div class="mt-3 grid gap-3 md:grid-cols-3"><button data-admin-action="apply-event-profile" data-profile="basic" data-profile-card="basic" aria-pressed="false" class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b class="text-emerald-900">Basic</b><p class="mt-1 text-xs font-semibold text-emerald-700">Simple registration, program order and direct results.</p></button><button data-admin-action="apply-event-profile" data-profile="standard" data-profile-card="standard" aria-pressed="false" class="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-left"><b class="text-indigo-900">Standard</b><p class="mt-1 text-xs font-semibold text-indigo-700">Team festival with schedule, judges, points and grades.</p></button><button data-admin-action="apply-event-profile" data-profile="advanced" data-profile-card="advanced" aria-pressed="false" class="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-left"><b class="text-violet-900">Advanced</b><p class="mt-1 text-xs font-semibold text-violet-700">Hybrid participants, per-event methods and advanced scoring.</p></button></div></section>
                         <label data-master-section="overview" class="input-group"><span class="input-label">Quick preset</span><select id="master-preset" data-admin-change="apply-master-preset" class="text-input"><option value="school_team_fest">School Team Fest</option><option value="simple_direct_fest">Simple Direct Result Fest</option><option value="open_registration_fest">Open Registration Fest</option><option value="hybrid_community_fest">Hybrid Community Fest</option><option value="custom">Custom</option></select></label>
