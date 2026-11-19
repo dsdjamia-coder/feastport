@@ -720,6 +720,8 @@ document.addEventListener('click', (event) => {
         'download-team-id-cards': () => window.downloadTeamIdCards(),
         'team-id-prev-page': () => window.teamIdPrevPage(),
         'team-id-next-page': () => window.teamIdNextPage(),
+        'toggle-team-id-customizer': () => window.toggleTeamIdCustomizer(),
+        'reset-team-id-template': () => window.resetTeamIdTemplate(),
         'add-custom-landing-link': () => window.addCustomLandingLink(),
         'remove-custom-landing-link': () => window.removeCustomLandingLink(d.index),
         'save-access-user': () => window.saveAccessUser(),
@@ -3384,15 +3386,152 @@ const teamIdMemberEvents = member => {
     memberRegs.forEach(r => {
         const ev = events.find(e => e.id === r.eventId);
         if (ev && !map.has(ev.id)) {
+            const timeStr = ev.time ? (ev.scheduleDate ? `${shortScheduleDate(ev.scheduleDate)} • ${ev.time}` : ev.time) : (ev.scheduleStatus === 'scheduled' ? 'Scheduled' : '');
             map.set(ev.id, {
                 id: ev.id,
                 name: ev.name || 'Event',
                 category: ev.category || member.category || 'General',
-                stage: ev.scheduleStage || ev.stage || (ev.type === 'Off-Stage' ? 'Off-Stage' : 'Stage')
+                stage: ev.scheduleStage || ev.stage || (ev.type === 'Off-Stage' ? 'Off-Stage' : 'Stage'),
+                time: timeStr
             });
         }
     });
     return Array.from(map.values());
+};
+
+const TEAM_ID_TEMPLATE_KEY = 'fest_team_id_template_config';
+const TEAM_ID_TEMPLATE_DEFAULTS = {
+    photoRadius: 90,
+    nameSize: 30,
+    showChest: true,
+    chestStyle: 'number_only',
+    chestSize: 44,
+    showTeam: true,
+    showCategory: true,
+    showClass: true,
+    showGender: true,
+    showStatus: true,
+    labelSize: 11,
+    valueSize: 17,
+    showEvents: true,
+    eventsTitle: 'REGISTERED EVENTS',
+    eventsTitleSize: 11,
+    eventNameSize: 12,
+    eventMetaSize: 10,
+    showTime: true,
+    showFooter: true,
+    festSize: 12
+};
+
+const loadTeamIdTemplate = () => {
+    try {
+        const saved = localStorage.getItem(TEAM_ID_TEMPLATE_KEY);
+        if (saved) return { ...TEAM_ID_TEMPLATE_DEFAULTS, ...JSON.parse(saved) };
+    } catch (e) {}
+    return { ...TEAM_ID_TEMPLATE_DEFAULTS };
+};
+
+let currentTeamIdTemplate = loadTeamIdTemplate();
+
+const saveTeamIdTemplate = tmpl => {
+    try {
+        localStorage.setItem(TEAM_ID_TEMPLATE_KEY, JSON.stringify(tmpl));
+    } catch (e) {}
+};
+
+const syncTeamIdCustomizerUI = tmpl => {
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    const setChecked = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
+
+    setVal('team-id-tmpl-photo-radius', tmpl.photoRadius);
+    const rBadge = document.getElementById('team-id-val-photo-radius');
+    if (rBadge) rBadge.textContent = `${tmpl.photoRadius} px`;
+
+    setVal('team-id-tmpl-name-size', tmpl.nameSize);
+    setChecked('team-id-tmpl-show-chest', tmpl.showChest);
+    setVal('team-id-tmpl-chest-style', tmpl.chestStyle);
+    setVal('team-id-tmpl-chest-size', tmpl.chestSize);
+
+    setChecked('team-id-tmpl-show-team', tmpl.showTeam);
+    setChecked('team-id-tmpl-show-category', tmpl.showCategory);
+    setChecked('team-id-tmpl-show-class', tmpl.showClass);
+    setChecked('team-id-tmpl-show-gender', tmpl.showGender);
+    setChecked('team-id-tmpl-show-status', tmpl.showStatus);
+    setVal('team-id-tmpl-label-size', tmpl.labelSize);
+    setVal('team-id-tmpl-value-size', tmpl.valueSize);
+
+    setChecked('team-id-tmpl-show-events', tmpl.showEvents);
+    setVal('team-id-tmpl-events-title', tmpl.eventsTitle);
+    setVal('team-id-tmpl-events-title-size', tmpl.eventsTitleSize);
+    setVal('team-id-tmpl-event-name-size', tmpl.eventNameSize);
+    setVal('team-id-tmpl-event-meta-size', tmpl.eventMetaSize);
+    setChecked('team-id-tmpl-show-time', tmpl.showTime);
+
+    setChecked('team-id-tmpl-show-footer', tmpl.showFooter);
+    setVal('team-id-tmpl-fest-size', tmpl.festSize);
+};
+
+const readTeamIdTemplateFromUI = () => {
+    const getVal = (id, fallback) => {
+        const el = document.getElementById(id);
+        return el ? el.value : fallback;
+    };
+    const getNum = (id, fallback) => {
+        const el = document.getElementById(id);
+        const num = Number(el?.value);
+        return Number.isFinite(num) ? num : fallback;
+    };
+    const getChecked = (id, fallback) => {
+        const el = document.getElementById(id);
+        return el ? el.checked : fallback;
+    };
+
+    const tmpl = {
+        photoRadius: getNum('team-id-tmpl-photo-radius', TEAM_ID_TEMPLATE_DEFAULTS.photoRadius),
+        nameSize: getNum('team-id-tmpl-name-size', TEAM_ID_TEMPLATE_DEFAULTS.nameSize),
+        showChest: getChecked('team-id-tmpl-show-chest', TEAM_ID_TEMPLATE_DEFAULTS.showChest),
+        chestStyle: getVal('team-id-tmpl-chest-style', TEAM_ID_TEMPLATE_DEFAULTS.chestStyle),
+        chestSize: getNum('team-id-tmpl-chest-size', TEAM_ID_TEMPLATE_DEFAULTS.chestSize),
+        showTeam: getChecked('team-id-tmpl-show-team', TEAM_ID_TEMPLATE_DEFAULTS.showTeam),
+        showCategory: getChecked('team-id-tmpl-show-category', TEAM_ID_TEMPLATE_DEFAULTS.showCategory),
+        showClass: getChecked('team-id-tmpl-show-class', TEAM_ID_TEMPLATE_DEFAULTS.showClass),
+        showGender: getChecked('team-id-tmpl-show-gender', TEAM_ID_TEMPLATE_DEFAULTS.showGender),
+        showStatus: getChecked('team-id-tmpl-show-status', TEAM_ID_TEMPLATE_DEFAULTS.showStatus),
+        labelSize: getNum('team-id-tmpl-label-size', TEAM_ID_TEMPLATE_DEFAULTS.labelSize),
+        valueSize: getNum('team-id-tmpl-value-size', TEAM_ID_TEMPLATE_DEFAULTS.valueSize),
+        showEvents: getChecked('team-id-tmpl-show-events', TEAM_ID_TEMPLATE_DEFAULTS.showEvents),
+        eventsTitle: getVal('team-id-tmpl-events-title', TEAM_ID_TEMPLATE_DEFAULTS.eventsTitle).trim() || 'REGISTERED EVENTS',
+        eventsTitleSize: getNum('team-id-tmpl-events-title-size', TEAM_ID_TEMPLATE_DEFAULTS.eventsTitleSize),
+        eventNameSize: getNum('team-id-tmpl-event-name-size', TEAM_ID_TEMPLATE_DEFAULTS.eventNameSize),
+        eventMetaSize: getNum('team-id-tmpl-event-meta-size', TEAM_ID_TEMPLATE_DEFAULTS.eventMetaSize),
+        showTime: getChecked('team-id-tmpl-show-time', TEAM_ID_TEMPLATE_DEFAULTS.showTime),
+        showFooter: getChecked('team-id-tmpl-show-footer', TEAM_ID_TEMPLATE_DEFAULTS.showFooter),
+        festSize: getNum('team-id-tmpl-fest-size', TEAM_ID_TEMPLATE_DEFAULTS.festSize)
+    };
+    currentTeamIdTemplate = tmpl;
+    saveTeamIdTemplate(tmpl);
+    return tmpl;
+};
+
+window.resetTeamIdTemplate = () => {
+    currentTeamIdTemplate = { ...TEAM_ID_TEMPLATE_DEFAULTS };
+    saveTeamIdTemplate(currentTeamIdTemplate);
+    syncTeamIdCustomizerUI(currentTeamIdTemplate);
+    window.renderTeamIdPreview();
+    window.showToast('Template reset to defaults');
+};
+
+window.toggleTeamIdCustomizer = () => {
+    const panel = document.getElementById('team-id-customizer-panel');
+    if (!panel) return;
+    panel.classList.toggle('hidden');
+    const btn = document.getElementById('btn-toggle-team-id-customizer');
+    if (btn) {
+        const isHidden = panel.classList.contains('hidden');
+        btn.classList.toggle('bg-slate-700', isHidden);
+        btn.classList.toggle('bg-indigo-600', !isHidden);
+    }
+    window.lucide?.createIcons?.();
 };
 
 const teamIdOptions=()=>{
@@ -3400,7 +3539,6 @@ const teamIdOptions=()=>{
           orientation=document.getElementById('team-id-orientation')?.value||'portrait',
           base=teamIdPageSizes[size]||teamIdPageSizes.A4,
           page=orientation==='landscape'?{w:base.h,h:base.w}:{...base},
-          fontScale=Number(document.getElementById('team-id-font-scale')?.value||100),
           previewLimitVal=document.getElementById('team-id-preview-limit')?.value||'5',
           previewLimit=previewLimitVal==='all'?Infinity:Number(previewLimitVal||5);
     return {
@@ -3412,13 +3550,12 @@ const teamIdOptions=()=>{
         cardH:Number(document.getElementById('team-id-card-height')?.value||130),
         gap:Number(document.getElementById('team-id-gap')?.value||0),
         margin:Number(document.getElementById('team-id-margin')?.value||0),
-        fontScale,
         previewLimitVal,
         previewLimit
     };
 };
 
-const TEAM_ID_DEFAULTS={size:'A4',orientation:'portrait',cardW:90,cardH:130,gap:0,margin:0,fontScale:100,previewLimit:'5'};
+const TEAM_ID_DEFAULTS={size:'A4',orientation:'portrait',cardW:90,cardH:130,gap:0,margin:0,previewLimit:'5'};
 
 const resetTeamIdControls=()=>{
     [
@@ -3428,7 +3565,6 @@ const resetTeamIdControls=()=>{
         ['team-id-card-height',TEAM_ID_DEFAULTS.cardH],
         ['team-id-gap',TEAM_ID_DEFAULTS.gap],
         ['team-id-margin',TEAM_ID_DEFAULTS.margin],
-        ['team-id-font-scale',TEAM_ID_DEFAULTS.fontScale],
         ['team-id-preview-limit',TEAM_ID_DEFAULTS.previewLimit]
     ].forEach(([id,value])=>{
         const el=document.getElementById(id);
@@ -3463,8 +3599,9 @@ const splitSvgName=name=>{
     return(lines.length?lines:['Member']).slice(0,2);
 };
 
-const teamIdSvg=(member,team,color,header,logo,opts)=>{
+const teamIdSvg=(member,team,color,header,logo,opts,tmpl)=>{
     opts=opts||teamIdOptions();
+    tmpl=tmpl||currentTeamIdTemplate||TEAM_ID_TEMPLATE_DEFAULTS;
     const details=teamIdDetails(member),
           nameLines=splitSvgName(member.name||'Member'),
           chest=xmlEscape(member.chestNo||''),
@@ -3479,59 +3616,125 @@ const teamIdSvg=(member,team,color,header,logo,opts)=>{
     // Calculate aspect ratio and proportional scaling
     const svgW = 600;
     const svgH = Math.max(760, Math.round(svgW * (opts.cardH / opts.cardW)));
-    const autoScale = Math.min(opts.cardW / 90, opts.cardH / 130);
-    const manualScale = (opts.fontScale || 100) / 100;
-    const scale = Math.max(0.65, Math.min(1.4, autoScale * manualScale));
+    const dimScale = Math.min(opts.cardW / 90, opts.cardH / 130);
 
-    const headerH = Math.min(220, Math.round(svgH * 0.25));
-    const photoR = Math.min(95, Math.round(90 * scale));
-    const photoY = headerH - Math.round(photoR * 0.2);
+    const headerH = Math.max(160, Math.min(240, Math.round(svgH * 0.24)));
+    const photoR = Math.max(38, Math.round(tmpl.photoRadius * dimScale));
+    const photoY = headerH - Math.round(photoR * 0.18);
 
-    const nameY1 = photoY + photoR + Math.round(36 * scale);
-    const nameY2 = nameY1 + Math.round(32 * scale);
-    const chestY = (nameLines.length > 1 ? nameY2 : nameY1) + Math.round(44 * scale);
+    const nameSize = Math.max(14, Math.round(tmpl.nameSize * dimScale));
+    const nameY1 = photoY + photoR + Math.round(nameSize * 1.15);
+    const nameY2 = nameY1 + Math.round(nameSize * 0.95);
+    let curY = nameLines.length > 1 ? nameY2 : nameY1;
 
-    const row1LabelY = chestY + Math.round(32 * scale);
-    const row1ValY = row1LabelY + Math.round(20 * scale);
-    const row2LabelY = row1ValY + Math.round(24 * scale);
-    const row2ValY = row2LabelY + Math.round(20 * scale);
+    let chestSvg = '';
+    if (tmpl.showChest) {
+        const chestSize = Math.max(18, Math.round(tmpl.chestSize * dimScale));
+        curY += Math.round(chestSize * 0.95);
+        const chestStr = tmpl.chestStyle === 'prefix' ? `CHEST: ${chest || '—'}` : (chest || '—');
+        chestSvg = `<text x="300" y="${curY}" font-family="Arial, sans-serif" font-size="${chestSize}" font-weight="900" fill="${xmlEscape(color)}" letter-spacing="1">${xmlEscape(chestStr)}</text>`;
+    }
 
-    const evBoxY = row2ValY + Math.round(18 * scale);
-    const footerH = 58;
-    const footerY = svgH - footerH;
-    const evBoxH = Math.max(90, (footerY - 16) - evBoxY);
+    const visibleFields = [];
+    if (tmpl.showTeam) visibleFields.push({ label: 'TEAM', val: teamText, color: color });
+    if (tmpl.showCategory) visibleFields.push({ label: 'CATEGORY', val: category });
+    if (tmpl.showClass) visibleFields.push({ label: 'CLASS', val: classText });
+    if (tmpl.showGender) visibleFields.push({ label: 'GENDER', val: gender });
+    if (tmpl.showStatus) visibleFields.push({ label: 'STATUS', val: 'Verified', color: '#059669' });
 
-    const rowH = Math.round(28 * scale);
-    const maxRows = Math.max(2, Math.min(5, Math.floor((evBoxH - 45) / Math.max(20, rowH))));
-    const showMore = eventsList.length > maxRows;
-    const displayCount = showMore ? maxRows - 1 : Math.min(eventsList.length, maxRows);
-    const displayList = eventsList.slice(0, displayCount);
-    const remaining = eventsList.length - displayCount;
-
-    const safeUid = String(member.id || member.chestNo || 'm').replace(/[^a-zA-Z0-9]/g, '_');
-
-    let eventsHtml = '';
-    if (!eventsList.length) {
-        eventsHtml = `<text x="300" y="${evBoxY + Math.round(evBoxH / 2) + 8}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${Math.round(13 * scale)}" font-weight="600" fill="#94a3b8">No registered events</text>`;
-    } else {
-        eventsHtml = displayList.map((ev, i) => {
-            const itemY = evBoxY + 54 + (i * rowH);
-            const truncName = ev.name.length > 26 ? ev.name.slice(0, 25) + '…' : ev.name;
-            return `
-                <circle cx="56" cy="${itemY - 4}" r="${Math.round(3.5 * scale)}" fill="${xmlEscape(color)}"/>
-                <text x="68" y="${itemY}" font-family="Arial, sans-serif" font-size="${Math.round(12 * scale)}" font-weight="700" fill="#0f172a">${xmlEscape(truncName)}</text>
-                <text x="546" y="${itemY}" text-anchor="end" font-family="Arial, sans-serif" font-size="${Math.round(10.5 * scale)}" font-weight="700" fill="#64748b">${xmlEscape(ev.category)} • ${xmlEscape(ev.stage)}</text>
-            `;
-        }).join('');
-        if (showMore) {
-            const moreY = evBoxY + 54 + (displayCount * rowH);
-            eventsHtml += `<text x="300" y="${moreY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${Math.round(11 * scale)}" font-weight="800" fill="${xmlEscape(color)}">+ ${remaining} MORE EVENT${remaining > 1 ? 'S' : ''}</text>`;
+    let detailsSvg = '';
+    if (visibleFields.length > 0) {
+        const lblSize = Math.max(7, Math.round(tmpl.labelSize * dimScale));
+        const valSize = Math.max(10, Math.round(tmpl.valueSize * dimScale));
+        curY += Math.round(lblSize * 1.6) + 10;
+        
+        const row1Count = Math.min(visibleFields.length <= 3 ? visibleFields.length : 3, visibleFields.length);
+        const row1 = visibleFields.slice(0, row1Count);
+        const xs1 = row1Count === 1 ? [300] : (row1Count === 2 ? [190, 410] : [125, 300, 475]);
+        
+        detailsSvg += row1.map((f, i) => `
+            <text x="${xs1[i]}" y="${curY}" font-family="Arial, sans-serif" font-size="${lblSize}" font-weight="900" fill="#94a3b8" letter-spacing="2">${xmlEscape(f.label)}</text>
+            <text x="${xs1[i]}" y="${curY + valSize + 2}" font-family="Arial, sans-serif" font-size="${valSize}" font-weight="900" fill="${f.color ? xmlEscape(f.color) : '#1f2937'}">${xmlEscape(f.val)}</text>
+        `).join('');
+        
+        curY += valSize + 2;
+        
+        if (visibleFields.length > 3) {
+            const row2 = visibleFields.slice(3);
+            const xs2 = row2.length === 1 ? [300] : [214, 386];
+            const row2LblY = curY + Math.round(lblSize * 1.5) + 6;
+            const row2ValY = row2LblY + valSize + 2;
+            detailsSvg += row2.map((f, i) => `
+                <text x="${xs2[i]}" y="${row2LblY}" font-family="Arial, sans-serif" font-size="${lblSize}" font-weight="900" fill="#94a3b8" letter-spacing="2">${xmlEscape(f.label)}</text>
+                <text x="${xs2[i]}" y="${row2ValY}" font-family="Arial, sans-serif" font-size="${valSize}" font-weight="900" fill="${f.color ? xmlEscape(f.color) : '#1f2937'}">${xmlEscape(f.val)}</text>
+            `).join('');
+            curY = row2ValY;
         }
     }
 
+    const footerH = tmpl.showFooter ? 58 : 0;
+    const footerY = svgH - footerH;
+
+    let eventsSvg = '';
+    if (tmpl.showEvents) {
+        const evBoxY = curY + 16;
+        const evBoxH = Math.max(70, (footerY - 12) - evBoxY);
+        const titleSize = Math.max(8, Math.round(tmpl.eventsTitleSize * dimScale));
+        const evNameSize = Math.max(9, Math.round(tmpl.eventNameSize * dimScale));
+        const evMetaSize = Math.max(8, Math.round(tmpl.eventMetaSize * dimScale));
+        const rowH = Math.max(26, tmpl.showTime ? (evNameSize + evMetaSize + 12) : (evNameSize + 12));
+        const maxRows = Math.max(1, Math.floor((evBoxH - titleSize - 20) / rowH));
+        const showMore = eventsList.length > maxRows;
+        const displayCount = showMore ? maxRows - 1 : Math.min(eventsList.length, maxRows);
+        const displayList = eventsList.slice(0, displayCount);
+        const remaining = eventsList.length - displayCount;
+
+        eventsSvg = `
+            <g>
+                <text x="52" y="${evBoxY + titleSize}" font-family="Arial, sans-serif" font-size="${titleSize}" font-weight="900" fill="#475569" letter-spacing="1.5">${xmlEscape(tmpl.eventsTitle.toUpperCase())}</text>
+                <line x1="50" y1="${evBoxY + titleSize + 8}" x2="550" y2="${evBoxY + titleSize + 8}" stroke="#e2e8f0" stroke-width="1.2"/>
+        `;
+
+        if (!eventsList.length) {
+            eventsSvg += `<text x="300" y="${evBoxY + titleSize + 36}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${Math.max(10, Math.round(12 * dimScale))}" font-weight="600" fill="#94a3b8">No registered events</text>`;
+        } else {
+            eventsSvg += displayList.map((ev, i) => {
+                const itemY = evBoxY + titleSize + 26 + (i * rowH);
+                const truncName = ev.name.length > 25 ? ev.name.slice(0, 24) + '…' : ev.name;
+                return `
+                    <circle cx="56" cy="${itemY - Math.round(evNameSize * 0.3)}" r="${Math.max(2.5, Math.round(3.5 * dimScale))}" fill="${xmlEscape(color)}"/>
+                    <text x="68" y="${itemY}" font-family="Arial, sans-serif" font-size="${evNameSize}" font-weight="700" fill="#0f172a">${xmlEscape(truncName)}</text>
+                    <text x="548" y="${itemY - (tmpl.showTime && ev.time ? 2 : 0)}" text-anchor="end" font-family="Arial, sans-serif" font-size="${evMetaSize}" font-weight="700" fill="#475569">${xmlEscape(ev.category)} • ${xmlEscape(ev.stage)}</text>
+                    ${tmpl.showTime && ev.time ? `<text x="548" y="${itemY + evMetaSize + 2}" text-anchor="end" font-family="Arial, sans-serif" font-size="${Math.max(7, evMetaSize - 1)}" font-weight="600" fill="#64748b">${xmlEscape(ev.time)}</text>` : ''}
+                `;
+            }).join('');
+
+            if (showMore) {
+                const moreY = evBoxY + titleSize + 26 + (displayCount * rowH);
+                eventsSvg += `<text x="300" y="${moreY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${Math.max(9, Math.round(10.5 * dimScale))}" font-weight="800" fill="${xmlEscape(color)}">+ ${remaining} MORE EVENT${remaining > 1 ? 'S' : ''}</text>`;
+            }
+        }
+
+        eventsSvg += `</g>`;
+    }
+
+    let footerSvg = '';
+    if (tmpl.showFooter) {
+        const festSize = Math.max(9, Math.round(tmpl.festSize * dimScale));
+        footerSvg = `
+            <rect y="${footerY}" width="600" height="${footerH}" fill="#000703"/>
+            <rect x="420" y="${footerY + 18}" width="180" height="${footerH - 18}" fill="${xmlEscape(color)}"/>
+            <path d="M520 ${footerY}h52l28 ${footerH}H548z" fill="#ffffff"/>
+            <rect x="140" y="${footerY + 12}" width="320" height="${footerH - 24}" rx="0" fill="#ffffff" opacity=".92"/>
+            <text x="300" y="${footerY + Math.round(footerH/2) + Math.round(festSize * 0.35)}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${festSize}" font-weight="900" fill="#0f172a" letter-spacing="2">${fest.toUpperCase()}</text>
+        `;
+    }
+
+    const safeUid = String(member.id || member.chestNo || 'm').replace(/[^a-zA-Z0-9]/g, '_');
+
     return `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="${svgH}" viewBox="0 0 600 ${svgH}">
 <defs>
-  <clipPath id="cardClip_${safeUid}"><rect width="600" height="${svgH}"/></clipPath>
+  <clipPath id="cardClip_${safeUid}"><rect width="600" height="${svgH}" rx="0"/></clipPath>
   <clipPath id="photoClip_${safeUid}"><circle cx="300" cy="${photoY}" r="${photoR}"/></clipPath>
   <filter id="shadow_${safeUid}" x="-20%" y="-20%" width="140%" height="140%">
     <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="${xmlEscape(color)}" flood-opacity=".32"/>
@@ -3545,7 +3748,7 @@ const teamIdSvg=(member,team,color,header,logo,opts)=>{
   <text x="85" y="${Math.round(svgH * 0.72)}" transform="rotate(-90 85 ${Math.round(svgH * 0.72)})" font-family="Arial, sans-serif" font-size="160" font-weight="900" fill="${xmlEscape(color)}" opacity=".10" letter-spacing="-5">${chest}</text>
   
   ${!header && logo ? `
-    <rect x="36" y="32" width="76" height="76" rx="18" fill="#ffffff" opacity=".96"/>
+    <rect x="36" y="32" width="76" height="76" rx="0" fill="#ffffff" opacity=".96"/>
     <image href="${xmlEscape(logo)}" x="44" y="40" width="60" height="60" preserveAspectRatio="xMidYMid meet"/>
   ` : ''}
   
@@ -3554,42 +3757,23 @@ const teamIdSvg=(member,team,color,header,logo,opts)=>{
   ${photo ? `
     <image href="${xmlEscape(photo)}" x="${300 - photoR}" y="${photoY - photoR}" width="${photoR * 2}" height="${photoR * 2}" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip_${safeUid})"/>
   ` : `
-    <text x="300" y="${photoY + Math.round(photoR * 0.35)}" text-anchor="middle" font-size="${Math.round(76 * scale)}" font-family="Arial, sans-serif" font-weight="900" fill="#111827">${xmlEscape(String(member.name||'?')[0])}</text>
+    <text x="300" y="${photoY + Math.round(photoR * 0.35)}" text-anchor="middle" font-size="${Math.round(photoR * 0.85)}" font-family="Arial, sans-serif" font-weight="900" fill="#111827">${xmlEscape(String(member.name||'?')[0])}</text>
   `}
   
   <g text-anchor="middle" font-family="Arial, sans-serif">
-    <text x="300" y="${nameY1}" font-size="${Math.round(30 * scale)}" font-weight="900" fill="#0f172a">${xmlEscape(nameLines[0])}</text>
-    ${nameLines[1] ? `<text x="300" y="${nameY2}" font-size="${Math.round(25 * scale)}" font-weight="900" fill="#0f172a">${xmlEscape(nameLines[1])}</text>` : ''}
-    <text x="300" y="${chestY}" font-size="${Math.round(44 * scale)}" font-weight="900" fill="${xmlEscape(color)}" letter-spacing="1">CHEST: ${xmlEscape(member.chestNo||'—')}</text>
-    
-    <text x="125" y="${row1LabelY}" font-size="${Math.round(11 * scale)}" font-weight="900" fill="#94a3b8" letter-spacing="2">TEAM</text>
-    <text x="125" y="${row1ValY}" font-size="${Math.round(17 * scale)}" font-weight="900" fill="${xmlEscape(color)}">${teamText}</text>
-    <text x="300" y="${row1LabelY}" font-size="${Math.round(11 * scale)}" font-weight="900" fill="#94a3b8" letter-spacing="2">CATEGORY</text>
-    <text x="300" y="${row1ValY}" font-size="${Math.round(17 * scale)}" font-weight="900" fill="#1f2937">${category}</text>
-    <text x="475" y="${row1LabelY}" font-size="${Math.round(11 * scale)}" font-weight="900" fill="#94a3b8" letter-spacing="2">CLASS</text>
-    <text x="475" y="${row1ValY}" font-size="${Math.round(17 * scale)}" font-weight="900" fill="#1f2937">${classText}</text>
-    
-    <text x="214" y="${row2LabelY}" font-size="${Math.round(11 * scale)}" font-weight="900" fill="#94a3b8" letter-spacing="2">GENDER</text>
-    <text x="214" y="${row2ValY}" font-size="${Math.round(17 * scale)}" font-weight="900" fill="#1f2937">${gender}</text>
-    <text x="386" y="${row2LabelY}" font-size="${Math.round(11 * scale)}" font-weight="900" fill="#94a3b8" letter-spacing="2">STATUS</text>
-    <text x="386" y="${row2ValY}" font-size="${Math.round(17 * scale)}" font-weight="900" fill="#059669">Verified</text>
+    <text x="300" y="${nameY1}" font-size="${nameSize}" font-weight="900" fill="#0f172a">${xmlEscape(nameLines[0])}</text>
+    ${nameLines[1] ? `<text x="300" y="${nameY2}" font-size="${Math.max(12, Math.round(nameSize * 0.85))}" font-weight="900" fill="#0f172a">${xmlEscape(nameLines[1])}</text>` : ''}
+    ${chestSvg}
+    ${detailsSvg}
   </g>
   
-  <rect x="34" y="${evBoxY}" width="532" height="${evBoxH}" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"/>
-  <text x="52" y="${evBoxY + 24}" font-family="Arial, sans-serif" font-size="${Math.round(11 * scale)}" font-weight="900" fill="#475569" letter-spacing="1.5">REGISTERED EVENTS (${eventsList.length})</text>
-  <line x1="50" y1="${evBoxY + 33}" x2="550" y2="${evBoxY + 33}" stroke="#e2e8f0" stroke-width="1.2"/>
-  ${eventsHtml}
-  
-  <rect y="${footerY}" width="600" height="${footerH}" fill="#000703"/>
-  <rect x="420" y="${footerY + 18}" width="180" height="${footerH - 18}" fill="${xmlEscape(color)}"/>
-  <path d="M520 ${footerY}h52l28 ${footerH}H548z" fill="#ffffff"/>
-  <rect x="140" y="${footerY + 12}" width="320" height="${footerH - 24}" rx="${Math.round((footerH - 24)/2)}" fill="#ffffff" opacity=".92"/>
-  <text x="300" y="${footerY + Math.round(footerH/2) + 5}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="900" fill="#0f172a" letter-spacing="2">${fest.toUpperCase()}</text>
+  ${eventsSvg}
+  ${footerSvg}
 </g>
 </svg>`;
 };
 
-const teamIdPreviewCard=(member,team,color,header,logo,opts)=>`<img src="${dataUrlForSvg(teamIdSvg(member,team,color,header,logo,opts))}" class="block shadow-md rounded-lg" style="width:100%;height:100%;object-fit:contain" alt="${escapeHtml(member.name||'ID card')}">`;
+const teamIdPreviewCard=(member,team,color,header,logo,opts,tmpl)=>`<img src="${dataUrlForSvg(teamIdSvg(member,team,color,header,logo,opts,tmpl))}" class="block shadow-md" style="width:100%;height:100%;object-fit:contain;border-radius:0px;" alt="${escapeHtml(member.name||'ID card')}">`;
 
 const svgToPng=svg=>new Promise((resolve,reject)=>{
     const image=new Image();
@@ -3614,6 +3798,7 @@ const svgToPng=svg=>new Promise((resolve,reject)=>{
 window.openTeamIdCards=team=>{
     teamIdCardTeam=team;
     resetTeamIdControls();
+    syncTeamIdCustomizerUI(currentTeamIdTemplate);
     const title=document.getElementById('team-id-card-title');
     if(title) title.textContent=`${teamLabel(team)} ID Cards`;
     const modal = document.getElementById('team-id-card-modal');
@@ -3621,6 +3806,7 @@ window.openTeamIdCards=team=>{
         modal.classList.remove('hidden');
         modal.classList.add('flex');
     }
+    window.lucide?.createIcons?.();
     renderTeamIdPreview();
 };
 
@@ -3653,6 +3839,7 @@ window.renderTeamIdPreview=()=>{
     const box=document.getElementById('team-id-preview');
     if(!box||!teamIdCardTeam) return;
     const opts=teamIdOptions(),
+          tmpl=readTeamIdTemplateFromUI(),
           layout=teamIdLayout(opts),
           members=teamIdMembers(teamIdCardTeam),
           color=teamColors[teamIdCardTeam]||'#4f46e5',
@@ -3693,7 +3880,7 @@ window.renderTeamIdPreview=()=>{
 
     const summaryEl = document.getElementById('team-id-preview-summary');
     if (summaryEl) {
-        summaryEl.innerHTML=`${opts.size.toUpperCase()} ${opts.orientation} • ${opts.cardW}×${opts.cardH}mm card • printable ${Math.round(layout.usableW)}×${Math.round(layout.usableH)}mm • ${layout.cols}×${layout.rows} = ${layout.perPage} cards/sheet • ${members.length} total team members • Scale: ${opts.fontScale}%`;
+        summaryEl.innerHTML=`${opts.size.toUpperCase()} ${opts.orientation} • ${opts.cardW}×${opts.cardH}mm card • printable ${Math.round(layout.usableW)}×${Math.round(layout.usableH)}mm • ${layout.cols}×${layout.rows} = ${layout.perPage} cards/sheet • ${members.length} total team members`;
     }
 
     if(!layout.valid){
@@ -3707,7 +3894,7 @@ window.renderTeamIdPreview=()=>{
         <div class="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             ${warnings.map(text=>`<div class="rounded-xl border ${String(text).startsWith('No members')?'border-red-200 bg-red-50 text-red-700':'border-amber-200 bg-amber-50 text-amber-800'} p-3 text-xs font-black">${escapeHtml(text)}</div>`).join('')}
         </div>
-        <div class="overflow-auto rounded-3xl border border-slate-200 bg-slate-100 p-4 shadow-inner flex flex-wrap gap-6 justify-center">
+        <div class="overflow-auto border border-slate-200 bg-slate-100 p-4 shadow-inner flex flex-wrap gap-6 justify-center" style="border-radius:0px;">
             ${Array.from({length:previewSheetPages},(_,sheetIdx)=>{
                 const sheetMembers=previewMembers.slice(sheetIdx*layout.perPage,(sheetIdx+1)*layout.perPage);
                 return `
@@ -3716,8 +3903,8 @@ window.renderTeamIdPreview=()=>{
                             <span>Preview Sheet ${sheetIdx+1} (${sheetMembers.length} card${sheetMembers.length===1?'':'s'})</span>
                             <span class="text-[11px] text-slate-400 font-bold">${opts.cardW}×${opts.cardH} mm</span>
                         </div>
-                        <div class="relative bg-white shadow-xl rounded-md transition-all" style="width:${opts.page.w}mm;height:${opts.page.h}mm;padding:${opts.margin}mm;box-sizing:border-box;display:grid;grid-template-columns:repeat(${layout.cols},${opts.cardW}mm);grid-auto-rows:${opts.cardH}mm;gap:${opts.gap}mm;align-content:start;justify-content:start">
-                            ${sheetMembers.map(member=>`<div style="width:${opts.cardW}mm;height:${opts.cardH}mm" class="overflow-hidden rounded">${teamIdPreviewCard(member,teamIdCardTeam,color,header,logo,opts)}</div>`).join('')}
+                        <div class="relative bg-white shadow-xl transition-all" style="width:${opts.page.w}mm;height:${opts.page.h}mm;padding:${opts.margin}mm;box-sizing:border-box;border-radius:0px;display:grid;grid-template-columns:repeat(${layout.cols},${opts.cardW}mm);grid-auto-rows:${opts.cardH}mm;gap:${opts.gap}mm;align-content:start;justify-content:start">
+                            ${sheetMembers.map(member=>`<div style="width:${opts.cardW}mm;height:${opts.cardH}mm;border-radius:0px;" class="overflow-hidden bg-white shadow-xs border border-slate-200">${teamIdPreviewCard(member,teamIdCardTeam,color,header,logo,opts,tmpl)}</div>`).join('')}
                         </div>
                     </section>
                 `;
@@ -3734,6 +3921,7 @@ window.downloadTeamIdCards=async()=>{
     const { jsPDF }=window.jspdf||{};
     if(!jsPDF) return window.showToast('PDF library not ready','error');
     const opts=teamIdOptions(),layout=teamIdLayout(opts),members=teamIdMembers(teamIdCardTeam);
+    const tmpl=readTeamIdTemplateFromUI();
     if(!members.length) return window.showToast('No members found for this team','error');
     if(!layout.valid) return window.showToast('Card size, margin or gap does not fit inside the selected page','error');
 
@@ -3750,18 +3938,57 @@ window.downloadTeamIdCards=async()=>{
               row=Math.floor(pageIndex/layout.cols),
               x=opts.margin+col*(opts.cardW+opts.gap),
               y=opts.margin+row*(opts.cardH+opts.gap),
-              png=await svgToPng(teamIdSvg(members[i],teamIdCardTeam,color,header,logo,opts));
+              png=await svgToPng(teamIdSvg(members[i],teamIdCardTeam,color,header,logo,opts,tmpl));
         docPdf.addImage(png,'PNG',x,y,opts.cardW,opts.cardH,undefined,'FAST');
     }
     docPdf.save(`${teamIdCardTeam}-ID-Cards-${opts.size}-${opts.orientation}.pdf`);
     window.showToast(`Downloaded all ${members.length} ID cards successfully!`);
 };
 
-['team-id-page-size','team-id-orientation','team-id-card-width','team-id-card-height','team-id-gap','team-id-margin','team-id-font-scale','team-id-preview-limit'].forEach(id=>{
+const teamIdBaseControlIds = ['team-id-page-size','team-id-orientation','team-id-card-width','team-id-card-height','team-id-gap','team-id-margin','team-id-preview-limit'];
+teamIdBaseControlIds.forEach(id=>{
     const el = document.getElementById(id);
     if (el) {
         el.addEventListener('input', () => { if (id === 'team-id-preview-limit') teamIdCurrentPage = 1; window.renderTeamIdPreview(); });
         el.addEventListener('change', () => { if (id === 'team-id-preview-limit') teamIdCurrentPage = 1; window.renderTeamIdPreview(); });
+    }
+});
+
+const teamIdTemplateControlIds = [
+    'team-id-tmpl-photo-radius',
+    'team-id-tmpl-name-size',
+    'team-id-tmpl-show-chest',
+    'team-id-tmpl-chest-style',
+    'team-id-tmpl-chest-size',
+    'team-id-tmpl-show-team',
+    'team-id-tmpl-show-category',
+    'team-id-tmpl-show-class',
+    'team-id-tmpl-show-gender',
+    'team-id-tmpl-show-status',
+    'team-id-tmpl-label-size',
+    'team-id-tmpl-value-size',
+    'team-id-tmpl-show-events',
+    'team-id-tmpl-events-title',
+    'team-id-tmpl-events-title-size',
+    'team-id-tmpl-event-name-size',
+    'team-id-tmpl-event-meta-size',
+    'team-id-tmpl-show-time',
+    'team-id-tmpl-show-footer',
+    'team-id-tmpl-fest-size'
+];
+teamIdTemplateControlIds.forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) {
+        const handler = () => {
+            if (id === 'team-id-tmpl-photo-radius') {
+                const badge = document.getElementById('team-id-val-photo-radius');
+                if (badge) badge.textContent = `${el.value} px`;
+            }
+            readTeamIdTemplateFromUI();
+            window.renderTeamIdPreview();
+        };
+        el.addEventListener('input', handler);
+        el.addEventListener('change', handler);
     }
 });
 

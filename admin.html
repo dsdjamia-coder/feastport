@@ -2441,8 +2441,8 @@
             </header>
 
             <!-- Controls Toolbar -->
-            <div class="shrink-0 border-b border-slate-200 bg-slate-50/80 p-4">
-                <div class="grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-8">
+            <div class="shrink-0 border-b border-slate-200 bg-slate-50/90 px-4 py-3">
+                <div class="grid gap-2.5 grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 items-end">
                     <label class="text-[11px] font-black uppercase text-slate-500">
                         Page size
                         <select id="team-id-page-size" class="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
@@ -2475,17 +2475,6 @@
                         <input id="team-id-margin" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
                     </label>
                     <label class="text-[11px] font-black uppercase text-indigo-700">
-                        Font Scale
-                        <select id="team-id-font-scale" class="mt-1 w-full rounded-xl border border-indigo-200 bg-indigo-50/40 p-2 text-xs font-bold text-indigo-950">
-                            <option value="80">80% (Compact)</option>
-                            <option value="90">90%</option>
-                            <option value="100" selected>100% (Auto)</option>
-                            <option value="110">110%</option>
-                            <option value="120">120% (Large)</option>
-                            <option value="130">130% (XL)</option>
-                        </select>
-                    </label>
-                    <label class="text-[11px] font-black uppercase text-indigo-700">
                         Cards per View
                         <select id="team-id-preview-limit" class="mt-1 w-full rounded-xl border border-indigo-200 bg-indigo-50/40 p-2 text-xs font-bold text-indigo-950">
                             <option value="5" selected>5 Cards</option>
@@ -2495,28 +2484,172 @@
                             <option value="all">All Cards</option>
                         </select>
                     </label>
+                    <div class="flex items-end">
+                        <button type="button" data-admin-action="toggle-team-id-customizer" id="btn-toggle-team-id-customizer" class="w-full flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white p-2 text-xs font-bold transition active:scale-95 shadow-2xs">
+                            <i data-lucide="sliders" class="h-4 w-4 shrink-0"></i>
+                            <span class="truncate">Customize Template</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Content Area: Pagination + Summary + Preview -->
-            <div class="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
-                <!-- Pagination Bar -->
-                <div id="team-id-pagination-bar" class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xs">
-                    <div class="flex items-center gap-2">
-                        <span class="grid h-7 w-7 place-items-center rounded-xl bg-indigo-50 text-indigo-600 font-black text-xs">
-                            <i data-lucide="users" class="h-4 w-4"></i>
-                        </span>
-                        <span id="team-id-pagination-info" class="text-xs font-black text-slate-700">Showing 1–5 of 0 members</span>
+            <!-- Main Studio Workspace (Split View: Customizer Panel + Live Preview) -->
+            <div class="min-h-0 flex-1 flex flex-col lg:flex-row overflow-hidden bg-slate-100">
+                <!-- Left: Collapsible Template Customizer Panel -->
+                <aside id="team-id-customizer-panel" class="w-full lg:w-96 shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200 bg-white overflow-y-auto p-4 space-y-4 max-h-[45vh] lg:max-h-none shadow-xs">
+                    <div class="flex items-center justify-between border-b pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="grid h-7 w-7 place-items-center rounded-lg bg-indigo-50 text-indigo-600 font-black text-xs">
+                                <i data-lucide="palette" class="h-4 w-4"></i>
+                            </span>
+                            <h3 class="text-xs font-black uppercase text-slate-800 tracking-wide">Template Customizer</h3>
+                        </div>
+                        <button type="button" data-admin-action="reset-team-id-template" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 underline">Reset Defaults</button>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button type="button" data-admin-action="team-id-prev-page" id="btn-team-id-prev" class="rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3.5 py-1.5 text-xs font-bold text-slate-700 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
-                        <span id="team-id-pagination-page" class="text-xs font-black text-indigo-700 px-2">Page 1 of 1</span>
-                        <button type="button" data-admin-action="team-id-next-page" id="btn-team-id-next" class="rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3.5 py-1.5 text-xs font-bold text-slate-700 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
-                    </div>
-                </div>
 
-                <p id="team-id-preview-summary" class="rounded-2xl bg-slate-900 p-3 text-center text-xs font-black text-white shadow-2xs"></p>
-                <div id="team-id-preview"></div>
+                    <!-- 1. Photo Radius -->
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-3 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[11px] font-black uppercase text-slate-600">Photo Radius</label>
+                            <span id="team-id-val-photo-radius" class="text-xs font-black text-indigo-600">90 px</span>
+                        </div>
+                        <input id="team-id-tmpl-photo-radius" type="range" min="50" max="130" value="90" class="w-full accent-indigo-600">
+                    </div>
+
+                    <!-- 2. Participant Identity & Chest -->
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-3 space-y-3">
+                        <span class="text-[11px] font-black uppercase text-slate-600 block">Identity &amp; Chest Number</span>
+                        <div>
+                            <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Name Font Size (pt)</label>
+                            <input id="team-id-tmpl-name-size" type="number" min="16" max="48" value="30" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                        </div>
+                        <div class="border-t border-slate-200/80 pt-2 space-y-2">
+                            <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                                <input id="team-id-tmpl-show-chest" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
+                                <span>Show Chest Number</span>
+                            </label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Chest Style</label>
+                                    <select id="team-id-tmpl-chest-style" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                        <option value="number_only" selected>101 (Number Only)</option>
+                                        <option value="prefix">CHEST: 101 (Prefix)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Chest Font Size</label>
+                                    <input id="team-id-tmpl-chest-size" type="number" min="20" max="64" value="44" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Details Fields Grid Toggles -->
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-3 space-y-3">
+                        <span class="text-[11px] font-black uppercase text-slate-600 block">Member Details Fields</span>
+                        <div class="grid grid-cols-2 gap-2 text-xs font-bold text-slate-700">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input id="team-id-tmpl-show-team" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
+                                <span>Team</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input id="team-id-tmpl-show-category" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
+                                <span>Category</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input id="team-id-tmpl-show-class" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
+                                <span>Class</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input id="team-id-tmpl-show-gender" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
+                                <span>Gender</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer col-span-2">
+                                <input id="team-id-tmpl-show-status" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
+                                <span>Status (Verified)</span>
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 border-t border-slate-200/80 pt-2">
+                            <div>
+                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Label Size (pt)</label>
+                                <input id="team-id-tmpl-label-size" type="number" min="8" max="16" value="11" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Value Size (pt)</label>
+                                <input id="team-id-tmpl-value-size" type="number" min="10" max="24" value="17" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Registered Events Section -->
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-3 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-black uppercase text-slate-600 block">Registered Events</span>
+                            <label class="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                                <input id="team-id-tmpl-show-events" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
+                                <span>Show</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Section Title (No Count)</label>
+                            <input id="team-id-tmpl-events-title" type="text" value="REGISTERED EVENTS" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800" placeholder="e.g. REGISTERED EVENTS">
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Title Size</label>
+                                <input id="team-id-tmpl-events-title-size" type="number" min="8" max="18" value="11" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Event Size</label>
+                                <input id="team-id-tmpl-event-name-size" type="number" min="9" max="20" value="12" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Meta Size</label>
+                                <input id="team-id-tmpl-event-meta-size" type="number" min="8" max="16" value="10" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                            </div>
+                        </div>
+                        <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer border-t border-slate-200/80 pt-2">
+                            <input id="team-id-tmpl-show-time" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
+                            <span>Show Scheduled Time Below Stage</span>
+                        </label>
+                    </div>
+
+                    <!-- 5. Footer Section -->
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-3 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-black uppercase text-slate-600 block">Fest Bottom Footer</span>
+                            <label class="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                                <input id="team-id-tmpl-show-footer" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
+                                <span>Show</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Fest Name Font Size</label>
+                            <input id="team-id-tmpl-fest-size" type="number" min="8" max="20" value="12" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Right: Content Area: Pagination + Summary + Preview -->
+                <main class="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+                    <!-- Pagination Bar -->
+                    <div id="team-id-pagination-bar" class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xs">
+                        <div class="flex items-center gap-2">
+                            <span class="grid h-7 w-7 place-items-center rounded-xl bg-indigo-50 text-indigo-600 font-black text-xs">
+                                <i data-lucide="users" class="h-4 w-4"></i>
+                            </span>
+                            <span id="team-id-pagination-info" class="text-xs font-black text-slate-700">Showing 1–5 of 0 members</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" data-admin-action="team-id-prev-page" id="btn-team-id-prev" class="rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3.5 py-1.5 text-xs font-bold text-slate-700 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
+                            <span id="team-id-pagination-page" class="text-xs font-black text-indigo-700 px-2">Page 1 of 1</span>
+                            <button type="button" data-admin-action="team-id-next-page" id="btn-team-id-next" class="rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3.5 py-1.5 text-xs font-bold text-slate-700 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+                        </div>
+                    </div>
+
+                    <p id="team-id-preview-summary" class="rounded-2xl bg-slate-900 p-3 text-center text-xs font-black text-white shadow-2xs"></p>
+                    <div id="team-id-preview"></div>
+                </main>
             </div>
 
             <!-- Footer Actions -->
