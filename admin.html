@@ -45,7 +45,42 @@
         .sidebar-closed { transform: translateX(-100%); }
         #sidebar-overlay { transition: opacity 0.3s ease-in-out; }
         .touch-target { min-height: 48px; }
-        select { appearance: auto; -webkit-appearance: menulist; padding-right: 2.5rem; }
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-color: #ffffff;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23475569' stroke-width='2'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3e%3c/path%3e%3c/svg%3e");
+            background-position: right 0.75rem center;
+            background-repeat: no-repeat;
+            background-size: 1rem 1rem;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            padding-left: 0.75rem;
+            padding-right: 2.25rem;
+            min-height: 2.5rem;
+            line-height: 1.35;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #0f172a;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.625rem;
+            box-sizing: border-box;
+            vertical-align: middle;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        select:focus {
+            border-color: #4f46e5;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+        select option {
+            background-color: #ffffff;
+            color: #0f172a;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
         .header-wrapper { position: sticky; top: 0; z-index: 40; padding: 16px 16px 0; pointer-events: none; }
         .app-header { pointer-events: auto; height: 64px; display: flex; align-items: center; padding: 0 20px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid rgba(255,255,255,0.5); width: 100%; transition: all 0.3s ease; }
         .header-title { font-size: 18px; font-weight: 800; color: #1e293b; letter-spacing: -0.025em; margin-left: 12px; }
@@ -402,11 +437,11 @@
                                 </div>
                             </div>
                             <div class="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-                                <select id="filter-std-type" data-admin-change="render-student-table" class="touch-target w-full sm:w-40 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 outline-none bg-white"><option value="">All Participant Types</option></select>
-                                <select id="filter-std-team" data-admin-change="render-student-table" class="touch-target w-full sm:w-40 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 outline-none select-team-filter bg-white"></select>
-                                <select id="filter-std-cat" data-admin-change="render-student-table" class="touch-target w-full sm:w-40 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 outline-none select-cat-filter-directory bg-white"></select>
-                                <select id="filter-std-class" data-admin-change="render-student-table" class="touch-target w-full sm:w-36 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 outline-none select-class-filter-directory bg-white"><option value="">All Classes</option></select>
-                                <select id="filter-std-gender" data-admin-change="render-student-table" class="touch-target w-full sm:w-36 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 outline-none bg-white"><option value="">All Gender</option><option value="Boys">Boys</option><option value="Girls">Girls</option></select>
+                                <select id="filter-std-type" data-admin-change="render-student-table" class="touch-target w-full sm:w-auto sm:min-w-[170px] border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none bg-white"><option value="">All Participant Types</option></select>
+                                <select id="filter-std-team" data-admin-change="render-student-table" class="touch-target w-full sm:w-auto sm:min-w-[150px] border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none select-team-filter bg-white"></select>
+                                <select id="filter-std-cat" data-admin-change="render-student-table" class="touch-target w-full sm:w-auto sm:min-w-[150px] border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none select-cat-filter-directory bg-white"></select>
+                                <select id="filter-std-class" data-admin-change="render-student-table" class="touch-target w-full sm:w-auto sm:min-w-[140px] border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none select-class-filter-directory bg-white"><option value="">All Classes</option></select>
+                                <select id="filter-std-gender" data-admin-change="render-student-table" class="touch-target w-full sm:w-auto sm:min-w-[140px] border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none bg-white"><option value="">All Gender</option><option value="Boys">Boys</option><option value="Girls">Girls</option></select>
                                 <button data-admin-action="export-csv" class="touch-target w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition shadow-sm shadow-emerald-500/20 active:scale-95"><i data-lucide="download" class="w-4 h-4"></i> Export</button>
                                 <button type="button" data-admin-action="switch-students-subtab" data-students-subtab="add" class="touch-target w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition shadow-sm shadow-indigo-500/20 active:scale-95"><i data-lucide="user-plus" class="w-4 h-4"></i> Add Participant</button>
                             </div>
@@ -837,7 +872,7 @@
                                             <i data-lucide="bookmark" class="h-3.5 w-3.5 text-indigo-600"></i> Quick Preset Bundle
                                         </label>
                                         <p class="text-[11px] font-medium text-slate-500 mb-2">Preload ready configurations for schools, colleges, sports or community meets.</p>
-                                        <select id="master-preset" data-admin-change="apply-master-preset" class="text-input h-9 text-xs font-bold">
+                                        <select id="master-preset" data-admin-change="apply-master-preset" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold bg-white text-slate-800 border-slate-300 w-full rounded-xl">
                                             <option value="school_team_fest">School Team Fest</option>
                                             <option value="sports_meet_fest">Annual Sports Meet</option>
                                             <option value="multi_tier_org_fest">Multi-Tier Championship</option>
@@ -852,7 +887,7 @@
                                             <i data-lucide="building-2" class="h-3.5 w-3.5 text-indigo-600"></i> Organisation Model
                                         </label>
                                         <p class="text-[11px] font-medium text-slate-500 mb-2">Controls whether participants compete under affiliated teams, independently, or both.</p>
-                                        <select id="master-organisation" class="text-input h-9 text-xs font-bold">
+                                        <select id="master-organisation" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold bg-white text-slate-800 border-slate-300 w-full rounded-xl">
                                             <option value="team">Team Managed (Houses, Colleges or Clubs)</option>
                                             <option value="open">Open Registration (Independent Participants)</option>
                                             <option value="hybrid">Hybrid (Teams with Open Entries)</option>
@@ -928,18 +963,18 @@
                                                 <i data-lucide="user-plus" class="h-3.5 w-3.5 text-indigo-600"></i> Add Custom Participant Type
                                             </h5>
                                             <div class="grid gap-2 sm:grid-cols-2">
-                                                <input id="master-new-participant-label" class="text-input h-9 text-xs font-bold" placeholder="Type Name (e.g. Parent, Staff, Alumni)">
-                                                <input id="master-new-participant-description" class="text-input h-9 text-xs" placeholder="Short description">
+                                                <input id="master-new-participant-label" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold rounded-xl" placeholder="Type Name (e.g. Parent, Staff, Alumni)">
+                                                <input id="master-new-participant-description" class="text-input min-h-[42px] py-2 px-3 text-xs rounded-xl" placeholder="Short description">
                                                 <div>
                                                     <label class="text-[10px] font-black uppercase text-slate-500 mb-1 block">Role Affiliation</label>
-                                                    <select id="master-new-participant-affiliation" class="text-input h-9 text-xs font-bold">
+                                                    <select id="master-new-participant-affiliation" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold bg-white text-slate-800 border-slate-300 w-full rounded-xl">
                                                         <option value="team">Team Member (Belongs to Team/House)</option>
                                                         <option value="open">Independent / Open Participant</option>
                                                     </select>
                                                 </div>
                                                 <div class="flex items-end">
                                                     <label class="hidden"><input type="checkbox" id="master-new-participant-team" checked class="h-4 w-4 rounded text-indigo-600"></label>
-                                                    <button data-admin-action="add-participant-type" class="w-full rounded-xl bg-indigo-600 px-4 py-2 h-9 text-xs font-black text-white shadow-sm hover:bg-indigo-700 transition active:scale-95 flex items-center justify-center gap-1.5"><i data-lucide="plus" class="h-3.5 w-3.5"></i> Add Custom Type</button>
+                                                    <button data-admin-action="add-participant-type" class="w-full rounded-xl bg-indigo-600 px-4 py-2 min-h-[42px] text-xs font-black text-white shadow-sm hover:bg-indigo-700 transition active:scale-95 flex items-center justify-center gap-1.5"><i data-lucide="plus" class="h-3.5 w-3.5"></i> Add Custom Type</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -1143,7 +1178,7 @@
                                             <i data-lucide="clock" class="h-3.5 w-3.5 text-indigo-600"></i> Time Schedule Engine
                                         </label>
                                         <p class="text-[11px] font-medium text-slate-500 mb-2">Choose schedule depth: basic sequencing or full multi-stage date/time scheduling.</p>
-                                        <select id="master-schedule" class="text-input h-9 text-xs font-bold">
+                                        <select id="master-schedule" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold bg-white text-slate-800 border-slate-300 w-full rounded-xl">
                                             <option value="disabled">Disabled (No Schedule)</option>
                                             <option value="basic">Basic Program Order</option>
                                             <option value="full">Full Date / Time / Stage</option>
@@ -1154,7 +1189,7 @@
                                             <i data-lucide="settings" class="h-3.5 w-3.5 text-indigo-600"></i> Event Management Mode
                                         </label>
                                         <p class="text-[11px] font-medium text-slate-500 mb-2">Controls event creation depth and field rule strictness.</p>
-                                        <select id="master-event-management" class="text-input h-9 text-xs font-bold">
+                                        <select id="master-event-management" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold bg-white text-slate-800 border-slate-300 w-full rounded-xl">
                                             <option value="basic">Basic</option>
                                             <option value="standard">Standard</option>
                                             <option value="advanced">Advanced</option>
@@ -1347,7 +1382,7 @@
                                             <i data-lucide="award" class="h-3.5 w-3.5 text-amber-600"></i> Judgement Requirement
                                         </label>
                                         <p class="text-[11px] font-medium text-slate-500 mb-2">Controls if scoresheets from judges are required before publishing results.</p>
-                                        <select id="master-judging" class="text-input h-9 text-xs font-bold">
+                                        <select id="master-judging" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold bg-white text-slate-800 border-slate-300 w-full rounded-xl">
                                             <option value="disabled">Disabled (Direct Scoring)</option>
                                             <option value="enabled">Required (Judge Scoring Desk)</option>
                                             <option value="optional">Optional per Event</option>
@@ -1358,7 +1393,7 @@
                                             <i data-lucide="git-pull-request" class="h-3.5 w-3.5 text-amber-600"></i> Result Workflow
                                         </label>
                                         <p class="text-[11px] font-medium text-slate-500 mb-2">Result publishing path from judging sheets to verified public board.</p>
-                                        <select id="master-results" class="text-input h-9 text-xs font-bold">
+                                        <select id="master-results" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold bg-white text-slate-800 border-slate-300 w-full rounded-xl">
                                             <option value="direct">Direct Publisher Entry</option>
                                             <option value="judged">Judge &rarr; Publisher Verification</option>
                                             <option value="hybrid">Hybrid per Event</option>
@@ -1369,7 +1404,7 @@
                                             <i data-lucide="trophy" class="h-3.5 w-3.5 text-amber-600"></i> Team Scoring
                                         </label>
                                         <p class="text-[11px] font-medium text-slate-500 mb-2">Whether points accumulate into house/team championship leaderboard.</p>
-                                        <select id="master-team-scoring" class="text-input h-9 text-xs font-bold">
+                                        <select id="master-team-scoring" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold bg-white text-slate-800 border-slate-300 w-full rounded-xl">
                                             <option value="disabled">Disabled</option>
                                             <option value="enabled">Enabled (Team Points)</option>
                                             <option value="per_event">Per Event Decision</option>
@@ -1394,7 +1429,7 @@
                                 </fieldset>
                                 <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
                                     <label class="block text-xs font-bold text-slate-700 mb-1">Direct Rank Grade Policy</label>
-                                    <select id="policy-direct-grade" class="text-input h-9 text-xs font-bold">
+                                    <select id="policy-direct-grade" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold bg-white text-slate-800 border-slate-300 w-full rounded-xl">
                                         <option value="">Select policy</option>
                                         <option value="disabled">Grade disabled</option>
                                         <option value="manual">Manual grade</option>
@@ -1405,26 +1440,26 @@
                                 <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
                                     <label class="block text-xs font-bold text-slate-700 mb-1">Minimum Mark for Position</label>
                                     <div class="grid grid-cols-[1fr_80px] gap-2">
-                                        <select id="policy-min-position" class="text-input h-9 text-xs font-bold">
+                                        <select id="policy-min-position" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold bg-white text-slate-800 border-slate-300 w-full rounded-xl">
                                             <option value="">Select policy</option>
                                             <option value="none">No minimum</option>
                                             <option value="percentage">Percentage minimum</option>
                                             <option value="per_event">Decide per event</option>
                                         </select>
-                                        <input id="policy-min-position-value" type="number" min="0" max="100" step="0.01" class="text-input h-9 text-xs font-bold text-center" placeholder="%">
+                                        <input id="policy-min-position-value" type="number" min="0" max="100" step="0.01" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold text-center border-slate-300 rounded-xl" placeholder="%">
                                     </div>
                                 </div>
                                 <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
                                     <label class="block text-xs font-bold text-slate-700 mb-1">Grade Calculation &amp; Max Mark</label>
                                     <div class="grid grid-cols-[1fr_80px] gap-2">
-                                        <div class="text-input h-9 text-[11px] flex items-center bg-slate-100 font-bold text-slate-600 truncate">Percentage of Max</div>
-                                        <input id="policy-grade-maximum" type="number" min="1" step="0.01" value="100" class="text-input h-9 text-xs font-bold text-center" title="Reference Maximum Mark">
+                                        <div class="text-input min-h-[42px] py-2 px-3 text-[11px] flex items-center bg-slate-100 font-bold text-slate-600 truncate border-slate-200 rounded-xl">Percentage of Max</div>
+                                        <input id="policy-grade-maximum" type="number" min="1" step="0.01" value="100" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold text-center border-slate-300 rounded-xl" title="Reference Maximum Mark">
                                     </div>
                                     <span class="mt-1 block text-[9px] font-semibold text-slate-400">Used for read-only preview; events use their own max mark.</span>
                                 </div>
                                 <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
                                     <label class="block text-xs font-bold text-slate-700 mb-1">Joint-Position Ranking</label>
-                                    <select id="policy-joint-position" class="text-input h-9 text-xs font-bold">
+                                    <select id="policy-joint-position" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold bg-white text-slate-800 border-slate-300 w-full rounded-xl">
                                         <option value="">Select policy</option>
                                         <option value="competition">Competition ranking (1,1,3)</option>
                                         <option value="dense">Dense ranking (1,1,2)</option>
@@ -1436,7 +1471,7 @@
                                 <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
                                     <label class="block text-xs font-bold text-slate-700 mb-1">Multiple-Judge Calculation</label>
                                     <div class="grid grid-cols-[1fr_80px] gap-2">
-                                        <select id="policy-multi-judge" class="text-input h-9 text-xs font-bold">
+                                        <select id="policy-multi-judge" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold bg-white text-slate-800 border-slate-300 w-full rounded-xl">
                                             <option value="">Select policy</option>
                                             <option value="average">Average</option>
                                             <option value="trim_extremes">Trim Extremes</option>
@@ -1444,12 +1479,12 @@
                                             <option value="admin_manual">Manual</option>
                                             <option value="per_event">Per event</option>
                                         </select>
-                                        <input id="policy-trim-judges" type="number" min="3" max="25" class="text-input h-9 text-xs font-bold text-center" placeholder="Min">
+                                        <input id="policy-trim-judges" type="number" min="3" max="25" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold text-center border-slate-300 rounded-xl" placeholder="Min">
                                     </div>
                                 </div>
                                 <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
                                     <label class="block text-xs font-bold text-slate-700 mb-1">General Gender Participation</label>
-                                    <select id="policy-general-gender" class="text-input h-9 text-xs font-bold">
+                                    <select id="policy-general-gender" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold bg-white text-slate-800 border-slate-300 w-full rounded-xl">
                                         <option value="">Select policy</option>
                                         <option value="both">Boys and Girls eligible</option>
                                         <option value="mixed">Mixed entry/group</option>
@@ -1460,7 +1495,7 @@
                                 </div>
                                 <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
                                     <label class="block text-xs font-bold text-slate-700 mb-1">Published Result Correction</label>
-                                    <select id="policy-result-correction" class="text-input h-9 text-xs font-bold">
+                                    <select id="policy-result-correction" class="text-input min-h-[42px] py-2 px-3 text-xs font-bold bg-white text-slate-800 border-slate-300 w-full rounded-xl">
                                         <option value="">Select policy</option>
                                         <option value="revision_reversal">Revision + ledger reversal only</option>
                                         <option value="locked">Published results permanently locked</option>
@@ -1791,14 +1826,551 @@
                     </section>
                 </div>
 
-                <div id="view-guide" class="tab-view mx-auto max-w-6xl space-y-5">
-                    <header class="sticky top-0 z-20 flex flex-col gap-4 rounded-2xl border border-indigo-100 bg-white/95 p-5 shadow-sm backdrop-blur md:flex-row md:items-center md:justify-between"><div><h3 class="flex items-center gap-2 text-xl font-black text-slate-900"><i data-lucide="book-open-text" class="h-6 w-6 text-indigo-600"></i><span data-guide-title>User Guide</span></h3><p class="mt-1 text-xs font-semibold text-slate-500" data-guide-subtitle>Learn every mode, role and workspace in this application.</p></div></header>
-                    <section data-guide-language="en" class="space-y-4">
-                        <article class="rounded-2xl border bg-white p-5 shadow-sm"><h4 class="text-lg font-black text-indigo-700">1. Start here</h4><ol class="mt-3 list-decimal space-y-2 pl-5 text-sm font-semibold text-slate-600"><li>Complete Master Setup and choose the operating mode.</li><li>Create teams, categories, scoring rules and user access.</li><li>Add participants and events, then open registrations.</li><li>Prepare the schedule and judging assignments when those capabilities are enabled.</li><li>Publish results; public pages, Team Portal and TV update from Firestore.</li></ol></article>
-                        <div class="grid gap-4 md:grid-cols-2"><article class="rounded-2xl border bg-white p-5"><h4 class="font-black text-slate-900">Basic mode</h4><p class="mt-2 text-sm text-slate-600">Use a simple ordered programme list with core registration, publishing and team totals. Best for small festivals that do not need dates, stages or judge assignment.</p></article><article class="rounded-2xl border bg-white p-5"><h4 class="font-black text-slate-900">Advanced mode</h4><p class="mt-2 text-sm text-slate-600">Enables dated multi-stage schedules, schedule review/print, registration locks, judging, publisher review and detailed operational controls.</p></article></div>
-                        <article class="rounded-2xl border bg-white p-5"><h4 class="text-lg font-black text-indigo-700">2. Admin workspaces</h4><div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><div class="rounded-xl bg-slate-50 p-4"><b>People & Registration</b><p class="mt-1 text-xs text-slate-600">Approve requests; manage participants and entries.</p></div><div class="rounded-xl bg-slate-50 p-4"><b>Programme & Judging</b><p class="mt-1 text-xs text-slate-600">Create events, build schedules, print versions and assign judges.</p></div><div class="rounded-xl bg-slate-50 p-4"><b>Festival Configuration</b><p class="mt-1 text-xs text-slate-600">Set master capabilities, teams, scoring and role access.</p></div><div class="rounded-xl bg-slate-50 p-4"><b>Public & Display</b><p class="mt-1 text-xs text-slate-600">Control public wording, branding, Team Portal content and Fest TV.</p></div><div class="rounded-xl bg-slate-50 p-4"><b>Poster &amp; Certificate</b><p class="mt-1 text-xs text-slate-600">Configure fixed poster, certificate and ID-card layouts inside Admin.</p></div><div class="rounded-xl bg-slate-50 p-4"><b>System</b><p class="mt-1 text-xs text-slate-600">Use the page directory, reset tools and this guide.</p></div></div></article>
-                        <article class="rounded-2xl border bg-white p-5"><h4 class="text-lg font-black text-indigo-700">3. Roles and workflow</h4><div class="mt-3 space-y-2 text-sm text-slate-600"><p><b>Admin:</b> full configuration and operational control.</p><p><b>Team Leader:</b> team-scoped registrations, schedule, reports and allowed downloads.</p><p><b>Judge:</b> assigned programme score sheets and submission.</p><p><b>Publisher:</b> verifies and publishes results.</p><p><b>Media Editor:</b> template and media workspace without full Admin access.</p></div></article>
-                        <article class="rounded-2xl border border-amber-200 bg-amber-50 p-5"><h4 class="font-black text-amber-900">Safe operation</h4><p class="mt-2 text-sm font-semibold text-amber-800">Configure access before sharing links, preview schedule/results before publishing, keep TV videos muted, and use Data Reset only after reviewing the confirmation and record count.</p></article>
+                <div id="view-guide" class="tab-view mx-auto max-w-6xl space-y-6">
+                    <!-- Sticky Header with Dual Language Switcher -->
+                    <header class="sticky top-0 z-20 flex flex-col gap-4 rounded-2xl border border-indigo-100 bg-white/95 p-4 sm:p-5 shadow-sm backdrop-blur md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h3 class="flex items-center gap-2 text-xl font-black text-slate-900">
+                                <i data-lucide="book-open-text" class="h-6 w-6 text-indigo-600"></i>
+                                <span data-guide-title>User Guide</span>
+                            </h3>
+                            <p class="mt-1 text-xs font-semibold text-slate-500" data-guide-subtitle>Learn every mode, role, and workspace in this application.</p>
+                        </div>
+                        <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 self-start sm:self-auto shrink-0">
+                            <span class="text-[10px] font-black uppercase text-slate-500 px-2 flex items-center gap-1.5">
+                                <i data-lucide="languages" class="w-3.5 h-3.5 text-indigo-600"></i> Language:
+                            </span>
+                            <button type="button" data-admin-action="set-guide-language" data-language="en" data-guide-lang-btn="en" class="px-3.5 py-1.5 rounded-xl text-xs font-black transition-all bg-indigo-600 text-white shadow-xs">English</button>
+                            <button type="button" data-admin-action="set-guide-language" data-language="ml" data-guide-lang-btn="ml" class="px-3.5 py-1.5 rounded-xl text-xs font-black transition-all bg-white text-slate-600 hover:bg-slate-50">മലയാളം</button>
+                        </div>
+                    </header>
+
+                    <!-- ENGLISH GUIDE SECTION -->
+                    <section data-guide-language="en" class="space-y-6">
+                        <!-- Quick Jump Bar -->
+                        <nav class="flex flex-wrap items-center gap-2 p-3 bg-white border border-slate-200 rounded-2xl shadow-2xs text-xs font-bold text-slate-700">
+                            <span class="text-[10px] font-black uppercase text-slate-400 px-2 flex items-center gap-1"><i data-lucide="compass" class="w-3.5 h-3.5 text-indigo-500"></i> Quick Jump:</span>
+                            <a href="#guide-en-lifecycle" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 transition">1. Lifecycle &amp; Roles</a>
+                            <a href="#guide-en-master" class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition">2. Master Setup Architecture</a>
+                            <a href="#guide-en-participants" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 transition">3. Participants &amp; Reg</a>
+                            <a href="#guide-en-events" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 transition">4. Events &amp; Schedule</a>
+                            <a href="#guide-en-judging" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 transition">5. Judging &amp; Results</a>
+                            <a href="#guide-en-public" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 transition">6. Public View &amp; Fest TV</a>
+                            <a href="#guide-en-safety" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 transition">7. Safety &amp; Access</a>
+                        </nav>
+
+                        <!-- Card 1: Lifecycle & Roles -->
+                        <article id="guide-en-lifecycle" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <header class="border-b bg-gradient-to-r from-indigo-50 via-slate-50 to-white p-5">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="grid h-8 w-8 place-items-center rounded-xl bg-indigo-600 text-white font-black text-sm">1</span>
+                                    <div>
+                                        <h4 class="text-base font-black text-slate-900">Festival Lifecycle &amp; Workspace Architecture</h4>
+                                        <p class="text-xs font-semibold text-slate-500">How data and responsibilities flow from preparation through live execution to final archiving.</p>
+                                    </div>
+                                </div>
+                            </header>
+                            <div class="p-5 space-y-4">
+                                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+                                        <b class="text-xs font-black text-indigo-700 flex items-center gap-1.5"><i data-lucide="layers" class="h-4 w-4"></i> Stage 1: Master Setup</b>
+                                        <p class="mt-1 text-xs font-medium text-slate-600">Select preset, configure organisation mode (Team, Open, Hybrid), tiers, domains, participant types, and group rules.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+                                        <b class="text-xs font-black text-indigo-700 flex items-center gap-1.5"><i data-lucide="users" class="h-4 w-4"></i> Stage 2: Enrollment</b>
+                                        <p class="mt-1 text-xs font-medium text-slate-600">Import or enroll participants. Category &amp; team allocation, chest numbers auto-generation, and application approval.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+                                        <b class="text-xs font-black text-indigo-700 flex items-center gap-1.5"><i data-lucide="calendar" class="h-4 w-4"></i> Stage 3: Programme Builder</b>
+                                        <p class="mt-1 text-xs font-medium text-slate-600">Define competitions, stage types, duration, and judging criteria. Build visual schedule with stages and time slots.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+                                        <b class="text-xs font-black text-indigo-700 flex items-center gap-1.5"><i data-lucide="trophy" class="h-4 w-4"></i> Stage 4: Live Fest Operations</b>
+                                        <p class="mt-1 text-xs font-medium text-slate-600">Judges submit scores from mobile/tablets; publishers verify results; real-time public leaderboard &amp; Fest TV update instantly.</p>
+                                    </div>
+                                </div>
+                                <div class="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
+                                    <h5 class="text-xs font-black uppercase tracking-wider text-indigo-900 mb-2">Role Workspaces &amp; Permissions</h5>
+                                    <div class="grid gap-2 text-xs font-medium text-slate-700 sm:grid-cols-2 lg:grid-cols-5">
+                                        <div class="rounded-lg bg-white p-2.5 border border-indigo-100 shadow-2xs"><b class="text-indigo-700 block mb-0.5">Admin</b> Full setup, configuration, data reset, and control across all workspaces.</div>
+                                        <div class="rounded-lg bg-white p-2.5 border border-indigo-100 shadow-2xs"><b class="text-indigo-700 block mb-0.5">Team Leader</b> Squad registration, member chest cards, team schedules, and team report downloads.</div>
+                                        <div class="rounded-lg bg-white p-2.5 border border-indigo-100 shadow-2xs"><b class="text-indigo-700 block mb-0.5">Judge</b> Assigned event score sheets, criteria marking, and secure digital signature submission.</div>
+                                        <div class="rounded-lg bg-white p-2.5 border border-indigo-100 shadow-2xs"><b class="text-indigo-700 block mb-0.5">Publisher</b> Verification queue review, audit check, and one-click publishing to live leaderboard.</div>
+                                        <div class="rounded-lg bg-white p-2.5 border border-indigo-100 shadow-2xs"><b class="text-indigo-700 block mb-0.5">TV Operator</b> Live broadcast kiosk, ticker banners, stage schedules, and winner announcements.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Card 2: Master Setup Architecture -->
+                        <article id="guide-en-master" class="overflow-hidden rounded-2xl border border-indigo-200 bg-white shadow-sm">
+                            <header class="border-b bg-gradient-to-r from-indigo-100/70 via-indigo-50 to-white p-5">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="grid h-8 w-8 place-items-center rounded-xl bg-indigo-600 text-white font-black text-sm">2</span>
+                                    <div>
+                                        <h4 class="text-base font-black text-indigo-950">Master Setup: Core Architecture &amp; Draft Flow</h4>
+                                        <p class="text-xs font-semibold text-indigo-700">The central brain of the festival. Governs all capabilities, participant rules, and scoring models.</p>
+                                    </div>
+                                </div>
+                            </header>
+                            <div class="p-5 space-y-4">
+                                <!-- Draft Isolation Concept -->
+                                <div class="rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
+                                    <div class="flex items-start gap-3">
+                                        <i data-lucide="shield-alert" class="h-5 w-5 text-amber-600 shrink-0 mt-0.5"></i>
+                                        <div>
+                                            <b class="text-sm font-black text-amber-900">Safety Guarantee: In-Memory Draft &amp; Save/Activate Mechanism</b>
+                                            <p class="mt-1 text-xs font-medium text-amber-800 leading-relaxed">
+                                                Any setting you change, add, or delete in Master Setup (Overview, People, Public View, Events, or Judging) is safely stored in an in-memory draft (<code class="bg-amber-100 px-1 py-0.5 rounded font-bold">festSetup</code>).
+                                                <b>It is NEVER written to the live Firestore database until you explicitly click "Save &amp; Activate".</b>
+                                                If you make experimental changes and want to discard them, click the prominent <b>"Clear Draft"</b> button in the header to instantly revert to the saved database state.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-1.5">
+                                        <b class="text-xs font-black text-slate-800 flex items-center gap-1.5"><i data-lucide="bookmark" class="h-4 w-4 text-indigo-600"></i> Presets &amp; Organization Modes</b>
+                                        <p class="text-xs text-slate-600">Choose between School Team Fest, Sports Meet, Multi-Tier, or Community Open. Organization models dictate whether students belong to fixed houses/teams or compete as open individual participants.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-1.5">
+                                        <b class="text-xs font-black text-slate-800 flex items-center gap-1.5"><i data-lucide="git-branch" class="h-4 w-4 text-indigo-600"></i> Multi-Tier &amp; Domains</b>
+                                        <p class="text-xs text-slate-600">Enable multi-tier progression (Zone &rarr; District &rarr; State &rarr; Finals) with qualification counters. Add or customize competition domains (Arts, Sports, Tech, General).</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-1.5">
+                                        <b class="text-xs font-black text-slate-800 flex items-center gap-1.5"><i data-lucide="users" class="h-4 w-4 text-indigo-600"></i> Participant Types &amp; Dynamic Fields</b>
+                                        <p class="text-xs text-slate-600">Customize types (Student, Parent, Staff, Alumni, Guests). Configure role affiliation (Team Member vs. Independent) and tailored registration fields with mandatory red asterisks.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-1.5">
+                                        <b class="text-xs font-black text-slate-800 flex items-center gap-1.5"><i data-lucide="user-check" class="h-4 w-4 text-indigo-600"></i> Group Rules &amp; Permitted Genders</b>
+                                        <p class="text-xs text-slate-600">Set default minimum and maximum squad sizes for group events, maximum groups per team, and permitted genders (Boys, Girls, Men, Women, or custom divisions).</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-1.5">
+                                        <b class="text-xs font-black text-slate-800 flex items-center gap-1.5"><i data-lucide="calendar" class="h-4 w-4 text-indigo-600"></i> Schedule &amp; Event Management</b>
+                                        <p class="text-xs text-slate-600">Configure single-day, multi-day, or flexible timing modes. Toggle event features like Stage Allocation, Parallel Slots, and Category Architecture.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-1.5">
+                                        <b class="text-xs font-black text-slate-800 flex items-center gap-1.5"><i data-lucide="award" class="h-4 w-4 text-indigo-600"></i> Judging &amp; Results Workflows</b>
+                                        <p class="text-xs text-slate-600">Select numerical marks, rank-based ordinal, or points+grades. Configure result path (Instant auto-publish, Two-stage review, or Moderated queue) and team championship points.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Public View Settings Card -->
+                                <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                                    <b class="text-xs font-black text-slate-800 flex items-center gap-1.5 mb-2"><i data-lucide="layout" class="h-4 w-4 text-indigo-600"></i> Public View Top-to-Bottom Layout Management</b>
+                                    <p class="text-xs text-slate-600 leading-relaxed">
+                                        Under the <b>Public View</b> subtab, you can toggle core public modules (Results, About, Leaders, Gallery, Schedule, Register, Login, Team Standings, TV Display).
+                                        Use the structured card table with sequential order badges (<code class="bg-slate-200 px-1 py-0.5 rounded font-bold">#1 (Top)</code> through <code class="bg-slate-200 px-1 py-0.5 rounded font-bold">#N (Bottom)</code>) to reorder how sections stack on the public website. Add custom landing buttons with custom URLs and icons.
+                                    </p>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Card 3: Participants & Registrations -->
+                        <article id="guide-en-participants" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <header class="border-b bg-gradient-to-r from-emerald-50 via-slate-50 to-white p-5">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="grid h-8 w-8 place-items-center rounded-xl bg-emerald-600 text-white font-black text-sm">3</span>
+                                    <div>
+                                        <h4 class="text-base font-black text-slate-900">Participants Directory &amp; Registration Pipeline</h4>
+                                        <p class="text-xs font-semibold text-slate-500">Managing participant records, dynamic registration forms, Excel imports, and chest numbers.</p>
+                                    </div>
+                                </div>
+                            </header>
+                            <div class="p-5 space-y-4">
+                                <div class="grid gap-3 sm:grid-cols-3">
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-emerald-800">1. Adding Participants</b>
+                                        <p class="text-xs text-slate-600">Select participant type from the top dropdown. The form automatically reveals required fields (marked with red stars) tailored specifically to that type. Bulk Mode allows pasting multiple names at once.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-emerald-800">2. Excel Import &amp; Template</b>
+                                        <p class="text-xs text-slate-600">Download the Excel template pre-configured with active fields and validation rules. Review and map columns before committing student records to the database.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-emerald-800">3. Filter Synchronization</b>
+                                        <p class="text-xs text-slate-600">The Directory filter bar dynamically reflects only the active participant types enabled in Master Setup, allowing quick filtering by category, team, class, and gender.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Card 4: Events & Schedule -->
+                        <article id="guide-en-events" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <header class="border-b bg-gradient-to-r from-sky-50 via-slate-50 to-white p-5">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="grid h-8 w-8 place-items-center rounded-xl bg-sky-600 text-white font-black text-sm">4</span>
+                                    <div>
+                                        <h4 class="text-base font-black text-slate-900">Events Management, Judging Criteria &amp; Time Schedule</h4>
+                                        <p class="text-xs font-semibold text-slate-500">Creating competitions, assigning weighted judging criteria, and building visual stage schedules.</p>
+                                    </div>
+                                </div>
+                            </header>
+                            <div class="p-5 space-y-4">
+                                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-sky-800">Single &amp; Group Competitions</b>
+                                        <p class="text-xs text-slate-600">Set stage type (On-Stage vs. Off-Stage), duration minutes, allowed participants per team, and required group member count.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-sky-800">Judging Criteria Editor</b>
+                                        <p class="text-xs text-slate-600">Assign individual judging criteria with specific marks (e.g., Rhythm: 20, Expression: 30, Costume: 10). Judges score each criterion independently.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-sky-800">Visual Time Schedule</b>
+                                        <p class="text-xs text-slate-600">Assign events to stages and days. Generate and download clean, official A4 printable schedule sheets with header branding and timestamps.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Card 5: Judging & Scoring -->
+                        <article id="guide-en-judging" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <header class="border-b bg-gradient-to-r from-amber-50 via-slate-50 to-white p-5">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="grid h-8 w-8 place-items-center rounded-xl bg-amber-600 text-white font-black text-sm">5</span>
+                                    <div>
+                                        <h4 class="text-base font-black text-slate-900">Judgement Desk, Scoring Policies &amp; Results Flow</h4>
+                                        <p class="text-xs font-semibold text-slate-500">From live judge score sheets to controller verification and live public leaderboard calculation.</p>
+                                    </div>
+                                </div>
+                            </header>
+                            <div class="p-5 space-y-4">
+                                <div class="grid gap-3 sm:grid-cols-3">
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-amber-800">Judge Scoring Desk</b>
+                                        <p class="text-xs text-slate-600">Judges access dedicated mobile-friendly scoring sheets via access tokens, input marks for participants, and lock scores with digital confirmation.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-amber-800">Multiple Judge Calculation</b>
+                                        <p class="text-xs text-slate-600">Supports Averaging, Weighted scoring, and "Trim Extremes" (discarding the highest and lowest scores when 3+ judges are assigned) to prevent bias.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-amber-800">Publisher Verification</b>
+                                        <p class="text-xs text-slate-600">The verification desk checks score distributions, resolves position ties according to festival policy, and publishes verified outcomes to the leaderboard.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Card 6: Public View & Fest TV -->
+                        <article id="guide-en-public" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <header class="border-b bg-gradient-to-r from-purple-50 via-slate-50 to-white p-5">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="grid h-8 w-8 place-items-center rounded-xl bg-purple-600 text-white font-black text-sm">6</span>
+                                    <div>
+                                        <h4 class="text-base font-black text-slate-900">Public Live Portal, Team Leader Portal &amp; Fest TV</h4>
+                                        <p class="text-xs font-semibold text-slate-500">Broadcasting results to public devices, team leader workspaces, and stage projectors.</p>
+                                    </div>
+                                </div>
+                            </header>
+                            <div class="p-5 space-y-4">
+                                <div class="grid gap-3 sm:grid-cols-3">
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-purple-800">Public Live Website</b>
+                                        <p class="text-xs text-slate-600">Instant search by student name or chest number, event results breakdown, stage schedules, and team championship points.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-purple-800">Team Leader Workspace</b>
+                                        <p class="text-xs text-slate-600">Dedicated portal for registered team captains to submit event entries, track team scores, and print member chest cards in bulk.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-purple-800">Fest TV Display Mode</b>
+                                        <p class="text-xs text-slate-600">Full-screen automated kiosk mode for projectors and stage monitors with ticker announcements, ongoing stage events, and top team standings.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Card 7: Safety & Access -->
+                        <article id="guide-en-safety" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <header class="border-b bg-gradient-to-r from-rose-50 via-slate-50 to-white p-5">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="grid h-8 w-8 place-items-center rounded-xl bg-rose-600 text-white font-black text-sm">7</span>
+                                    <div>
+                                        <h4 class="text-base font-black text-slate-900">Access Management, Data Safety &amp; Backup</h4>
+                                        <p class="text-xs font-semibold text-slate-500">Security principles, role magic links, reset protections, and operational safety.</p>
+                                    </div>
+                                </div>
+                            </header>
+                            <div class="p-5 space-y-4">
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-1.5">
+                                        <b class="text-xs font-black text-slate-800 flex items-center gap-1.5"><i data-lucide="key-round" class="h-4 w-4 text-indigo-600"></i> Role Access Links</b>
+                                        <p class="text-xs text-slate-600">Generate secure magic links for Team Leaders, Judges, and Publishers without requiring passwords. Access can be revoked or regenerated at any time from the Access Management tab.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-rose-200 bg-rose-50/40 p-4 space-y-1.5">
+                                        <b class="text-xs font-black text-rose-800 flex items-center gap-1.5"><i data-lucide="shield-alert" class="h-4 w-4 text-rose-600"></i> Safe Data Reset Safeguards</b>
+                                        <p class="text-xs text-slate-700">The Data Reset tab features record counters, confirmation modals, and granular purge controls (Clear Team, Clear Schedule, Clear Results). Super Admin logins are always preserved during Factory Reset.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    </section>
+
+                    <!-- MALAYALAM GUIDE SECTION -->
+                    <section data-guide-language="ml" class="space-y-6 hidden font-['Manjari','Noto_Sans_Malayalam',sans-serif]">
+                        <!-- Quick Jump Bar Malayalam -->
+                        <nav class="flex flex-wrap items-center gap-2 p-3 bg-white border border-slate-200 rounded-2xl shadow-2xs text-xs font-bold text-slate-700">
+                            <span class="text-[10px] font-black uppercase text-slate-400 px-2 flex items-center gap-1"><i data-lucide="compass" class="w-3.5 h-3.5 text-indigo-500"></i> വിഭാഗങ്ങൾ:</span>
+                            <a href="#guide-ml-lifecycle" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 transition">1. ആമുഖവും ഘട്ടങ്ങളും</a>
+                            <a href="#guide-ml-master" class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition">2. മാസ്റ്റർ സെറ്റപ്പ് സമഗ്ര ഗൈഡ്</a>
+                            <a href="#guide-ml-participants" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 transition">3. പങ്കാളികളും രജിസ്ട്രേഷനും</a>
+                            <a href="#guide-ml-events" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 transition">4. ഇവന്റുകളും സമയക്രമവും</a>
+                            <a href="#guide-ml-judging" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 transition">5. വിധിനിർണ്ണയവും ഫലങ്ങളും</a>
+                            <a href="#guide-ml-public" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 transition">6. വെബ്‌സൈറ്റും ഫെസ്റ്റ് ടിവിയും</a>
+                            <a href="#guide-ml-safety" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 transition">7. സുരക്ഷയും അനുമതികളും</a>
+                        </nav>
+
+                        <!-- Card 1: Lifecycle & Roles (ML) -->
+                        <article id="guide-ml-lifecycle" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <header class="border-b bg-gradient-to-r from-indigo-50 via-slate-50 to-white p-5">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="grid h-8 w-8 place-items-center rounded-xl bg-indigo-600 text-white font-black text-sm">1</span>
+                                    <div>
+                                        <h4 class="text-base font-black text-slate-900">ഫെസ്റ്റ് പ്ലാറ്റ്‌ഫോം ആമുഖവും പ്രവർത്തന ഘട്ടങ്ങളും</h4>
+                                        <p class="text-xs font-semibold text-slate-500">ഫെസ്റ്റിവൽ ഒരുക്കങ്ങൾ മുതൽ തത്സമയ വിധിനിർണ്ണയവും ഫലപ്രഖ്യാപനവും വരെയുള്ള സമഗ്രമായ വിവരങ്ങൾ.</p>
+                                    </div>
+                                </div>
+                            </header>
+                            <div class="p-5 space-y-4">
+                                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+                                        <b class="text-xs font-black text-indigo-700 flex items-center gap-1.5"><i data-lucide="layers" class="h-4 w-4"></i> ഘട്ടം 1: മാസ്റ്റർ സെറ്റപ്പ്</b>
+                                        <p class="mt-1 text-xs font-medium text-slate-600 leading-relaxed">അനുയോജ്യമായ പ്രീസെറ്റ് തിരഞ്ഞെടുക്കുക, ഓർഗനൈസേഷൻ മോഡൽ, ടിയറുകൾ, ഡൊമൈനുകൾ, പാർട്ടിസിപ്പന്റ് ടൈപ്പുകൾ, ഗ്രൂപ്പ് നിയമങ്ങൾ എന്നിവ ക്രമീകരിക്കുക.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+                                        <b class="text-xs font-black text-indigo-700 flex items-center gap-1.5"><i data-lucide="users" class="h-4 w-4"></i> ഘട്ടം 2: രജിസ്ട്രേഷൻ</b>
+                                        <p class="mt-1 text-xs font-medium text-slate-600 leading-relaxed">പങ്കാളികളെ ചേർക്കുക അല്ലെങ്കിൽ എക്സൽ വഴി ഇംപോർട്ട് ചെയ്യുക. ചെസ്റ്റ് നമ്പർ ഓട്ടോമേഷൻ, ടീം/കാറ്റഗറി ലിങ്ക്, അപ്ലിക്കേഷൻ അപ്രൂവൽ എന്നിവ പൂർത്തിയാക്കുക.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+                                        <b class="text-xs font-black text-indigo-700 flex items-center gap-1.5"><i data-lucide="calendar" class="h-4 w-4"></i> ഘട്ടം 3: ഷെഡ്യൂളിംഗ്</b>
+                                        <p class="mt-1 text-xs font-medium text-slate-600 leading-relaxed">ഇവന്റുകൾ നിർമ്മിക്കുക, സ്റ്റേജ്, ദൈർഘ്യം, വിധിനിർണ്ണയ മാനദണ്ഡങ്ങൾ നിശ്ചയിക്കുക. വിഷ്വൽ ടൈം ഷെഡ്യൂൾ തയ്യാറാക്കി പ്രിന്റബിൾ PDF എടുക്കുക.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+                                        <b class="text-xs font-black text-indigo-700 flex items-center gap-1.5"><i data-lucide="trophy" class="h-4 w-4"></i> ഘട്ടം 4: തത്സമയ ഫെസ്റ്റ്</b>
+                                        <p class="mt-1 text-xs font-medium text-slate-600 leading-relaxed">ജഡ്ജിമാർ മൊബൈൽ വഴി മാർക്കുകൾ നൽകുന്നു; പബ്ലിഷർമാർ വേരിഫൈ ചെയ്യുന്നു; ലൈവ് വെബ് ലീഡർബോർഡും ഫെസ്റ്റ് ടിവിയും ഉടനടി അപ്‌ഡേറ്റ് ആകുന്നു.</p>
+                                    </div>
+                                </div>
+                                <div class="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
+                                    <h5 class="text-xs font-black uppercase tracking-wider text-indigo-900 mb-2">ഉപയോക്തൃ റോളുകളും അധികാരങ്ങളും (Roles &amp; Workspaces)</h5>
+                                    <div class="grid gap-2 text-xs font-medium text-slate-700 sm:grid-cols-2 lg:grid-cols-5">
+                                        <div class="rounded-lg bg-white p-2.5 border border-indigo-100 shadow-2xs leading-relaxed"><b class="text-indigo-700 block mb-0.5">Admin</b> മുഴുവൻ സെറ്റപ്പും കൺട്രോളും കൈകാര്യം ചെയ്യുന്ന പൂർണ്ണാധികാരമുള്ള അഡ്മിനിസ്ട്രേറ്റർ.</div>
+                                        <div class="rounded-lg bg-white p-2.5 border border-indigo-100 shadow-2xs leading-relaxed"><b class="text-indigo-700 block mb-0.5">Team Leader</b> സ്വന്തം ടീമിലെ കുട്ടികളുടെ രജിസ്ട്രേഷൻ, ചെസ്റ്റ് കാർഡുകൾ, ടീം റിപ്പോർട്ടുകൾ എന്നിവ കൈകാര്യം ചെയ്യുന്നു.</div>
+                                        <div class="rounded-lg bg-white p-2.5 border border-indigo-100 shadow-2xs leading-relaxed"><b class="text-indigo-700 block mb-0.5">Judge</b> അനുവദിച്ച മത്സരങ്ങളിലെ സ്കോർ ഷീറ്റുകളിൽ മാർക്ക് നൽകി ഡിജിറ്റലായി സമർപ്പിക്കുന്നു.</div>
+                                        <div class="rounded-lg bg-white p-2.5 border border-indigo-100 shadow-2xs leading-relaxed"><b class="text-indigo-700 block mb-0.5">Publisher</b> ജഡ്ജിമാരുടെ സ്കോറുകൾ പരിശോധിച്ചു ഉറപ്പുവരുത്തി ഔദ്യോഗികമായി ഫലം പ്രസിദ്ധീകരിക്കുന്നു.</div>
+                                        <div class="rounded-lg bg-white p-2.5 border border-indigo-100 shadow-2xs leading-relaxed"><b class="text-indigo-700 block mb-0.5">TV Operator</b> പ്രൊജക്ടർ സ്ക്രീനുകളിൽ വിജയികളുടെ വിവരങ്ങളും സ്റ്റേജ് അറിയിപ്പുകളും നിയന്ത്രിക്കുന്നു.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Card 2: Master Setup Architecture (ML) -->
+                        <article id="guide-ml-master" class="overflow-hidden rounded-2xl border border-indigo-200 bg-white shadow-sm">
+                            <header class="border-b bg-gradient-to-r from-indigo-100/70 via-indigo-50 to-white p-5">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="grid h-8 w-8 place-items-center rounded-xl bg-indigo-600 text-white font-black text-sm">2</span>
+                                    <div>
+                                        <h4 class="text-base font-black text-indigo-950">മാസ്റ്റർ സെറ്റപ്പ് സമഗ്ര ഗൈഡ് (Master Setup Architecture)</h4>
+                                        <p class="text-xs font-semibold text-indigo-700">ഫെസ്റ്റിന്റെ അടിസ്ഥാന ഘടനയും നയങ്ങളും നിർണ്ണയിക്കുന്ന സുപ്രധാന കൺട്രോൾ സെന്റർ.</p>
+                                    </div>
+                                </div>
+                            </header>
+                            <div class="p-5 space-y-4">
+                                <!-- Draft Isolation Concept (ML) -->
+                                <div class="rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
+                                    <div class="flex items-start gap-3">
+                                        <i data-lucide="shield-alert" class="h-5 w-5 text-amber-600 shrink-0 mt-0.5"></i>
+                                        <div>
+                                            <b class="text-sm font-black text-amber-900">സുരക്ഷാ മുൻകരുതൽ: ഡ്രാഫ്റ്റ് ഐസൊലേഷനും സേവ് &amp; ആക്ടിവേറ്റും (Draft Isolation &amp; Save Flow)</b>
+                                            <p class="mt-1 text-xs font-medium text-amber-800 leading-relaxed">
+                                                മാസ്റ്റർ സെറ്റപ്പിൽ നിങ്ങൾ വരുത്തുന്ന എല്ലാ മാറ്റങ്ങളും (Overview, People, Public View, Events, Judging) താല്ക്കാലികമായി ബ്രൗസർ മെമ്മറിയിൽ ഒരു ഡ്രാഫ്റ്റ് ആയിട്ടാണ് (<code class="bg-amber-100 px-1 py-0.5 rounded font-bold">festSetup</code>) സൂക്ഷിക്കപ്പെടുന്നത്.
+                                                <b>മുകളിലുള്ള "Save &amp; Activate" എന്ന ബട്ടൺ ക്ലിക്ക് ചെയ്താൽ മാത്രമേ ഈ വിവരങ്ങൾ ഡാറ്റാബേസിലേക്ക് സേവ് ആവുകയുള്ളൂ.</b>
+                                                നിങ്ങൾ ചെയ്ത മാറ്റങ്ങൾ ഒഴിവാക്കണമെന്നുണ്ടെങ്കിൽ മുകളിലുള്ള <b>"Clear Draft"</b> ബട്ടൺ ക്ലിക്ക് ചെയ്താൽ നിലവിലുള്ള ഡാറ്റാബേസ് അവസ്ഥയിലേക്ക് മാറ്റങ്ങൾ തിരിച്ചെത്തുന്നതാണ്.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-1.5">
+                                        <b class="text-xs font-black text-slate-800 flex items-center gap-1.5"><i data-lucide="bookmark" class="h-4 w-4 text-indigo-600"></i> പ്രീസെറ്റുകളും ഓർഗനൈസേഷൻ രീതികളും</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">സ്കൂൾ ഫെസ്റ്റ്, സ്പോർട്സ് മീറ്റ്, കോളേജ് കാമ്പസ്, ഓപ്പൺ കമ്മ്യൂണിറ്റി തുടങ്ങി റെഡിമെയ്ഡ് പ്രീസെറ്റുകൾ തിരഞ്ഞെടുക്കാം. ടീം അടിസ്ഥാനത്തിലാണോ വ്യക്തിഗതമായിട്ടാണോ മത്സരിക്കേണ്ടതെന്ന് ഓർഗനൈസേഷൻ മോഡൽ നിശ്ചയിക്കുന്നു.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-1.5">
+                                        <b class="text-xs font-black text-slate-800 flex items-center gap-1.5"><i data-lucide="git-branch" class="h-4 w-4 text-indigo-600"></i> മത്സര തട്ടുകളും ഡൊമൈനുകളും (Tiers &amp; Domains)</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">സിംഗിൾ ടിയർ അല്ലെങ്കിൽ മൾട്ടി-ടിയർ (സോൺ &rarr; ജില്ലാ &rarr; സംസ്ഥാനം &rarr; ഫൈനൽസ്) ക്രമീകരണങ്ങൾ സാധ്യമാണ്. ആർട്സ്, സ്പോർട്സ്, ടെക് തുടങ്ങിയ ഡൊമൈനുകൾ പ്രവർത്തനക്ഷമമാക്കാം.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-1.5">
+                                        <b class="text-xs font-black text-slate-800 flex items-center gap-1.5"><i data-lucide="users" class="h-4 w-4 text-indigo-600"></i> പാർട്ടിസിപ്പന്റ് ടൈപ്പുകളും ഫീൽഡുകളും</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">സ്റ്റുഡന്റ്, പേരന്റ്, സ്റ്റാഫ്, അലുമ്നി, ഗസ്റ്റ് തുടങ്ങിയ വിഭാഗങ്ങൾ. ഓരോന്നിനും ടീം അഫിലിയേഷനും പ്രത്യേകം രജിസ്ട്രേഷൻ ഫീൽഡുകളും (ചുവന്ന സ്റ്റാർ അടയാളപ്പെടുത്തിയ നിർബന്ധിത ഫീൽഡുകൾ) നൽകാം.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-1.5">
+                                        <b class="text-xs font-black text-slate-800 flex items-center gap-1.5"><i data-lucide="user-check" class="h-4 w-4 text-indigo-600"></i> ഗ്രൂപ്പ് നിയമങ്ങളും ജെൻഡർ ക്രമീകരണവും</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">ഗ്രൂപ്പ് മത്സരങ്ങളിൽ കുറഞ്ഞതും കൂടിയതുമായ അംഗങ്ങളുടെ എണ്ണം, ഒരു ടീമിന് അനുവദനീയമായ ഗ്രൂപ്പുകളുടെ പരിധി, ബോയ്സ്/ഗേൾസ്/മിക്സഡ് ജെൻഡർ നിയമങ്ങൾ എന്നിവ നിശ്ചയിക്കാം.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-1.5">
+                                        <b class="text-xs font-black text-slate-800 flex items-center gap-1.5"><i data-lucide="calendar" class="h-4 w-4 text-indigo-600"></i> ടൈം ഷെഡ്യൂൾ &amp; ഇവന്റ് മാനേജ്‌മെന്റ്</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">ഒറ്റ ദിവസത്തെ പരിപാടി, പല ദിവസങ്ങളിലെ മത്സരങ്ങൾ, അല്ലെങ്കിൽ ഫ്ലെക്സിബിൾ സെഷനുകൾ. സ്റ്റേജ് അലോക്കേഷൻ, പാരലൽ സ്ലോട്ടുകൾ, കാറ്റഗറി ആർക്കിടെക്ചർ എന്നിവ നിയന്ത്രിക്കാം.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-1.5">
+                                        <b class="text-xs font-black text-slate-800 flex items-center gap-1.5"><i data-lucide="award" class="h-4 w-4 text-indigo-600"></i> വിധിനിർണ്ണയവും ഫലപ്രഖ്യാപന രീതികളും</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">മാർക്ക് അടിസ്ഥാനത്തിലോ, റാങ്ക് അടിസ്ഥാനത്തിലോ, പോയിന്റ്+ഗ്രേഡ് രീതിയിലോ വിധിനിർണ്ണയം. ഇൻസ്റ്റന്റ് പബ്ലിഷിംഗ്, ടു-സ്റ്റേജ് റിവ്യൂ, ടീം ചാമ്പ്യൻഷിപ്പ് സ്കോറിംഗ് എന്നിവ ക്രമീകരിക്കാം.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Public View Settings Card (ML) -->
+                                <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                                    <b class="text-xs font-black text-slate-800 flex items-center gap-1.5 mb-2"><i data-lucide="layout" class="h-4 w-4 text-indigo-600"></i> പബ്ലിക് വ്യൂ വെബ്‌സൈറ്റ് ഘടന (Top-to-Bottom Structure)</b>
+                                    <p class="text-xs text-slate-600 leading-relaxed">
+                                        <b>Public View</b> സബ്‌ടാബിൽ പ്രധാന മൊഡ്യൂളുകൾ (റിസൾട്ട്, എബൗട്ട്, ലീഡേഴ്സ്, ഗാലറി, ഷെഡ്യൂൾ, രജിസ്ട്രേഷൻ, ലോഗിൻ, പോയിന്റ് ടേബിൾ, ടിവി ഡിസ്‌പ്ലേ) ഓൺ/ഓഫ് ചെയ്യാം.
+                                        സീക്വൻഷ്യൽ ഓർഡർ ബാഡ്ജുകൾ (<code class="bg-slate-200 px-1 py-0.5 rounded font-bold">#1 (Top)</code> മുതൽ <code class="bg-slate-200 px-1 py-0.5 rounded font-bold">#N (Bottom)</code> വരെ) ഉപയോഗിച്ച് പബ്ലിക് വെബ്‌സൈറ്റിൽ ഓരോ സെക്ഷനും മുകളിൽ നിന്നും താഴേക്ക് ഏത് ക്രമത്തിലാണ് വരേണ്ടതെന്ന് എളുപ്പത്തിൽ മാറ്റാൻ സാധിക്കും. കസ്റ്റം ലാൻഡിംഗ് ബട്ടണുകളും ഇവിടെ ലിങ്ക് ചെയ്യാം.
+                                    </p>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Card 3: Participants & Registrations (ML) -->
+                        <article id="guide-ml-participants" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <header class="border-b bg-gradient-to-r from-emerald-50 via-slate-50 to-white p-5">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="grid h-8 w-8 place-items-center rounded-xl bg-emerald-600 text-white font-black text-sm">3</span>
+                                    <div>
+                                        <h4 class="text-base font-black text-slate-900">പങ്കാളികളുടെ ഡയറക്ടറിയും രജിസ്ട്രേഷനും (Participants &amp; Reg)</h4>
+                                        <p class="text-xs font-semibold text-slate-500">പങ്കാളികളുടെ രജിസ്ട്രേഷൻ, കാറ്റഗറി തിരിക്കൽ, എക്സൽ ഇംപോർട്ട്, ചെസ്റ്റ് നമ്പർ വിതരണം.</p>
+                                    </div>
+                                </div>
+                            </header>
+                            <div class="p-5 space-y-4">
+                                <div class="grid gap-3 sm:grid-cols-3">
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-emerald-800">1. പങ്കാളികളെ ചേർക്കൽ</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">ഡ്രോപ്പ്ഡൗണിൽ നിന്നും പാർട്ടിസിപ്പന്റ് ടൈപ്പ് തിരഞ്ഞെടുക്കുമ്പോൾ അതിനനുസരിച്ചുള്ള നിർബന്ധിത ഫീൽഡുകൾ മാത്രം ഫോമിൽ തെളിയുന്നു. ബൾക്ക് മോഡ് വഴി ഒന്നിച്ച് പേരുകൾ പേസ്റ്റ് ചെയ്യാവുന്നതാണ്.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-emerald-800">2. എക്സൽ ഇംപോർട്ട്</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">ഡൗൺലോഡ് മോഡൽ ടെംപ്ലേറ്റ് ഉപയോഗിച്ച് വിദ്യാർത്ഥികളുടെ വിവരങ്ങൾ എക്സൽ വഴി ഒറ്റ ക്ലിക്കിൽ ഡാറ്റാബേസിലേക്ക് സുരക്ഷിതമായി അപ്‌ലോഡ് ചെയ്യാം.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-emerald-800">3. ഫിൽട്ടർ സിൻക്രൊണൈസേഷൻ</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">മാസ്റ്റർ സെറ്റപ്പിൽ നിങ്ങൾ ടിക്ക് ചെയ്ത പാർട്ടിസിപ്പന്റ് ടൈപ്പുകൾ മാത്രമേ ഡയറക്ടറി ഫിൽട്ടർ ബാറിലും ഫോമിലും ദൃശ്യമാകൂ. ചെസ്റ്റ് നമ്പറുകൾ സിസ്റ്റം സ്വയം നിർമ്മിക്കുന്നു.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Card 4: Events & Schedule (ML) -->
+                        <article id="guide-ml-events" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <header class="border-b bg-gradient-to-r from-sky-50 via-slate-50 to-white p-5">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="grid h-8 w-8 place-items-center rounded-xl bg-sky-600 text-white font-black text-sm">4</span>
+                                    <div>
+                                        <h4 class="text-base font-black text-slate-900">ഇവന്റുകൾ, വിധിനിർണ്ണയ മാനദണ്ഡങ്ങൾ, സമയക്രമം</h4>
+                                        <p class="text-xs font-semibold text-slate-500">മത്സരങ്ങൾ രൂപീകരിക്കൽ, പോയിന്റ് മാർക്കിംഗ് ക്രൈറ്റീരിയ, സ്റ്റേജ് ഷെഡ്യൂൾ പ്രിന്റിംഗ്.</p>
+                                    </div>
+                                </div>
+                            </header>
+                            <div class="p-5 space-y-4">
+                                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-sky-800">സിംഗിൾ / ഗ്രൂപ്പ് മത്സരങ്ങൾ</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">ഓൺ-സ്റ്റേജ് അല്ലെങ്കിൽ ഓഫ്-സ്റ്റേജ്, അനുവദിച്ച സമയം, ഒരു ടീമിന് അനുവദനീയമായ മത്സരാർത്ഥികളുടെ എണ്ണം എന്നിവ നിശ്ചയിക്കാം.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-sky-800">ക്രൈറ്റീരിയ എഡിറ്റർ (Judging Criteria)</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">ഓരോ മത്സരത്തിനും പ്രത്യേകം മാർക്ക് മാനദണ്ഡങ്ങൾ (ഉദാ: താളം: 20, ഭാവം: 30, വേഷം: 10) നൽകാം. ജഡ്ജിമാർ ഇതിനനുസരിച്ച് മാർക്കിടും.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-sky-800">ടൈം ഷെഡ്യൂളും PDF പ്രിന്റും</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">സ്റ്റേജുകളിലേക്കും ദിവസങ്ങളിലേക്കും മത്സരങ്ങളെ ക്രമീകരിക്കാം. ഔദ്യോഗിക A4 പ്രിന്റബിൾ പ്രോഗ്രാം ചാർട്ട് സിസ്റ്റം തയ്യാറാക്കി നൽകുന്നു.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Card 5: Judging & Scoring (ML) -->
+                        <article id="guide-ml-judging" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <header class="border-b bg-gradient-to-r from-amber-50 via-slate-50 to-white p-5">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="grid h-8 w-8 place-items-center rounded-xl bg-amber-600 text-white font-black text-sm">5</span>
+                                    <div>
+                                        <h4 class="text-base font-black text-slate-900">വിധിനിർണ്ണയം, സ്കോറിംഗ് പോളിസി &amp; ഫലപ്രഖ്യാപനം</h4>
+                                        <p class="text-xs font-semibold text-slate-500">ജഡ്ജ് സ്കോർ ഷീറ്റുകൾ, മൾട്ടിപ്പിൾ ജഡ്ജ് പോളിസി, ഫലം ഉറപ്പുവരുത്തലും പ്രസിദ്ധീകരണവും.</p>
+                                    </div>
+                                </div>
+                            </header>
+                            <div class="p-5 space-y-4">
+                                <div class="grid gap-3 sm:grid-cols-3">
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-amber-800">ജഡ്ജ് സ്കോറിംഗ് ഡെസ്ക്</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">ജഡ്ജിമാർക്ക് മൊബൈൽ വഴിയോ ടാബ്‌ലറ്റ് വഴിയോ ലളിതമായി മാർക്കുകൾ രേഖപ്പെടുത്താനും ഡിജിറ്റലായി സമർപ്പിക്കാനും സാധിക്കുന്നു.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-amber-800">മൾട്ടി-ജഡ്ജ് കണക്കുകൂട്ടലുകൾ</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">ആവറേജ് സ്കോർ, വെയ്റ്റഡ് സ്കോർ, ഏറ്റവും കൂടിയതും കുറഞ്ഞതുമായ മാർക്കുകൾ ഒഴിവാക്കുന്ന 'Trim Extremes' എന്നിവ സിസ്റ്റം സ്വയം കണക്കാക്കുന്നു.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-amber-800">പബ്ലിഷർ വേരിഫിക്കേഷൻ</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">റിസൾട്ട് കൺട്രോളർ മാർക്കുകൾ ഓഡിറ്റ് ചെയ്ത് ഉറപ്പുവരുത്തിയ ശേഷം ഒറ്റ ക്ലിക്കിൽ ലൈവ് ലീഡർബോർഡിലേക്ക് പ്രസിദ്ധീകരിക്കുന്നു.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Card 6: Public View & Fest TV (ML) -->
+                        <article id="guide-ml-public" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <header class="border-b bg-gradient-to-r from-purple-50 via-slate-50 to-white p-5">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="grid h-8 w-8 place-items-center rounded-xl bg-purple-600 text-white font-black text-sm">6</span>
+                                    <div>
+                                        <h4 class="text-base font-black text-slate-900">ലൈവ് വെബ്‌സൈറ്റ്, ടീം പോർട്ടൽ &amp; ഫെസ്റ്റ് ടിവി ഡിസ്‌പ്ലേ</h4>
+                                        <p class="text-xs font-semibold text-slate-500">മൊബൈൽ ലൈവ് റിസൾട്ടുകൾ, ടീം മാനേജ്‌മെന്റ് പോർട്ടൽ, സ്റ്റേജ് പ്രൊജക്ടർ മോഡ്.</p>
+                                    </div>
+                                </div>
+                            </header>
+                            <div class="p-5 space-y-4">
+                                <div class="grid gap-3 sm:grid-cols-3">
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-purple-800">പബ്ലിക് ലൈവ് വെബ് പോർട്ടൽ</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">പേര് അല്ലെങ്കിൽ ചെസ്റ്റ് നമ്പർ വെച്ചുള്ള സെർച്ച്, പോയിന്റ് ടേബിൾ, സ്റ്റേജ് ഷെഡ്യൂൾ, ഫോട്ടോ ഗാലറി എന്നിവ കാണാം.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-purple-800">ടീം ലീഡർ വർക്ക്‌സ്പേസ്</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">ടീം മാനേജർമാർക്ക് സ്വന്തം കുട്ടികളുടെ വിവരങ്ങൾ നൽകാനും, ചെസ്റ്റ് കാർഡുകൾ ഡൗൺലോഡ് ചെയ്യാനും പ്രത്യേക ലോഗിൻ പോർട്ടൽ.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                                        <b class="text-xs font-black text-purple-800">ഫെസ്റ്റ് ടിവി പ്രൊജക്ടർ മോഡ്</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">സ്റ്റേജുകളിലെ വലിയ സ്ക്രീനുകളിലും ടിവികളിലും വിജയികളുടെ ചിത്രങ്ങൾ, ബ്രേക്കിംഗ് ന്യൂസ് ടിക്കർ, പോയിന്റ് നില എന്നിവ തത്സമയം കാണിക്കുന്നു.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Card 7: Safety & Access (ML) -->
+                        <article id="guide-ml-safety" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <header class="border-b bg-gradient-to-r from-rose-50 via-slate-50 to-white p-5">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="grid h-8 w-8 place-items-center rounded-xl bg-rose-600 text-white font-black text-sm">7</span>
+                                    <div>
+                                        <h4 class="text-base font-black text-slate-900">ഉപയോക്തൃ അനുമതികൾ, ഡാറ്റാ സുരക്ഷ &amp; ബാക്കപ്പ്</h4>
+                                        <p class="text-xs font-semibold text-slate-500">റോൾ മാജിക് ലിങ്കുകൾ, ഡാറ്റാ റീസെറ്റ് സുരക്ഷാ മാനദണ്ഡങ്ങൾ.</p>
+                                    </div>
+                                </div>
+                            </header>
+                            <div class="p-5 space-y-4">
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-1.5">
+                                        <b class="text-xs font-black text-slate-800 flex items-center gap-1.5"><i data-lucide="key-round" class="h-4 w-4 text-indigo-600"></i> സുരക്ഷിത റോൾ ലിങ്കുകൾ (Magic Links)</b>
+                                        <p class="text-xs text-slate-600 leading-relaxed">ടീം ലീഡർ, ജഡ്ജ്, പബ്ലിഷർ എന്നിവർക്ക് പാസ്‌വേഡ് ഇല്ലാതെ ഒറ്റ ക്ലിക്കിൽ ലോഗിൻ ചെയ്യാവുന്ന മാജിക് ലിങ്കുകൾ നൽകാം. ആവശ്യമെങ്കിൽ ഇവ റീസെറ്റ് ചെയ്യാനും റദ്ദാക്കാനും സാധിക്കും.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-rose-200 bg-rose-50/40 p-4 space-y-1.5">
+                                        <b class="text-xs font-black text-rose-800 flex items-center gap-1.5"><i data-lucide="shield-alert" class="h-4 w-4 text-rose-600"></i> ഡാറ്റാ റീസെറ്റ് സുരക്ഷ (Safety Protections)</b>
+                                        <p class="text-xs text-slate-700 leading-relaxed">ഫെസ്റ്റിന്റെ പ്രവർത്തന ഡാറ്റ റീസെറ്റ് ചെയ്യുമ്പോൾ വ്യക്തമായ കൺഫർമേഷൻ ഉറപ്പുവരുത്തുന്നു. ഫാക്ടറി റീസെറ്റ് ചെയ്താലും അഡ്മിൻ ലോഗിൻ വിവരങ്ങൾ ഒരിക്കലും നഷ്ടപ്പെടുകയില്ല.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
                     </section>
                 </div>
             </div><!-- end content-container -->

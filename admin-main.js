@@ -747,12 +747,29 @@ document.addEventListener('click', (event) => {
 window.copyPageLink = async (path) => {const url=new URL(path,window.location.href).href;try{await navigator.clipboard.writeText(url);}catch(_){const input=document.createElement('textarea');input.value=url;input.style.position='fixed';input.style.opacity='0';document.body.append(input);input.select();document.execCommand('copy');input.remove();}window.showToast?.('Page link copied');};
 
 window.setGuideLanguage = (language = 'en') => {
-    sessionStorage.setItem('adminGuideLanguage', 'en');
-    document.querySelectorAll('[data-guide-language]').forEach(section => section.classList.toggle('hidden', section.dataset.guideLanguage !== 'en'));
+    const lang = (language === 'ml' || language === 'en') ? language : 'en';
+    sessionStorage.setItem('adminGuideLanguage', lang);
+    document.querySelectorAll('[data-guide-language]').forEach(section => {
+        section.classList.toggle('hidden', section.dataset.guideLanguage !== lang);
+    });
     const title = document.querySelector('[data-guide-title]');
     const subtitle = document.querySelector('[data-guide-subtitle]');
-    if (title) title.textContent = 'User Guide';
-    if (subtitle) subtitle.textContent = 'Learn every mode, role and workspace in this application.';
+    if (lang === 'ml') {
+        if (title) title.textContent = 'യൂസർ ഗൈഡ്';
+        if (subtitle) subtitle.textContent = 'ഫെസ്റ്റ് മാനേജ്‌മെന്റ് സിസ്റ്റത്തിന്റെ സമഗ്രമായ പ്രവർത്തന സഹായിയും യൂസർ ഗൈഡും.';
+    } else {
+        if (title) title.textContent = 'User Guide';
+        if (subtitle) subtitle.textContent = 'Learn every mode, role, and workspace in this application.';
+    }
+    document.querySelectorAll('[data-guide-lang-btn]').forEach(btn => {
+        const isActive = btn.dataset.guideLangBtn === lang;
+        btn.classList.toggle('bg-indigo-600', isActive);
+        btn.classList.toggle('text-white', isActive);
+        btn.classList.toggle('shadow-xs', isActive);
+        btn.classList.toggle('bg-white', !isActive);
+        btn.classList.toggle('text-slate-600', !isActive);
+        btn.classList.toggle('hover:bg-slate-50', !isActive);
+    });
     window.lucide?.createIcons?.();
 };
 
