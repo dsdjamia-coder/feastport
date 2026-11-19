@@ -3705,7 +3705,7 @@ window.removeMasterParticipantType = async key => {
 
 const MASTER_SCORING_PACK={school_team_fest:'points_grades',simple_direct_fest:'direct_rank',open_registration_fest:'standard_points',hybrid_community_fest:'advanced'};
 window.applyMasterPreset=value=>{if(value==='custom'){festSetup={...festSetup,preset:'custom'};masterDirtySections.add('overview');updateMasterSubnavStatus();window.renderMasterSetup();return;}const currentPolicies=festSetup.competitionPolicies,currentFields=festSetup.studentFields,currentDefinitions=festSetup.participantTypeDefinitions;festSetup={...setupForPreset(value),competitionPolicies:currentPolicies,studentFields:currentFields,participantTypeDefinitions:currentDefinitions};masterDirtySections.add('overview');updateMasterSubnavStatus();window.renderMasterSetup();window.applyScoringPolicyPack?.(MASTER_SCORING_PACK[value]||'custom');};
-const renderPresetGuide=setup=>{const guide=FEST_PRESET_GUIDES[setup.preset]||FEST_PRESET_GUIDES.custom,box=document.getElementById('master-preset-guide');if(!box)return;box.innerHTML=`<div class="flex flex-col gap-4 lg:flex-row lg:justify-between"><div><h4 class="text-lg font-black text-indigo-950">${escapeHtml(guide.label)}</h4><p class="mt-1 text-sm font-semibold text-indigo-800">${escapeHtml(guide.summary)}</p><p class="mt-3 text-xs font-black uppercase text-indigo-500">Workflow</p><p class="mt-1 text-xs font-bold text-indigo-800">${guide.workflow.map(escapeHtml).join(' → ')}</p></div><div class="lg:max-w-sm"><p class="text-xs font-black uppercase text-indigo-500">Available workspaces</p><div class="mt-2 flex flex-wrap gap-2">${guide.pages.map(page=>`<span class="rounded-full bg-white px-3 py-1 text-[10px] font-black text-indigo-700">${escapeHtml(page)}</span>`).join('')}</div></div></div>`;};
+const renderPresetGuide=setup=>{const guide=FEST_PRESET_GUIDES[setup.preset]||FEST_PRESET_GUIDES.custom,box=document.getElementById('master-preset-guide');if(!box)return;box.innerHTML=`<div class="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between"><div><div class="flex items-center gap-2 mb-1"><span class="rounded bg-indigo-200/80 px-2 py-0.5 text-[10px] font-black text-indigo-900">Preset Flow</span><h5 class="text-xs font-black text-indigo-950">${escapeHtml(guide.label)}: <span class="font-medium text-indigo-800">${escapeHtml(guide.summary)}</span></h5></div><p class="text-[11px] font-bold text-indigo-800 flex items-center gap-1.5"><i data-lucide="arrow-right" class="h-3.5 w-3.5 text-indigo-600"></i> ${guide.workflow.map(escapeHtml).join(' &rarr; ')}</p></div><div class="flex flex-wrap gap-1.5 shrink-0">${guide.pages.map(page=>`<span class="rounded-full bg-white px-2.5 py-0.5 text-[10px] font-black text-indigo-700 border border-indigo-100 shadow-2xs">${escapeHtml(page)}</span>`).join('')}</div></div>`;window.lucide?.createIcons?.();};
 const renderMasterParticipantTypes = setup => {
     const box = document.getElementById('master-participant-types');
     if (!box) return;
@@ -3937,12 +3937,12 @@ window.renderMasterGenderOptions = (setup = festSetup) => {
     if (!container) return;
     const allowed = setup.allowedGenders || ['Boys', 'Girls'];
     container.innerHTML = allowed.map(g => `
-        <label class="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 text-sm font-bold border border-slate-100">
+        <label class="group flex items-center justify-between rounded-xl bg-slate-50/70 p-2 text-xs font-bold border border-slate-200 transition hover:border-indigo-300 hover:bg-white has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50/20 has-[:checked]:shadow-2xs cursor-pointer">
             <span class="flex items-center gap-2">
-                <input type="checkbox" name="master-genders" value="${escapeHtml(g)}" checked data-master-list="allowedGenders" class="h-4 w-4 rounded text-indigo-600">
-                ${escapeHtml(g)}
+                <input type="checkbox" name="master-genders" value="${escapeHtml(g)}" checked data-master-list="allowedGenders" class="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500">
+                <span class="text-slate-800">${escapeHtml(g)}</span>
             </span>
-            ${!['Boys', 'Girls'].includes(g) ? `<button type="button" data-admin-action="remove-custom-gender" data-gender="${escapeHtml(g)}" class="text-slate-400 hover:text-rose-500 font-bold px-1">&times;</button>` : ''}
+            ${!['Boys', 'Girls', 'Men', 'Women', 'Male', 'Female'].includes(g) ? `<button type="button" data-admin-action="remove-custom-gender" data-gender="${escapeHtml(g)}" class="text-slate-400 hover:text-rose-500 font-bold px-1.5 py-0.5 rounded hover:bg-rose-50" title="Delete custom gender">&times;</button>` : ''}
         </label>
     `).join('');
 };
@@ -4194,7 +4194,26 @@ window.renderMasterSetup = () => {
     mergeScoringIntoMasterSetup();
     decorateMasterHelp();
     window.renderMasterImpactReview();
-    const summary=document.getElementById('master-setup-summary'); if(summary) summary.innerHTML=`<b>Active model:</b> ${setup.organisationMode} organisation • ${setup.scheduleMode} schedule • ${setup.judgingMode} judging • ${setup.resultWorkflow} results`;
+    const summary = document.getElementById('master-setup-summary');
+    if (summary) {
+        summary.innerHTML = `
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+                <span class="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Active Architecture:</span>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 font-bold border border-indigo-200/60 shadow-2xs">
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Org: <b class="capitalize">${escapeHtml(setup.organisationMode || 'school')}</b>
+                </span>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold border border-blue-200/60 shadow-2xs">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Schedule: <b class="capitalize">${escapeHtml(setup.scheduleMode || 'single_day')}</b>
+                </span>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200/60 shadow-2xs">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Judging: <b class="capitalize">${escapeHtml(setup.judgingMode || 'ranked')}</b>
+                </span>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200/60 shadow-2xs">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Results: <b class="capitalize">${escapeHtml(setup.resultWorkflow || 'instant_publish')}</b>
+                </span>
+            </div>
+        `;
+    }
     window.renderStudentFieldSettings?.();
     window.renderStudentCustomFields?.();applyEventFieldRules();
     window.updateCompetitionPolicyStatus?.();
