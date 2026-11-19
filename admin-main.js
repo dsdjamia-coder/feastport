@@ -758,6 +758,9 @@ document.addEventListener('click', (event) => {
         'studio-next-member': () => window.studioNextMember(),
         'switch-inspector-tab': () => window.switchInspectorTab(d.tab || btn?.dataset?.tab),
         'studio-delete-custom-element': () => window.deleteStudioCustomElement(d.id || btn?.dataset?.id),
+        'studio-align-center-h': () => window.studioAlignCenterH(),
+        'studio-align-center-v': () => window.studioAlignCenterV(),
+        'studio-reset-transform': () => window.studioResetLayerTransform(),
         'add-custom-landing-link': () => window.addCustomLandingLink(),
         'remove-custom-landing-link': () => window.removeCustomLandingLink(d.index),
         'save-access-user': () => window.saveAccessUser(),
@@ -4748,16 +4751,38 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
 
         if (b) {
             selectionOverlay = `
-                <g id="canvas-selection-box" pointer-events="none">
-                    <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="rgba(99, 102, 241, 0.08)" stroke="#4f46e5" stroke-width="2.5" stroke-dasharray="6,4" rx="4"/>
-                    <rect x="${b.x - 5}" y="${b.y - 5}" width="10" height="10" fill="#ffffff" stroke="#4f46e5" stroke-width="2.5"/>
-                    <rect x="${b.x + b.w - 5}" y="${b.y - 5}" width="10" height="10" fill="#ffffff" stroke="#4f46e5" stroke-width="2.5"/>
-                    <rect x="${b.x - 5}" y="${b.y + b.h - 5}" width="10" height="10" fill="#ffffff" stroke="#4f46e5" stroke-width="2.5"/>
-                    <rect x="${b.x + b.w - 5}" y="${b.y + b.h - 5}" width="10" height="10" fill="#ffffff" stroke="#4f46e5" stroke-width="2.5"/>
-                    <circle cx="${b.x + b.w/2}" cy="${b.y - 18}" r="5" fill="#4f46e5" stroke="#ffffff" stroke-width="2"/>
-                    <line x1="${b.x + b.w/2}" y1="${b.y}" x2="${b.x + b.w/2}" y2="${b.y - 13}" stroke="#4f46e5" stroke-width="1.5"/>
-                    <rect x="${b.x}" y="${Math.max(6, b.y - 24)}" width="${Math.min(260, Math.max(110, layerTitle.length * 8.5))}" height="22" rx="5" fill="#4f46e5"/>
-                    <text x="${b.x + 8}" y="${Math.max(6, b.y - 24) + 15}" font-family="Arial, sans-serif" font-size="11" font-weight="900" fill="#ffffff">${xmlEscape(layerTitle)}</text>
+                <g id="canvas-selection-box" class="select-none pointer-events-auto">
+                    <!-- Dashed Bounding Box (clickable to move) -->
+                    <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="rgba(99, 102, 241, 0.08)" stroke="#4f46e5" stroke-width="2" stroke-dasharray="6,4" rx="4" class="cursor-move pointer-events-auto"/>
+                    
+                    <!-- Corner Visual Markers (top-left, bottom-left, bottom-right) -->
+                    <rect x="${b.x - 4}" y="${b.y - 4}" width="8" height="8" fill="#ffffff" stroke="#4f46e5" stroke-width="2" class="pointer-events-none"/>
+                    <rect x="${b.x - 4}" y="${b.y + b.h - 4}" width="8" height="8" fill="#ffffff" stroke="#4f46e5" stroke-width="2" class="pointer-events-none"/>
+                    <rect x="${b.x + b.w - 4}" y="${b.y + b.h - 4}" width="8" height="8" fill="#ffffff" stroke="#4f46e5" stroke-width="2" class="pointer-events-none"/>
+                    
+                    <!-- 1. TOP-RIGHT RESIZE HANDLE -->
+                    <g data-studio-handle="resize" class="cursor-nesw-resize hover:scale-125 transition-transform pointer-events-auto" transform="translate(${b.x + b.w}, ${b.y})">
+                        <circle cx="0" cy="0" r="11" fill="#4f46e5" stroke="#ffffff" stroke-width="2.5" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))"/>
+                        <path d="M-4 4 L4 -4 M0 -4 L4 -4 L4 0 M0 4 L-4 4 L-4 0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </g>
+
+                    <!-- 2. RIGHT 360° ROTATION HANDLE -->
+                    <line x1="${b.x + b.w}" y1="${b.y + b.h/2}" x2="${b.x + b.w + 28}" y2="${b.y + b.h/2}" stroke="#4f46e5" stroke-width="2" stroke-dasharray="3,2" class="pointer-events-none"/>
+                    <g data-studio-handle="rotate" class="cursor-grab hover:scale-125 transition-transform pointer-events-auto" transform="translate(${b.x + b.w + 28}, ${b.y + b.h/2})">
+                        <circle cx="0" cy="0" r="13" fill="#6366f1" stroke="#ffffff" stroke-width="2.5" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))"/>
+                        <path d="M-4 -4 A6 6 0 1 1 -5 3 M-5 3 L-8 1 M-5 3 L-3 1" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </g>
+
+                    <!-- 3. BOTTOM DRAG / MOVE HANDLE -->
+                    <g data-studio-handle="move" class="cursor-move hover:scale-105 transition-transform pointer-events-auto" transform="translate(${b.x + b.w/2}, ${b.y + b.h + 20})">
+                        <rect x="-42" y="-13" width="84" height="26" rx="13" fill="#1e1b4b" stroke="#ffffff" stroke-width="2" filter="drop-shadow(0 2px 5px rgba(0,0,0,0.35))"/>
+                        <path d="M-26 0 h6 M-23 -3 l-3 3 l3 3 M-29 0 l3 -3 M-29 0 l3 3" stroke="#a5b4fc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        <text x="6" y="4" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="900" fill="#ffffff" letter-spacing="1">DRAG</text>
+                    </g>
+
+                    <!-- Layer Tag Badge Top-Left -->
+                    <rect x="${b.x}" y="${Math.max(4, b.y - 24)}" width="${Math.min(260, Math.max(100, layerTitle.length * 8.5))}" height="20" rx="4" fill="#4f46e5" class="pointer-events-none"/>
+                    <text x="${b.x + 6}" y="${Math.max(4, b.y - 24) + 14}" font-family="Arial, sans-serif" font-size="10" font-weight="900" fill="#ffffff" class="pointer-events-none">${xmlEscape(layerTitle)}</text>
                 </g>
             `;
         }
@@ -5133,13 +5158,18 @@ window.renderStudioCanvas = () => {
 
 function bindStudioCanvasInteraction(svgEl) {
     if (!svgEl) return;
-    let isDragging = false;
+    let gestureMode = null; // 'move' | 'resize' | 'rotate'
     let startClientX = 0;
     let startClientY = 0;
-    let draggedLayer = null;
+    let activeLayerKey = null;
     let initialCoords = { x: 0, y: 0 };
+    let initialAngle = 0;
+    let initialMetrics = {};
+    let centerClient = { x: 0, y: 0 };
+    let startDist = 1;
+    let startAngleRad = 0;
 
-    const getLayerOffset = key => {
+    const getLayerCoords = key => {
         const tmpl = currentTeamIdTemplate;
         if (key.startsWith('demo_')) {
             const field = key.replace('demo_', '');
@@ -5163,7 +5193,7 @@ function bindStudioCanvasInteraction(svgEl) {
         }
     };
 
-    const setLayerOffset = (key, x, y) => {
+    const setLayerCoords = (key, x, y) => {
         const tmpl = currentTeamIdTemplate;
         if (key.startsWith('demo_')) {
             const field = key.replace('demo_', '');
@@ -5195,59 +5225,266 @@ function bindStudioCanvasInteraction(svgEl) {
         if (posYInput && activeCardLayer === key) posYInput.value = y;
     };
 
+    const getLayerAngle = key => {
+        const tmpl = currentTeamIdTemplate;
+        if (key.startsWith('demo_')) {
+            const field = key.replace('demo_', '');
+            return tmpl.demographics?.[field]?.angle || 0;
+        }
+        const customEl = (tmpl.customElements || []).find(el => el.id === key);
+        if (customEl) return customEl.angle || 0;
+        if (key === 'watermark') return tmpl.watermarkAngle !== undefined ? tmpl.watermarkAngle : -90;
+        return tmpl[key + 'Angle'] || 0;
+    };
+
+    const setLayerAngle = (key, angle) => {
+        const tmpl = currentTeamIdTemplate;
+        if (key.startsWith('demo_')) {
+            const field = key.replace('demo_', '');
+            if (!tmpl.demographics) tmpl.demographics = {};
+            if (!tmpl.demographics[field]) tmpl.demographics[field] = { show: true };
+            tmpl.demographics[field].angle = angle;
+        } else {
+            const customEl = (tmpl.customElements || []).find(el => el.id === key);
+            if (customEl) {
+                customEl.angle = angle;
+            } else {
+                tmpl[key + 'Angle'] = angle;
+                if (key === 'watermark') tmpl.watermarkAngle = angle;
+            }
+        }
+        const angleSlider = document.getElementById('inspector-prop-angle');
+        const angleDisp = document.getElementById('inspector-angle-display');
+        if (angleSlider) angleSlider.value = angle;
+        if (angleDisp) angleDisp.textContent = `${angle}°`;
+    };
+
+    const captureInitialMetrics = key => {
+        const tmpl = currentTeamIdTemplate;
+        const customEl = (tmpl.customElements || []).find(el => el.id === key);
+        if (customEl) {
+            return {
+                fontSize: customEl.fontSize || 16,
+                width: customEl.width || 100,
+                height: customEl.height || 60,
+                r: customEl.r || customEl.size || 35,
+                size: customEl.size || 40
+            };
+        }
+        if (key === 'photo') return { photoRadius: tmpl.photoRadius ?? 90 };
+        if (key === 'name') return { nameSize: tmpl.nameSize ?? 30 };
+        if (key === 'chest') return { chestSize: tmpl.chestSize ?? 44 };
+        if (key === 'header') return { headerHeight: tmpl.headerHeight ?? 180 };
+        if (key === 'watermark') return { watermarkSize: tmpl.watermarkSize ?? 160 };
+        if (key.startsWith('demo_')) {
+            const f = key.replace('demo_', '');
+            const cfg = tmpl.demographics?.[f] || {};
+            return {
+                labelSize: cfg.labelSize || tmpl.labelSize || 11,
+                valSize: cfg.valSize || tmpl.valueSize || 17
+            };
+        }
+        return {};
+    };
+
     svgEl.addEventListener('pointerdown', e => {
+        const handleEl = e.target.closest('[data-studio-handle]');
         const targetLayerEl = e.target.closest('[data-card-layer]');
-        if (!targetLayerEl) {
+        const isSelectionBox = e.target.closest('#canvas-selection-box');
+
+        // Check handle click first
+        if (handleEl && activeCardLayer) {
+            const handleType = handleEl.getAttribute('data-studio-handle');
+            gestureMode = handleType; // 'resize', 'rotate', 'move'
+            activeLayerKey = activeCardLayer;
+        } else if (targetLayerEl) {
+            const clickedLayer = targetLayerEl.getAttribute('data-card-layer');
+            gestureMode = 'move';
+            activeLayerKey = clickedLayer;
+            if (activeCardLayer !== clickedLayer) {
+                // Select new layer and render with new gizmo
+                window.setStudioActiveLayer(clickedLayer);
+                const newSvg = document.getElementById('team-id-card-svg');
+                if (newSvg) {
+                    try { newSvg.setPointerCapture(e.pointerId); } catch {}
+                }
+                return;
+            }
+        } else if (isSelectionBox && activeCardLayer) {
+            gestureMode = 'move';
+            activeLayerKey = activeCardLayer;
+        } else {
+            // Clicked background -> deselect
             window.setStudioActiveLayer(null);
             return;
         }
-        draggedLayer = targetLayerEl.getAttribute('data-card-layer');
-        window.setStudioActiveLayer(draggedLayer);
-        isDragging = true;
+
+        if (!activeLayerKey) return;
+
         startClientX = e.clientX;
         startClientY = e.clientY;
-        initialCoords = getLayerOffset(draggedLayer);
+        initialCoords = getLayerCoords(activeLayerKey);
+        initialAngle = getLayerAngle(activeLayerKey);
+        initialMetrics = captureInitialMetrics(activeLayerKey);
+
+        // Compute layer center in client screen coordinates
+        const selBox = svgEl.querySelector('#canvas-selection-box');
+        if (selBox) {
+            const boxRect = selBox.getBoundingClientRect();
+            centerClient = {
+                x: boxRect.left + boxRect.width / 2,
+                y: boxRect.top + boxRect.height / 2
+            };
+        } else {
+            centerClient = { x: startClientX, y: startClientY };
+        }
+
+        startDist = Math.hypot(startClientX - centerClient.x, startClientY - centerClient.y) || 1;
+        startAngleRad = Math.atan2(startClientY - centerClient.y, startClientX - centerClient.x);
+
         try { svgEl.setPointerCapture(e.pointerId); } catch {}
     });
 
     svgEl.addEventListener('pointermove', e => {
-        if (!isDragging || !draggedLayer) return;
+        if (!gestureMode || !activeLayerKey) return;
         const rect = svgEl.getBoundingClientRect();
         const scaleX = 600 / (rect.width || 1);
         const svgH = Number(svgEl.getAttribute('height')) || 867;
         const scaleY = svgH / (rect.height || 1);
-        const dx = Math.round((e.clientX - startClientX) * scaleX);
-        const dy = Math.round((e.clientY - startClientY) * scaleY);
-        const newX = initialCoords.x + dx;
-        const newY = initialCoords.y + dy;
-        setLayerOffset(draggedLayer, newX, newY);
 
-        const group = svgEl.querySelector(`[data-card-layer="${draggedLayer}"]`);
-        if (group) {
-            group.setAttribute('transform', `translate(${dx}, ${dy})`);
-        }
-        const selectionBox = svgEl.querySelector('#canvas-selection-box');
-        if (selectionBox) {
-            selectionBox.setAttribute('transform', `translate(${dx}, ${dy})`);
+        if (gestureMode === 'move') {
+            const dx = Math.round((e.clientX - startClientX) * scaleX);
+            const dy = Math.round((e.clientY - startClientY) * scaleY);
+            const newX = initialCoords.x + dx;
+            const newY = initialCoords.y + dy;
+            setLayerCoords(activeLayerKey, newX, newY);
+
+            const group = svgEl.querySelector(`[data-card-layer="${activeLayerKey}"]`);
+            if (group) {
+                group.setAttribute('transform', `translate(${dx}, ${dy})`);
+            }
+            const selectionBox = svgEl.querySelector('#canvas-selection-box');
+            if (selectionBox) {
+                selectionBox.setAttribute('transform', `translate(${dx}, ${dy})`);
+            }
+        } else if (gestureMode === 'resize') {
+            const currDist = Math.hypot(e.clientX - centerClient.x, e.clientY - centerClient.y);
+            const ratio = Math.max(0.2, Math.min(4.0, currDist / startDist));
+            const tmpl = currentTeamIdTemplate;
+            const customEl = (tmpl.customElements || []).find(el => el.id === activeLayerKey);
+
+            if (customEl) {
+                if (customEl.type === 'text') {
+                    customEl.fontSize = Math.max(8, Math.min(72, Math.round((initialMetrics.fontSize || 16) * ratio)));
+                    const sizeInput = document.getElementById('inspector-prop-size');
+                    if (sizeInput) sizeInput.value = customEl.fontSize;
+                } else if (customEl.type === 'rect') {
+                    customEl.width = Math.max(10, Math.min(600, Math.round((initialMetrics.width || 100) * ratio)));
+                    customEl.height = Math.max(10, Math.min(800, Math.round((initialMetrics.height || 60) * ratio)));
+                    const wInput = document.getElementById('inspector-rect-w');
+                    const hInput = document.getElementById('inspector-rect-h');
+                    if (wInput) wInput.value = customEl.width;
+                    if (hInput) hInput.value = customEl.height;
+                } else if (customEl.type === 'circle' || customEl.type === 'triangle' || customEl.type === 'star' || customEl.type === 'polygon') {
+                    const nextSize = Math.max(5, Math.min(300, Math.round((initialMetrics.r || initialMetrics.size || 35) * ratio)));
+                    if (customEl.type === 'circle') customEl.r = nextSize;
+                    else customEl.size = nextSize;
+                    const shapeInput = document.getElementById('inspector-shape-size');
+                    if (shapeInput) shapeInput.value = nextSize;
+                } else if (customEl.type === 'image') {
+                    customEl.width = Math.max(20, Math.min(600, Math.round((initialMetrics.width || 80) * ratio)));
+                    customEl.height = Math.max(20, Math.min(600, Math.round((initialMetrics.height || 80) * ratio)));
+                    const wInput = document.getElementById('inspector-img-w');
+                    const hInput = document.getElementById('inspector-img-h');
+                    if (wInput) wInput.value = customEl.width;
+                    if (hInput) hInput.value = customEl.height;
+                }
+            } else if (activeLayerKey === 'photo') {
+                tmpl.photoRadius = Math.max(30, Math.min(180, Math.round((initialMetrics.photoRadius || 90) * ratio)));
+                const rInput = document.getElementById('inspector-photo-radius');
+                if (rInput) rInput.value = tmpl.photoRadius;
+            } else if (activeLayerKey === 'name') {
+                tmpl.nameSize = Math.max(14, Math.min(60, Math.round((initialMetrics.nameSize || 30) * ratio)));
+                const nInput = document.getElementById('inspector-name-size');
+                if (nInput) nInput.value = tmpl.nameSize;
+            } else if (activeLayerKey === 'chest') {
+                tmpl.chestSize = Math.max(18, Math.min(90, Math.round((initialMetrics.chestSize || 44) * ratio)));
+                const cInput = document.getElementById('inspector-chest-size');
+                if (cInput) cInput.value = tmpl.chestSize;
+            } else if (activeLayerKey === 'header') {
+                tmpl.headerHeight = Math.max(60, Math.min(350, Math.round((initialMetrics.headerHeight || 180) * ratio)));
+                const hInput = document.getElementById('inspector-header-h');
+                if (hInput) hInput.value = tmpl.headerHeight;
+            } else if (activeLayerKey === 'watermark') {
+                tmpl.watermarkSize = Math.max(50, Math.min(350, Math.round((initialMetrics.watermarkSize || 160) * ratio)));
+                const wmInput = document.getElementById('inspector-watermark-size');
+                if (wmInput) wmInput.value = tmpl.watermarkSize;
+            } else if (activeLayerKey.startsWith('demo_')) {
+                const f = activeLayerKey.replace('demo_', '');
+                if (!tmpl.demographics) tmpl.demographics = {};
+                if (!tmpl.demographics[f]) tmpl.demographics[f] = {};
+                tmpl.demographics[f].labelSize = Math.max(7, Math.min(24, Math.round((initialMetrics.labelSize || 11) * ratio)));
+                tmpl.demographics[f].valSize = Math.max(9, Math.min(32, Math.round((initialMetrics.valSize || 17) * ratio)));
+                const lblInput = document.getElementById('inspector-demo-lbl-size');
+                const valInput = document.getElementById('inspector-demo-val-size');
+                if (lblInput) lblInput.value = tmpl.demographics[f].labelSize;
+                if (valInput) valInput.value = tmpl.demographics[f].valSize;
+            }
+
+            // Real-time visual scaling preview on the group and selection box
+            const group = svgEl.querySelector(`[data-card-layer="${activeLayerKey}"]`);
+            const selectionBox = svgEl.querySelector('#canvas-selection-box');
+            const cx = (centerClient.x - rect.left) * scaleX;
+            const cy = (centerClient.y - rect.top) * scaleY;
+
+            if (group) {
+                group.setAttribute('transform', `scale(${ratio.toFixed(3)})`);
+                group.style.transformOrigin = `${cx}px ${cy}px`;
+            }
+            if (selectionBox) {
+                selectionBox.setAttribute('transform', `scale(${ratio.toFixed(3)})`);
+                selectionBox.style.transformOrigin = `${cx}px ${cy}px`;
+            }
+        } else if (gestureMode === 'rotate') {
+            const currentAngleRad = Math.atan2(e.clientY - centerClient.y, e.clientX - centerClient.x);
+            const deltaDeg = Math.round((currentAngleRad - startAngleRad) * 180 / Math.PI);
+            let nextAngle = (initialAngle + deltaDeg) % 360;
+            if (nextAngle > 180) nextAngle -= 360;
+            if (nextAngle < -180) nextAngle += 360;
+
+            setLayerAngle(activeLayerKey, nextAngle);
+
+            const group = svgEl.querySelector(`[data-card-layer="${activeLayerKey}"]`);
+            const selectionBox = svgEl.querySelector('#canvas-selection-box');
+            const cx = (centerClient.x - rect.left) * scaleX;
+            const cy = (centerClient.y - rect.top) * scaleY;
+
+            if (group) {
+                group.setAttribute('transform', `rotate(${nextAngle} ${cx} ${cy})`);
+            }
+            if (selectionBox) {
+                selectionBox.setAttribute('transform', `rotate(${deltaDeg} ${cx} ${cy})`);
+            }
         }
     });
 
-    const finishDrag = () => {
-        if (isDragging) {
-            isDragging = false;
-            draggedLayer = null;
+    const finishGesture = () => {
+        if (gestureMode) {
+            gestureMode = null;
+            activeLayerKey = null;
             saveTeamIdTemplate(currentTeamIdTemplate);
             window.renderStudioCanvas();
+            window.syncStudioInspectorUI();
         }
     };
 
-    svgEl.addEventListener('pointerup', finishDrag);
-    svgEl.addEventListener('pointercancel', finishDrag);
+    svgEl.addEventListener('pointerup', finishGesture);
+    svgEl.addEventListener('pointercancel', finishGesture);
 }
 
 window.bindCardCanvasInteraction = bindStudioCanvasInteraction;
 
-window.setStudioActiveLayer = layerKey => {
+window.setStudioActiveLayer = (layerKey, skipRender = false) => {
     activeCardLayer = layerKey;
     const indicator = document.getElementById('studio-selected-layer-name');
     const deselectBtn = document.getElementById('btn-studio-deselect');
@@ -5260,7 +5497,77 @@ window.setStudioActiveLayer = layerKey => {
 
     window.renderStudioPropertiesPanel();
     window.renderStudioLayersList();
+    if (!skipRender) {
+        window.renderStudioCanvas();
+    }
+};
+
+window.studioAlignCenterH = () => {
+    if (!activeCardLayer) return;
+    const tmpl = currentTeamIdTemplate;
+    const customEl = (tmpl.customElements || []).find(el => el.id === activeCardLayer);
+    if (customEl) {
+        const w = customEl.width || (customEl.type === 'circle' ? (customEl.r || 30) * 2 : 100);
+        customEl.x = Math.round((600 - w) / 2);
+    } else if (activeCardLayer.startsWith('demo_')) {
+        const f = activeCardLayer.replace('demo_', '');
+        if (!tmpl.demographics) tmpl.demographics = {};
+        if (!tmpl.demographics[f]) tmpl.demographics[f] = {};
+        tmpl.demographics[f].x = 0;
+    } else {
+        tmpl[activeCardLayer + 'X'] = 0;
+    }
+    saveTeamIdTemplate(tmpl);
     window.renderStudioCanvas();
+    window.renderStudioPropertiesPanel();
+};
+
+window.studioAlignCenterV = () => {
+    if (!activeCardLayer) return;
+    const tmpl = currentTeamIdTemplate;
+    const customEl = (tmpl.customElements || []).find(el => el.id === activeCardLayer);
+    const cardH = Number(tmpl.cardH || 130);
+    const cardW = Number(tmpl.cardW || 90);
+    const svgH = Math.max(760, Math.round(600 * (cardH / cardW)));
+    if (customEl) {
+        const h = customEl.height || (customEl.type === 'circle' ? (customEl.r || 30) * 2 : 60);
+        customEl.y = Math.round((svgH - h) / 2);
+    } else if (activeCardLayer.startsWith('demo_')) {
+        const f = activeCardLayer.replace('demo_', '');
+        if (!tmpl.demographics) tmpl.demographics = {};
+        if (!tmpl.demographics[f]) tmpl.demographics[f] = {};
+        tmpl.demographics[f].y = 0;
+    } else {
+        tmpl[activeCardLayer + 'Y'] = 0;
+    }
+    saveTeamIdTemplate(tmpl);
+    window.renderStudioCanvas();
+    window.renderStudioPropertiesPanel();
+};
+
+window.studioResetLayerTransform = () => {
+    if (!activeCardLayer) return;
+    const tmpl = currentTeamIdTemplate;
+    const customEl = (tmpl.customElements || []).find(el => el.id === activeCardLayer);
+    if (customEl) {
+        customEl.x = 250;
+        customEl.y = 350;
+        customEl.angle = 0;
+    } else if (activeCardLayer.startsWith('demo_')) {
+        const f = activeCardLayer.replace('demo_', '');
+        if (!tmpl.demographics) tmpl.demographics = {};
+        if (!tmpl.demographics[f]) tmpl.demographics[f] = {};
+        tmpl.demographics[f].x = 0;
+        tmpl.demographics[f].y = 0;
+        tmpl.demographics[f].angle = 0;
+    } else {
+        tmpl[activeCardLayer + 'X'] = 0;
+        tmpl[activeCardLayer + 'Y'] = 0;
+        tmpl[activeCardLayer + 'Angle'] = activeCardLayer === 'watermark' ? -90 : 0;
+    }
+    saveTeamIdTemplate(tmpl);
+    window.renderStudioCanvas();
+    window.renderStudioPropertiesPanel();
 };
 
 window.renderStudioPropertiesPanel = () => {
@@ -5474,6 +5781,21 @@ window.renderStudioPropertiesPanel = () => {
             <div class="flex items-center justify-between">
                 <span class="text-xs font-black text-indigo-950 uppercase tracking-wider">${escapeHtml(title)}</span>
                 ${customEl ? `<button type="button" data-admin-action="studio-delete-custom-element" data-id="${customEl.id}" class="text-rose-600 hover:text-rose-800 text-xs font-bold flex items-center gap-1"><i data-lucide="trash-2" class="h-3.5 w-3.5"></i><span>Delete</span></button>` : ''}
+            </div>
+
+            <!-- Quick Alignment Bar -->
+            <div class="flex items-center gap-1.5 pt-1 border-t border-indigo-100">
+                <button type="button" data-admin-action="studio-align-center-h" class="flex-1 rounded-lg border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-900 py-1 text-[11px] font-bold flex items-center justify-center gap-1 shadow-2xs transition active:scale-95" title="Center Horizontally">
+                    <i data-lucide="align-horizontal-justify-center" class="h-3.5 w-3.5 text-indigo-600"></i>
+                    <span>Center H</span>
+                </button>
+                <button type="button" data-admin-action="studio-align-center-v" class="flex-1 rounded-lg border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-900 py-1 text-[11px] font-bold flex items-center justify-center gap-1 shadow-2xs transition active:scale-95" title="Center Vertically">
+                    <i data-lucide="align-vertical-justify-center" class="h-3.5 w-3.5 text-indigo-600"></i>
+                    <span>Center V</span>
+                </button>
+                <button type="button" data-admin-action="studio-reset-transform" class="rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 p-1 text-[11px] font-bold flex items-center justify-center shadow-2xs transition active:scale-95" title="Reset X=0, Y=0, Angle=0">
+                    <i data-lucide="rotate-ccw" class="h-3.5 w-3.5 text-slate-500"></i>
+                </button>
             </div>
 
             <!-- Position & Geometry -->
@@ -5786,10 +6108,9 @@ window.setStudioViewMode = mode => {
     }
 
     if (isDesigner) {
-        window.enterStudioFullscreen();
         window.renderStudioCanvas();
     } else {
-        window.exitStudioFullscreen();
+        if (studioFullscreenMode) window.exitStudioFullscreen();
         window.renderStudioPrintSheets();
     }
     window.lucide?.createIcons?.();
@@ -6358,9 +6679,6 @@ window.initStudioView = () => {
     window.renderStudioPropertiesPanel();
     window.renderStudioLayersList();
     window.updateStudioHeaderThumbnail();
-    if (studioViewMode === 'designer') {
-        window.enterStudioFullscreen();
-    }
     window.lucide?.createIcons?.();
 };
 
