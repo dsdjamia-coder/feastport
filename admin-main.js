@@ -235,6 +235,9 @@ async function startAdminSession() {
             if (!masterDirtySections.size) {
                 festSetup = window.structuredClone ? structuredClone(savedFestSetup) : JSON.parse(JSON.stringify(savedFestSetup));
             }
+            if (data.teamIdCardTemplate && typeof data.teamIdCardTemplate === 'object') {
+                window.applyRemoteTeamIdTemplate?.(data.teamIdCardTemplate);
+            }
             window.adminSharedState.update({ generalSettings: data, categories, teams, teamDisplayNames, categoryDisplayNames, teamColors, teamLogos, teamIdCardHeaders, chestConfig, festSetup });
             window.renderDropdowns();
             if (isTabActive('config') || isTabActive('master-setup')) {
@@ -722,6 +725,10 @@ document.addEventListener('click', (event) => {
         'team-id-next-page': () => window.teamIdNextPage(),
         'toggle-team-id-customizer': () => window.toggleTeamIdCustomizer(),
         'reset-team-id-template': () => window.resetTeamIdTemplate(),
+        'save-team-id-template': () => window.saveTeamIdTemplate(),
+        'set-team-id-view-mode': () => window.setTeamIdViewMode(d.mode || btn.dataset.mode),
+        'team-id-single-prev': () => window.teamIdSinglePrev(),
+        'team-id-single-next': () => window.teamIdSingleNext(),
         'add-custom-landing-link': () => window.addCustomLandingLink(),
         'remove-custom-landing-link': () => window.removeCustomLandingLink(d.index),
         'save-access-user': () => window.saveAccessUser(),
@@ -3052,20 +3059,152 @@ window.renderEventTable = (force = false) => {
 };
 
 // --- CHEST NO & MASTER SETUP ---
-const teamSetupActionButton=(label,action,team,classes,extra='')=>`<button data-admin-action="${action}" data-team="${escapeHtml(team)}" ${extra} class="min-h-10 rounded-xl px-4 py-2 text-xs font-bold transition active:scale-95 shadow-sm ${classes}">${label}</button>`;
-const renderTeamMediaPanel=(team,teamIndex,type)=>{const isHeader=type==='header',stored=isHeader?teamIdCardHeaders[team]||'':teamLogos[team]||'',fieldId=`team-${isHeader?'id-header':'logo'}-edit-${teamIndex}`,previewId=`team-${isHeader?'id-header':'logo'}-preview-${teamIndex}`,errorId=`team-${isHeader?'id-header':'logo'}-error-${teamIndex}`,action=isHeader?'save-team-id-header':'save-team-logo',title=isHeader?'ID card header image':'Team image',tone=isHeader?'emerald':'indigo',panelClass=isHeader?'border-emerald-100 bg-emerald-50/40':'border-indigo-100 bg-indigo-50/40',titleClass=isHeader?'text-emerald-800':'text-indigo-800',inputClass=isHeader?'border-emerald-100':'border-indigo-100',saveClass=isHeader?'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-500/20':'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-indigo-500/20',preview=stored?`<img src="${escapeHtml(stored)}" class="${isHeader?'h-16 w-full rounded-2xl bg-black object-cover':'h-20 w-20 rounded-2xl bg-white object-cover'} border" alt="">`:'';
-return `<section class="rounded-2xl border ${panelClass} p-4"><div class="flex items-start justify-between gap-3"><div><h5 class="text-xs font-black uppercase tracking-wide ${titleClass}">${title}</h5></div>${stored?'<span class="rounded-full bg-white px-2 py-1 text-[9px] font-black text-emerald-700">Saved</span>':''}</div><input id="${fieldId}" type="hidden" value="${escapeHtml(stored)}"><input data-image-file data-image-value="${fieldId}" data-image-preview="${previewId}" data-image-error="${errorId}" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="mt-3 w-full rounded-xl border ${inputClass} bg-white p-2 text-xs"><p id="${errorId}" class="mt-1 text-xs font-bold text-red-600"></p><div id="${previewId}" class="mt-3 flex flex-wrap gap-2">${preview}</div><div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">${teamSetupActionButton(isHeader?'Save ID Header':'Save Image',action,team,saveClass)}${stored?teamSetupActionButton('Remove',action,team,'border border-rose-200 bg-white text-rose-600 hover:bg-rose-50',`onclick="document.getElementById('${fieldId}').value=''"`):''}</div></section>`};
-const renderTeamChestRows=(team)=>categories.length ? categories.map(category=>{const boysKey=chestKey(team,category,'Boys'),girlsKey=chestKey(team,category,'Girls'),legacyVal=chestConfig[legacyChestKey(team,category)]||'',boysVal=chestConfig[boysKey]||legacyVal,girlsVal=chestConfig[girlsKey]||'';return `<div class="rounded-xl border border-slate-100 bg-slate-50 p-3"><div class="mb-2 flex items-center justify-between gap-2"><span class="truncate text-xs font-black uppercase tracking-wide text-slate-600">${escapeHtml(categoryLabel(category))}</span><span class="flex shrink-0 gap-1"><button data-admin-action="save-category-display-name" data-category="${escapeHtml(category)}" class="rounded-lg p-1.5 text-indigo-600 hover:bg-indigo-50 transition active:scale-95" title="Save display name"><i data-lucide="save" class="h-3.5 w-3.5"></i></button><button data-admin-action="remove-item" data-type="categories" data-value="${escapeHtml(category)}" class="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50 transition active:scale-95" title="Delete"><i data-lucide="trash-2" class="h-3.5 w-3.5"></i></button></span></div><div class="grid grid-cols-2 gap-2"><label class="text-[10px] font-black uppercase text-blue-600">Boys<input type="number" data-key="${boysKey}" value="${boysVal}" class="chest-start-input mt-1 w-full rounded-xl border border-slate-200 bg-slate-100 px-2 py-2 text-center text-sm font-black outline-none transition focus:ring-2 focus:ring-teal-500" placeholder="#" readonly></label><label class="text-[10px] font-black uppercase text-pink-600">Girls<input type="number" data-key="${girlsKey}" value="${girlsVal}" class="chest-start-input mt-1 w-full rounded-xl border border-slate-200 bg-slate-100 px-2 py-2 text-center text-sm font-black outline-none transition focus:ring-2 focus:ring-teal-500" placeholder="#" readonly></label></div></div>`}).join('') : `<div class="col-span-full rounded-xl bg-slate-50 p-4 text-center text-xs font-bold text-slate-400">No categories added yet. Add a category above to set up chest number ranges for this team.</div>`;
+const teamSetupActionButton=(label,action,team,classes,extra='')=>`<button data-admin-action="${action}" data-team="${escapeHtml(team)}" ${extra} class="min-h-8 rounded-xl px-3 py-1.5 text-xs font-bold transition active:scale-95 shadow-2xs ${classes}">${label}</button>`;
+
+const renderTeamMediaCompact = (team, teamIndex, type) => {
+    const isHeader = type === 'header',
+          stored = isHeader ? teamIdCardHeaders[team] || '' : teamLogos[team] || '',
+          fieldId = `team-${isHeader ? 'id-header' : 'logo'}-edit-${teamIndex}`,
+          previewId = `team-${isHeader ? 'id-header' : 'logo'}-preview-${teamIndex}`,
+          errorId = `team-${isHeader ? 'id-header' : 'logo'}-error-${teamIndex}`,
+          action = isHeader ? 'save-team-id-header' : 'save-team-logo',
+          title = isHeader ? 'ID Header' : 'Team Logo';
+    const preview = stored
+        ? `<div class="relative overflow-hidden rounded-lg border border-slate-200 bg-white" style="width:1.2cm;height:1.2cm"><img src="${escapeHtml(stored)}" class="h-full w-full object-cover" alt=""></div>`
+        : `<div class="grid place-items-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-slate-300" style="width:1.2cm;height:1.2cm"><i data-lucide="${isHeader ? 'image' : 'shield'}" class="h-4 w-4"></i></div>`;
+    return `
+    <div class="flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/80 p-2">
+        <div class="flex items-center gap-2 min-w-0">
+            <div id="${previewId}" class="shrink-0 flex items-center justify-center">
+                ${preview}
+            </div>
+            <div class="min-w-0">
+                <span class="block truncate text-[11px] font-black uppercase text-slate-700">${title}</span>
+                <span class="block text-[9px] font-bold ${stored ? 'text-emerald-600' : 'text-slate-400'}">${stored ? 'Saved' : 'Not set'}</span>
+            </div>
+        </div>
+        <input id="${fieldId}" type="hidden" value="${escapeHtml(stored)}">
+        <div class="flex items-center gap-1.5 shrink-0">
+            <label class="cursor-pointer rounded-lg border border-slate-200 bg-white hover:bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-700 transition active:scale-95 shadow-2xs">
+                <span>Upload</span>
+                <input data-image-file data-image-value="${fieldId}" data-image-preview="${previewId}" data-image-error="${errorId}" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden">
+            </label>
+            <button data-admin-action="${action}" data-team="${escapeHtml(team)}" class="rounded-lg bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 text-[11px] font-bold transition active:scale-95 shadow-2xs">Save</button>
+            ${stored ? `<button data-admin-action="${action}" data-team="${escapeHtml(team)}" onclick="document.getElementById('${fieldId}').value=''" class="rounded-lg border border-rose-200 bg-white text-rose-600 hover:bg-rose-50 p-1 transition active:scale-95 shadow-2xs" title="Remove"><i data-lucide="trash-2" class="h-3.5 w-3.5"></i></button>` : ''}
+        </div>
+        <p id="${errorId}" class="hidden text-[10px] font-bold text-red-600"></p>
+    </div>`;
+};
+
+const renderTeamChestRowsCompact = team => {
+    if (!categories.length) {
+        return `<div class="rounded-xl bg-slate-50 p-3 text-center text-xs font-bold text-slate-400">No categories added yet.</div>`;
+    }
+    return `
+    <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+        ${categories.map(category => {
+            const boysKey = chestKey(team, category, 'Boys'),
+                  girlsKey = chestKey(team, category, 'Girls'),
+                  legacyVal = chestConfig[legacyChestKey(team, category)] || '',
+                  boysVal = chestConfig[boysKey] || legacyVal,
+                  girlsVal = chestConfig[girlsKey] || '';
+            return `
+            <div class="flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/60 px-2.5 py-1.5 text-xs">
+                <span class="truncate font-black text-slate-700 max-w-[120px]" title="${escapeHtml(categoryLabel(category))}">${escapeHtml(categoryLabel(category))}</span>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <label class="flex items-center gap-1 text-[10px] font-black text-blue-600">
+                        B
+                        <input type="number" data-key="${boysKey}" value="${boysVal}" class="chest-start-input h-7 w-14 rounded-lg border border-slate-200 bg-white px-1 text-center text-xs font-black outline-none focus:ring-1 focus:ring-teal-500" placeholder="#" readonly>
+                    </label>
+                    <label class="flex items-center gap-1 text-[10px] font-black text-pink-600">
+                        G
+                        <input type="number" data-key="${girlsKey}" value="${girlsVal}" class="chest-start-input h-7 w-14 rounded-lg border border-slate-200 bg-white px-1 text-center text-xs font-black outline-none focus:ring-1 focus:ring-teal-500" placeholder="#" readonly>
+                    </label>
+                </div>
+            </div>`;
+        }).join('')}
+    </div>`;
+};
+
 window.renderChestGrid = () => {
     const container = document.getElementById('chest-config-container');
-    if(!container) return;
-    if(teams.length === 0) {
+    if (!container) return;
+    if (teams.length === 0) {
         container.className = 'p-5';
         container.innerHTML = `<div class="col-span-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 py-12 text-center italic text-slate-400">No teams added yet. Create your first team above.</div>`;
         return;
     }
-    container.className='p-5 grid grid-cols-1 xl:grid-cols-2 gap-6';
-    container.innerHTML=teams.map((team,teamIndex)=>{const color=teamColors[team]||'#4f46e5',logo=teamLogos[team]||'',header=teamIdCardHeaders[team]||'';return `<article class="animate-enter overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:shadow-lg"><header class="flex flex-col gap-4 border-b border-slate-100 bg-gradient-to-br from-slate-50 to-white p-5 sm:flex-row sm:items-center sm:justify-between"><div class="flex min-w-0 items-center gap-3"><div class="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 bg-white shadow-sm" style="border-color:${color}">${logo?`<img src="${escapeHtml(logo)}" class="h-full w-full object-cover" alt="${escapeHtml(teamLabel(team))} logo">`:`<span class="text-xl font-black" style="color:${color}">${escapeHtml(teamLabel(team).charAt(0)||team.charAt(0))}</span>`}</div><div class="min-w-0"><h4 class="truncate text-xl font-black text-slate-800">${escapeHtml(teamLabel(team))}</h4><p class="font-mono text-[10px] font-black uppercase text-slate-400">${escapeHtml(team)}</p><label class="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase text-slate-400">Team colour <input type="color" value="${color}" data-admin-change="save-team-color" data-team="${escapeHtml(team)}" class="h-8 w-14 cursor-pointer rounded-lg border border-slate-200 bg-white p-0.5"><span class="font-mono" style="color:${color}">${color}</span></label></div></div><div class="grid grid-cols-3 gap-2 sm:flex"><button data-admin-action="open-team-id-cards" data-team="${escapeHtml(team)}" class="rounded-xl border border-emerald-200 bg-white px-3.5 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition active:scale-95 shadow-sm">Preview ID</button><button data-admin-action="save-team-display-name" data-team="${escapeHtml(team)}" class="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition active:scale-95 shadow-sm">Save Name</button><button data-admin-action="remove-item" data-type="teams" data-value="${escapeHtml(team)}" class="rounded-xl border border-rose-200 bg-white px-3.5 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition active:scale-95 shadow-sm">Delete</button></div></header><div class="grid gap-4 p-5 lg:grid-cols-2"><section class="rounded-2xl border border-blue-100 bg-blue-50 p-4 lg:col-span-2"><label class="input-label">Display name for ${escapeHtml(team)}</label><input data-team-display-name="${escapeHtml(team)}" class="text-input" value="${escapeHtml(teamLabel(team))}" dir="auto"></section>${renderTeamMediaPanel(team,teamIndex,'logo')}${renderTeamMediaPanel(team,teamIndex,'header')}<section class="rounded-2xl border border-slate-200 bg-white p-4 lg:col-span-2"><div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><h5 class="text-xs font-black uppercase tracking-wide text-slate-700">Chest number setup</h5></div><div class="flex flex-wrap gap-2"><span class="rounded-full px-3 py-1 text-[9px] font-black uppercase" style="background:${color}22;color:${color}">${header?'Custom ID header':'Logo fallback'}</span><button data-admin-action="open-team-id-cards" data-team="${escapeHtml(team)}" class="rounded-xl bg-slate-900 hover:bg-slate-800 px-3.5 py-1.5 text-[10px] font-bold uppercase text-white transition active:scale-95 shadow-sm">Download ID Cards</button></div></div><div class="grid gap-3 sm:grid-cols-2">${renderTeamChestRows(team)}</div></section></div></article>`}).join('');
+    container.className = 'p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4.5';
+    container.innerHTML = teams.map((team, teamIndex) => {
+        const color = teamColors[team] || '#4f46e5',
+              logo = teamLogos[team] || '',
+              header = teamIdCardHeaders[team] || '',
+              teamMembersCount = students.filter(s => s.team === team).length;
+        return `
+        <article class="animate-enter relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xs transition hover:shadow-md">
+            <!-- Team color accent top stripe -->
+            <div class="h-1.5 w-full" style="background-color: ${color}"></div>
+            <div class="p-4 space-y-3.5 flex-1">
+                <!-- Team Card Header -->
+                <div class="flex items-start justify-between gap-2.5">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl border-2 bg-white shadow-2xs" style="border-color:${color}">
+                            ${logo ? `<img src="${escapeHtml(logo)}" class="h-full w-full object-cover" alt="">` : `<span class="text-base font-black" style="color:${color}">${escapeHtml(teamLabel(team).charAt(0) || team.charAt(0))}</span>`}
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="truncate text-base font-black text-slate-800 leading-tight">${escapeHtml(teamLabel(team))}</h4>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <span class="font-mono text-[9px] font-black uppercase text-slate-400">${escapeHtml(team)}</span>
+                                <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-black text-slate-600">${teamMembersCount} members</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Mini color picker & delete -->
+                    <div class="flex items-center gap-1 shrink-0">
+                        <label title="Team Color" class="relative inline-flex items-center cursor-pointer">
+                            <input type="color" value="${color}" data-admin-change="save-team-color" data-team="${escapeHtml(team)}" class="h-7 w-7 cursor-pointer rounded-lg border border-slate-200 bg-white p-0.5">
+                        </label>
+                        <button data-admin-action="remove-item" data-type="teams" data-value="${escapeHtml(team)}" class="rounded-lg p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition active:scale-95" title="Delete Team">
+                            <i data-lucide="trash-2" class="h-4 w-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Display Name Input -->
+                <div>
+                    <label class="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Display Name</label>
+                    <div class="flex items-center gap-1.5">
+                        <input data-team-display-name="${escapeHtml(team)}" class="text-input h-8 text-xs font-bold" value="${escapeHtml(teamLabel(team))}" dir="auto">
+                        <button data-admin-action="save-team-display-name" data-team="${escapeHtml(team)}" class="rounded-lg border border-slate-200 bg-white hover:bg-slate-50 px-2.5 py-1.5 text-[11px] font-bold text-slate-700 transition active:scale-95 shadow-2xs shrink-0" title="Save name">Save</button>
+                    </div>
+                </div>
+
+                <!-- Compact Media Row (Logo & Header) -->
+                <div class="space-y-1.5">
+                    ${renderTeamMediaCompact(team, teamIndex, 'logo')}
+                    ${renderTeamMediaCompact(team, teamIndex, 'header')}
+                </div>
+
+                <!-- Chest Number Ranges -->
+                <div>
+                    <div class="mb-1.5 flex items-center justify-between">
+                        <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Chest Ranges</span>
+                        <span class="text-[9px] font-bold text-slate-400">${categories.length} categories</span>
+                    </div>
+                    ${renderTeamChestRowsCompact(team)}
+                </div>
+            </div>
+
+            <!-- Card Bottom Action Bar -->
+            <div class="border-t border-slate-100 bg-slate-50/80 px-4 py-2.5 flex items-center justify-between gap-2">
+                <span class="text-[10px] font-bold text-slate-500">${header ? 'Custom ID Header' : 'Logo fallback'}</span>
+                <button data-admin-action="open-team-id-cards" data-team="${escapeHtml(team)}" class="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 text-xs font-bold transition active:scale-95 shadow-2xs">
+                    <i data-lucide="id-card" class="h-3.5 w-3.5"></i>
+                    <span>ID Cards Studio</span>
+                </button>
+            </div>
+        </article>`;
+    }).join('');
     initImageUploads(container);
     window.lucide?.createIcons?.();
 };
@@ -3402,10 +3541,17 @@ const teamIdMemberEvents = member => {
 const TEAM_ID_TEMPLATE_KEY = 'fest_team_id_template_config';
 const TEAM_ID_TEMPLATE_DEFAULTS = {
     photoRadius: 90,
+    photoShape: 'circle',
+    photoX: 0,
+    photoY: 0,
     nameSize: 30,
+    nameX: 0,
+    nameY: 0,
     showChest: true,
     chestStyle: 'number_only',
     chestSize: 44,
+    chestX: 0,
+    chestY: 0,
     showTeam: true,
     showCategory: true,
     showClass: true,
@@ -3413,14 +3559,20 @@ const TEAM_ID_TEMPLATE_DEFAULTS = {
     showStatus: true,
     labelSize: 11,
     valueSize: 17,
+    detailsX: 0,
+    detailsY: 0,
     showEvents: true,
     eventsTitle: 'REGISTERED EVENTS',
     eventsTitleSize: 11,
     eventNameSize: 12,
     eventMetaSize: 10,
     showTime: true,
+    eventsY: 0,
     showFooter: true,
-    festSize: 12
+    festSize: 12,
+    festBg: '#ffffff',
+    festColor: '#0f172a',
+    footerY: 0
 };
 
 const loadTeamIdTemplate = () => {
@@ -3439,36 +3591,59 @@ const saveTeamIdTemplate = tmpl => {
     } catch (e) {}
 };
 
+window.applyRemoteTeamIdTemplate = remoteTmpl => {
+    if (remoteTmpl && typeof remoteTmpl === 'object') {
+        currentTeamIdTemplate = { ...TEAM_ID_TEMPLATE_DEFAULTS, ...remoteTmpl };
+        saveTeamIdTemplate(currentTeamIdTemplate);
+        syncTeamIdCustomizerUI(currentTeamIdTemplate);
+        if (document.getElementById('team-id-card-modal') && !document.getElementById('team-id-card-modal').classList.contains('hidden')) {
+            window.renderTeamIdPreview?.();
+        }
+    }
+};
+
 const syncTeamIdCustomizerUI = tmpl => {
     const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
     const setChecked = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
 
-    setVal('team-id-tmpl-photo-radius', tmpl.photoRadius);
-    const rBadge = document.getElementById('team-id-val-photo-radius');
-    if (rBadge) rBadge.textContent = `${tmpl.photoRadius} px`;
+    setVal('team-id-tmpl-photo-radius', tmpl.photoRadius ?? 90);
+    setVal('team-id-tmpl-photo-shape', tmpl.photoShape || 'circle');
+    setVal('team-id-tmpl-photo-x', tmpl.photoX ?? 0);
+    setVal('team-id-tmpl-photo-y', tmpl.photoY ?? 0);
 
-    setVal('team-id-tmpl-name-size', tmpl.nameSize);
-    setChecked('team-id-tmpl-show-chest', tmpl.showChest);
-    setVal('team-id-tmpl-chest-style', tmpl.chestStyle);
-    setVal('team-id-tmpl-chest-size', tmpl.chestSize);
+    setVal('team-id-tmpl-name-size', tmpl.nameSize ?? 30);
+    setVal('team-id-tmpl-name-x', tmpl.nameX ?? 0);
+    setVal('team-id-tmpl-name-y', tmpl.nameY ?? 0);
 
-    setChecked('team-id-tmpl-show-team', tmpl.showTeam);
-    setChecked('team-id-tmpl-show-category', tmpl.showCategory);
-    setChecked('team-id-tmpl-show-class', tmpl.showClass);
-    setChecked('team-id-tmpl-show-gender', tmpl.showGender);
-    setChecked('team-id-tmpl-show-status', tmpl.showStatus);
-    setVal('team-id-tmpl-label-size', tmpl.labelSize);
-    setVal('team-id-tmpl-value-size', tmpl.valueSize);
+    setChecked('team-id-tmpl-show-chest', tmpl.showChest !== false);
+    setVal('team-id-tmpl-chest-style', tmpl.chestStyle || 'number_only');
+    setVal('team-id-tmpl-chest-size', tmpl.chestSize ?? 44);
+    setVal('team-id-tmpl-chest-x', tmpl.chestX ?? 0);
+    setVal('team-id-tmpl-chest-y', tmpl.chestY ?? 0);
 
-    setChecked('team-id-tmpl-show-events', tmpl.showEvents);
-    setVal('team-id-tmpl-events-title', tmpl.eventsTitle);
-    setVal('team-id-tmpl-events-title-size', tmpl.eventsTitleSize);
-    setVal('team-id-tmpl-event-name-size', tmpl.eventNameSize);
-    setVal('team-id-tmpl-event-meta-size', tmpl.eventMetaSize);
-    setChecked('team-id-tmpl-show-time', tmpl.showTime);
+    setChecked('team-id-tmpl-show-team', tmpl.showTeam !== false);
+    setChecked('team-id-tmpl-show-category', tmpl.showCategory !== false);
+    setChecked('team-id-tmpl-show-class', tmpl.showClass !== false);
+    setChecked('team-id-tmpl-show-gender', tmpl.showGender !== false);
+    setChecked('team-id-tmpl-show-status', tmpl.showStatus !== false);
+    setVal('team-id-tmpl-label-size', tmpl.labelSize ?? 11);
+    setVal('team-id-tmpl-value-size', tmpl.valueSize ?? 17);
+    setVal('team-id-tmpl-details-x', tmpl.detailsX ?? 0);
+    setVal('team-id-tmpl-details-y', tmpl.detailsY ?? 0);
 
-    setChecked('team-id-tmpl-show-footer', tmpl.showFooter);
-    setVal('team-id-tmpl-fest-size', tmpl.festSize);
+    setChecked('team-id-tmpl-show-events', tmpl.showEvents !== false);
+    setVal('team-id-tmpl-events-title', tmpl.eventsTitle || 'REGISTERED EVENTS');
+    setVal('team-id-tmpl-events-title-size', tmpl.eventsTitleSize ?? 11);
+    setVal('team-id-tmpl-event-name-size', tmpl.eventNameSize ?? 12);
+    setVal('team-id-tmpl-event-meta-size', tmpl.eventMetaSize ?? 10);
+    setChecked('team-id-tmpl-show-time', tmpl.showTime !== false);
+    setVal('team-id-tmpl-events-y', tmpl.eventsY ?? 0);
+
+    setChecked('team-id-tmpl-show-footer', tmpl.showFooter !== false);
+    setVal('team-id-tmpl-fest-size', tmpl.festSize ?? 12);
+    setVal('team-id-tmpl-fest-bg', tmpl.festBg || '#ffffff');
+    setVal('team-id-tmpl-fest-color', tmpl.festColor || '#0f172a');
+    setVal('team-id-tmpl-footer-y', tmpl.footerY ?? 0);
 };
 
 const readTeamIdTemplateFromUI = () => {
@@ -3488,10 +3663,17 @@ const readTeamIdTemplateFromUI = () => {
 
     const tmpl = {
         photoRadius: getNum('team-id-tmpl-photo-radius', TEAM_ID_TEMPLATE_DEFAULTS.photoRadius),
+        photoShape: getVal('team-id-tmpl-photo-shape', TEAM_ID_TEMPLATE_DEFAULTS.photoShape),
+        photoX: getNum('team-id-tmpl-photo-x', TEAM_ID_TEMPLATE_DEFAULTS.photoX),
+        photoY: getNum('team-id-tmpl-photo-y', TEAM_ID_TEMPLATE_DEFAULTS.photoY),
         nameSize: getNum('team-id-tmpl-name-size', TEAM_ID_TEMPLATE_DEFAULTS.nameSize),
+        nameX: getNum('team-id-tmpl-name-x', TEAM_ID_TEMPLATE_DEFAULTS.nameX),
+        nameY: getNum('team-id-tmpl-name-y', TEAM_ID_TEMPLATE_DEFAULTS.nameY),
         showChest: getChecked('team-id-tmpl-show-chest', TEAM_ID_TEMPLATE_DEFAULTS.showChest),
         chestStyle: getVal('team-id-tmpl-chest-style', TEAM_ID_TEMPLATE_DEFAULTS.chestStyle),
         chestSize: getNum('team-id-tmpl-chest-size', TEAM_ID_TEMPLATE_DEFAULTS.chestSize),
+        chestX: getNum('team-id-tmpl-chest-x', TEAM_ID_TEMPLATE_DEFAULTS.chestX),
+        chestY: getNum('team-id-tmpl-chest-y', TEAM_ID_TEMPLATE_DEFAULTS.chestY),
         showTeam: getChecked('team-id-tmpl-show-team', TEAM_ID_TEMPLATE_DEFAULTS.showTeam),
         showCategory: getChecked('team-id-tmpl-show-category', TEAM_ID_TEMPLATE_DEFAULTS.showCategory),
         showClass: getChecked('team-id-tmpl-show-class', TEAM_ID_TEMPLATE_DEFAULTS.showClass),
@@ -3499,25 +3681,46 @@ const readTeamIdTemplateFromUI = () => {
         showStatus: getChecked('team-id-tmpl-show-status', TEAM_ID_TEMPLATE_DEFAULTS.showStatus),
         labelSize: getNum('team-id-tmpl-label-size', TEAM_ID_TEMPLATE_DEFAULTS.labelSize),
         valueSize: getNum('team-id-tmpl-value-size', TEAM_ID_TEMPLATE_DEFAULTS.valueSize),
+        detailsX: getNum('team-id-tmpl-details-x', TEAM_ID_TEMPLATE_DEFAULTS.detailsX),
+        detailsY: getNum('team-id-tmpl-details-y', TEAM_ID_TEMPLATE_DEFAULTS.detailsY),
         showEvents: getChecked('team-id-tmpl-show-events', TEAM_ID_TEMPLATE_DEFAULTS.showEvents),
         eventsTitle: getVal('team-id-tmpl-events-title', TEAM_ID_TEMPLATE_DEFAULTS.eventsTitle).trim() || 'REGISTERED EVENTS',
         eventsTitleSize: getNum('team-id-tmpl-events-title-size', TEAM_ID_TEMPLATE_DEFAULTS.eventsTitleSize),
         eventNameSize: getNum('team-id-tmpl-event-name-size', TEAM_ID_TEMPLATE_DEFAULTS.eventNameSize),
         eventMetaSize: getNum('team-id-tmpl-event-meta-size', TEAM_ID_TEMPLATE_DEFAULTS.eventMetaSize),
         showTime: getChecked('team-id-tmpl-show-time', TEAM_ID_TEMPLATE_DEFAULTS.showTime),
+        eventsY: getNum('team-id-tmpl-events-y', TEAM_ID_TEMPLATE_DEFAULTS.eventsY),
         showFooter: getChecked('team-id-tmpl-show-footer', TEAM_ID_TEMPLATE_DEFAULTS.showFooter),
-        festSize: getNum('team-id-tmpl-fest-size', TEAM_ID_TEMPLATE_DEFAULTS.festSize)
+        festSize: getNum('team-id-tmpl-fest-size', TEAM_ID_TEMPLATE_DEFAULTS.festSize),
+        festBg: getVal('team-id-tmpl-fest-bg', TEAM_ID_TEMPLATE_DEFAULTS.festBg),
+        festColor: getVal('team-id-tmpl-fest-color', TEAM_ID_TEMPLATE_DEFAULTS.festColor),
+        footerY: getNum('team-id-tmpl-footer-y', TEAM_ID_TEMPLATE_DEFAULTS.footerY)
     };
     currentTeamIdTemplate = tmpl;
     saveTeamIdTemplate(tmpl);
     return tmpl;
 };
 
-window.resetTeamIdTemplate = () => {
+window.saveTeamIdTemplate = async () => {
+    const tmpl = readTeamIdTemplateFromUI();
+    saveTeamIdTemplate(tmpl);
+    try {
+        await setDoc(doc(db, 'settings', 'general'), { teamIdCardTemplate: tmpl }, { merge: true });
+        window.showToast('ID card template saved permanently for all teams!');
+    } catch (e) {
+        console.warn('Could not save template to Firestore:', e);
+        window.showToast('Template saved locally (offline)', 'warning');
+    }
+};
+
+window.resetTeamIdTemplate = async () => {
     currentTeamIdTemplate = { ...TEAM_ID_TEMPLATE_DEFAULTS };
     saveTeamIdTemplate(currentTeamIdTemplate);
     syncTeamIdCustomizerUI(currentTeamIdTemplate);
     window.renderTeamIdPreview();
+    try {
+        await setDoc(doc(db, 'settings', 'general'), { teamIdCardTemplate: currentTeamIdTemplate }, { merge: true });
+    } catch (e) {}
     window.showToast('Template reset to defaults');
 };
 
@@ -3534,84 +3737,125 @@ window.toggleTeamIdCustomizer = () => {
     window.lucide?.createIcons?.();
 };
 
-const teamIdOptions=()=>{
-    const size=document.getElementById('team-id-page-size')?.value||'A4',
-          orientation=document.getElementById('team-id-orientation')?.value||'portrait',
-          base=teamIdPageSizes[size]||teamIdPageSizes.A4,
-          page=orientation==='landscape'?{w:base.h,h:base.w}:{...base},
-          previewLimitVal=document.getElementById('team-id-preview-limit')?.value||'5',
-          previewLimit=previewLimitVal==='all'?Infinity:Number(previewLimitVal||5);
+let teamIdViewMode = 'single';
+let teamIdSingleMemberIndex = 0;
+
+window.setTeamIdViewMode = mode => {
+    teamIdViewMode = mode === 'sheet' ? 'sheet' : 'single';
+    const singleBtn = document.getElementById('btn-team-id-mode-single');
+    const sheetBtn = document.getElementById('btn-team-id-mode-sheet');
+    const singleNav = document.getElementById('team-id-single-nav');
+    const sheetNav = document.getElementById('team-id-pagination-bar');
+
+    const isSingle = teamIdViewMode === 'single';
+    if (singleBtn) {
+        singleBtn.className = isSingle
+            ? 'rounded-lg bg-white text-indigo-700 shadow-xs px-3 py-1.5 transition active:scale-95 flex items-center gap-1.5'
+            : 'rounded-lg text-slate-600 hover:text-slate-900 px-3 py-1.5 transition active:scale-95 flex items-center gap-1.5';
+    }
+    if (sheetBtn) {
+        sheetBtn.className = !isSingle
+            ? 'rounded-lg bg-white text-indigo-700 shadow-xs px-3 py-1.5 transition active:scale-95 flex items-center gap-1.5'
+            : 'rounded-lg text-slate-600 hover:text-slate-900 px-3 py-1.5 transition active:scale-95 flex items-center gap-1.5';
+    }
+    if (singleNav) singleNav.classList.toggle('hidden', !isSingle);
+    if (sheetNav) sheetNav.classList.toggle('hidden', isSingle);
+
+    window.renderTeamIdPreview();
+};
+
+window.teamIdSinglePrev = () => {
+    const members = teamIdMembers(teamIdCardTeam);
+    if (members.length === 0) return;
+    teamIdSingleMemberIndex = (teamIdSingleMemberIndex - 1 + members.length) % members.length;
+    window.renderTeamIdPreview();
+};
+
+window.teamIdSingleNext = () => {
+    const members = teamIdMembers(teamIdCardTeam);
+    if (members.length === 0) return;
+    teamIdSingleMemberIndex = (teamIdSingleMemberIndex + 1) % members.length;
+    window.renderTeamIdPreview();
+};
+
+const teamIdOptions = () => {
+    const size = document.getElementById('team-id-page-size')?.value || 'A4',
+          orientation = document.getElementById('team-id-orientation')?.value || 'portrait',
+          base = teamIdPageSizes[size] || teamIdPageSizes.A4,
+          page = orientation === 'landscape' ? { w: base.h, h: base.w } : { ...base },
+          previewLimitVal = document.getElementById('team-id-preview-limit')?.value || '5',
+          previewLimit = previewLimitVal === 'all' ? Infinity : Number(previewLimitVal || 5);
     return {
         size,
         orientation,
         page,
-        pdfFormat:[base.w,base.h],
-        cardW:Number(document.getElementById('team-id-card-width')?.value||90),
-        cardH:Number(document.getElementById('team-id-card-height')?.value||130),
-        gap:Number(document.getElementById('team-id-gap')?.value||0),
-        margin:Number(document.getElementById('team-id-margin')?.value||0),
+        pdfFormat: [base.w, base.h],
+        cardW: Number(document.getElementById('team-id-card-width')?.value || 90),
+        cardH: Number(document.getElementById('team-id-card-height')?.value || 130),
+        gap: Number(document.getElementById('team-id-gap')?.value || 0),
+        margin: Number(document.getElementById('team-id-margin')?.value || 0),
         previewLimitVal,
         previewLimit
     };
 };
 
-const TEAM_ID_DEFAULTS={size:'A4',orientation:'portrait',cardW:90,cardH:130,gap:0,margin:0,previewLimit:'5'};
+const TEAM_ID_DEFAULTS = { size: 'A4', orientation: 'portrait', cardW: 90, cardH: 130, gap: 0, margin: 0, previewLimit: '5' };
 
-const resetTeamIdControls=()=>{
+const resetTeamIdControls = () => {
     [
-        ['team-id-page-size',TEAM_ID_DEFAULTS.size],
-        ['team-id-orientation',TEAM_ID_DEFAULTS.orientation],
-        ['team-id-card-width',TEAM_ID_DEFAULTS.cardW],
-        ['team-id-card-height',TEAM_ID_DEFAULTS.cardH],
-        ['team-id-gap',TEAM_ID_DEFAULTS.gap],
-        ['team-id-margin',TEAM_ID_DEFAULTS.margin],
-        ['team-id-preview-limit',TEAM_ID_DEFAULTS.previewLimit]
-    ].forEach(([id,value])=>{
-        const el=document.getElementById(id);
-        if(el) el.value=value;
+        ['team-id-page-size', TEAM_ID_DEFAULTS.size],
+        ['team-id-orientation', TEAM_ID_DEFAULTS.orientation],
+        ['team-id-card-width', TEAM_ID_DEFAULTS.cardW],
+        ['team-id-card-height', TEAM_ID_DEFAULTS.cardH],
+        ['team-id-gap', TEAM_ID_DEFAULTS.gap],
+        ['team-id-margin', TEAM_ID_DEFAULTS.margin],
+        ['team-id-preview-limit', TEAM_ID_DEFAULTS.previewLimit]
+    ].forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
     });
-    teamIdCurrentPage=1;
+    teamIdCurrentPage = 1;
 };
 
-const teamIdLayout=opts=>{
-    const usableW=Math.max(0,opts.page.w-opts.margin*2),
-          usableH=Math.max(0,opts.page.h-opts.margin*2),
-          safeGap=Math.max(0,opts.gap),
-          safeCardW=Math.max(1,opts.cardW),
-          safeCardH=Math.max(1,opts.cardH),
-          cols=Math.floor((usableW+safeGap)/(safeCardW+safeGap)),
-          rows=Math.floor((usableH+safeGap)/(safeCardH+safeGap)),
-          valid=cols>0&&rows>0;
-    return{cols:valid?cols:0,rows:valid?rows:0,perPage:valid?cols*rows:0,usableW,usableH,valid};
+const teamIdLayout = opts => {
+    const usableW = Math.max(0, opts.page.w - opts.margin * 2),
+          usableH = Math.max(0, opts.page.h - opts.margin * 2),
+          safeGap = Math.max(0, opts.gap),
+          safeCardW = Math.max(1, opts.cardW),
+          safeCardH = Math.max(1, opts.cardH),
+          cols = Math.floor((usableW + safeGap) / (safeCardW + safeGap)),
+          rows = Math.floor((usableH + safeGap) / (safeCardH + safeGap)),
+          valid = cols > 0 && rows > 0;
+    return { cols: valid ? cols : 0, rows: valid ? rows : 0, perPage: valid ? cols * rows : 0, usableW, usableH, valid };
 };
 
-const teamIdDetails=m=>[['Team',teamLabel(m.team||teamIdCardTeam)||'—'],['Category',m.category||'—'],['Class',m.details?.class||m.class||'—'],['Gender',studentGender(m)||m.gender||'—'],['Status','Verified']];
-const xmlEscape=value=>String(value??'').replace(/[&<>"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
-const dataUrlForSvg=svg=>`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-const splitSvgName=name=>{
-    const words=String(name||'Member').trim().split(/\s+/),lines=[];
-    let line='';
-    words.forEach(word=>{
-        const next=line?`${line} ${word}`:word;
-        if(next.length>22&&line){lines.push(line);line=word}else line=next;
+const teamIdDetails = m => [['Team', teamLabel(m.team || teamIdCardTeam) || '—'], ['Category', m.category || '—'], ['Class', m.details?.class || m.class || '—'], ['Gender', studentGender(m) || m.gender || '—'], ['Status', 'Verified']];
+const xmlEscape = value => String(value ?? '').replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
+const dataUrlForSvg = svg => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+const splitSvgName = name => {
+    const words = String(name || 'Member').trim().split(/\s+/), lines = [];
+    let line = '';
+    words.forEach(word => {
+        const next = line ? `${line} ${word}` : word;
+        if (next.length > 22 && line) { lines.push(line); line = word; } else line = next;
     });
-    if(line)lines.push(line);
-    return(lines.length?lines:['Member']).slice(0,2);
+    if (line) lines.push(line);
+    return (lines.length ? lines : ['Member']).slice(0, 2);
 };
 
-const teamIdSvg=(member,team,color,header,logo,opts,tmpl)=>{
-    opts=opts||teamIdOptions();
-    tmpl=tmpl||currentTeamIdTemplate||TEAM_ID_TEMPLATE_DEFAULTS;
-    const details=teamIdDetails(member),
-          nameLines=splitSvgName(member.name||'Member'),
-          chest=xmlEscape(member.chestNo||''),
-          photo=member.photo||'',
-          fest=xmlEscape(brandingName(homeConfig)||'Fest'),
-          teamText=xmlEscape(details[0][1]),
-          category=xmlEscape(details[1][1]),
-          classText=xmlEscape(details[2][1]),
-          gender=xmlEscape(details[3][1]),
-          eventsList=teamIdMemberEvents(member);
+const teamIdSvg = (member, team, color, header, logo, opts, tmpl) => {
+    opts = opts || teamIdOptions();
+    tmpl = tmpl || currentTeamIdTemplate || TEAM_ID_TEMPLATE_DEFAULTS;
+    const details = teamIdDetails(member),
+          nameLines = splitSvgName(member.name || 'Member'),
+          chest = xmlEscape(member.chestNo || ''),
+          photo = member.photo || '',
+          fest = xmlEscape(brandingName(homeConfig) || 'Fest'),
+          teamText = xmlEscape(details[0][1]),
+          category = xmlEscape(details[1][1]),
+          classText = xmlEscape(details[2][1]),
+          gender = xmlEscape(details[3][1]),
+          eventsList = teamIdMemberEvents(member);
 
     // Calculate aspect ratio and proportional scaling
     const svgW = 600;
@@ -3619,20 +3863,59 @@ const teamIdSvg=(member,team,color,header,logo,opts,tmpl)=>{
     const dimScale = Math.min(opts.cardW / 90, opts.cardH / 130);
 
     const headerH = Math.max(160, Math.min(240, Math.round(svgH * 0.24)));
-    const photoR = Math.max(38, Math.round(tmpl.photoRadius * dimScale));
-    const photoY = headerH - Math.round(photoR * 0.18);
+    const photoR = Math.max(38, Math.round((tmpl.photoRadius || 90) * dimScale));
+    const photoCenterX = 300 + Math.round((tmpl.photoX || 0) * dimScale);
+    const photoCenterY = headerH - Math.round(photoR * 0.18) + Math.round((tmpl.photoY || 0) * dimScale);
+    const photoShape = tmpl.photoShape || 'circle';
 
-    const nameSize = Math.max(14, Math.round(tmpl.nameSize * dimScale));
-    const nameY1 = photoY + photoR + Math.round(nameSize * 1.15);
+    const safeUid = String(member.id || member.chestNo || 'm').replace(/[^a-zA-Z0-9]/g, '_');
+    const pw = photoR * 2;
+    const px = photoCenterX - photoR;
+    const py = photoCenterY - photoR;
+
+    let photoClipDef = '';
+    let photoBorderSvg = '';
+    let photoBgSvg = '';
+    let photoImgSvg = '';
+
+    if (photoShape === 'square') {
+        photoClipDef = `<clipPath id="photoClip_${safeUid}"><rect x="${px}" y="${py}" width="${pw}" height="${pw}" rx="0"/></clipPath>`;
+        photoBorderSvg = `<rect x="${px - 8}" y="${py - 8}" width="${pw + 16}" height="${pw + 16}" rx="0" fill="${xmlEscape(color)}" filter="url(#shadow_${safeUid})"/>`;
+        photoBgSvg = `<rect x="${px}" y="${py}" width="${pw}" height="${pw}" rx="0" fill="#ffffff"/>`;
+        photoImgSvg = photo
+            ? `<image href="${xmlEscape(photo)}" x="${px}" y="${py}" width="${pw}" height="${pw}" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip_${safeUid})"/>`
+            : `<text x="${photoCenterX}" y="${photoCenterY + Math.round(photoR * 0.35)}" text-anchor="middle" font-size="${Math.round(photoR * 0.85)}" font-family="Arial, sans-serif" font-weight="900" fill="#111827">${xmlEscape(String(member.name||'?')[0])}</text>`;
+    } else if (photoShape === 'rounded') {
+        const rx = Math.round(photoR * 0.28);
+        photoClipDef = `<clipPath id="photoClip_${safeUid}"><rect x="${px}" y="${py}" width="${pw}" height="${pw}" rx="${rx}"/></clipPath>`;
+        photoBorderSvg = `<rect x="${px - 8}" y="${py - 8}" width="${pw + 16}" height="${pw + 16}" rx="${rx + 4}" fill="${xmlEscape(color)}" filter="url(#shadow_${safeUid})"/>`;
+        photoBgSvg = `<rect x="${px}" y="${py}" width="${pw}" height="${pw}" rx="${rx}" fill="#ffffff"/>`;
+        photoImgSvg = photo
+            ? `<image href="${xmlEscape(photo)}" x="${px}" y="${py}" width="${pw}" height="${pw}" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip_${safeUid})"/>`
+            : `<text x="${photoCenterX}" y="${photoCenterY + Math.round(photoR * 0.35)}" text-anchor="middle" font-size="${Math.round(photoR * 0.85)}" font-family="Arial, sans-serif" font-weight="900" fill="#111827">${xmlEscape(String(member.name||'?')[0])}</text>`;
+    } else {
+        photoClipDef = `<clipPath id="photoClip_${safeUid}"><circle cx="${photoCenterX}" cy="${photoCenterY}" r="${photoR}"/></clipPath>`;
+        photoBorderSvg = `<circle cx="${photoCenterX}" cy="${photoCenterY}" r="${photoR + 10}" fill="${xmlEscape(color)}" filter="url(#shadow_${safeUid})"/>`;
+        photoBgSvg = `<circle cx="${photoCenterX}" cy="${photoCenterY}" r="${photoR}" fill="#ffffff"/>`;
+        photoImgSvg = photo
+            ? `<image href="${xmlEscape(photo)}" x="${photoCenterX - photoR}" y="${photoCenterY - photoR}" width="${photoR * 2}" height="${photoR * 2}" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip_${safeUid})"/>`
+            : `<text x="${photoCenterX}" y="${photoCenterY + Math.round(photoR * 0.35)}" text-anchor="middle" font-size="${Math.round(photoR * 0.85)}" font-family="Arial, sans-serif" font-weight="900" fill="#111827">${xmlEscape(String(member.name||'?')[0])}</text>`;
+    }
+
+    const nameSize = Math.max(14, Math.round((tmpl.nameSize || 30) * dimScale));
+    const nameX = 300 + Math.round((tmpl.nameX || 0) * dimScale);
+    const nameY1 = photoCenterY + photoR + Math.round(nameSize * 1.15) + Math.round((tmpl.nameY || 0) * dimScale);
     const nameY2 = nameY1 + Math.round(nameSize * 0.95);
     let curY = nameLines.length > 1 ? nameY2 : nameY1;
 
     let chestSvg = '';
     if (tmpl.showChest) {
-        const chestSize = Math.max(18, Math.round(tmpl.chestSize * dimScale));
-        curY += Math.round(chestSize * 0.95);
+        const chestSize = Math.max(18, Math.round((tmpl.chestSize || 44) * dimScale));
+        const chestX = 300 + Math.round((tmpl.chestX || 0) * dimScale);
+        const chestY = curY + Math.round(chestSize * 0.95) + Math.round((tmpl.chestY || 0) * dimScale);
         const chestStr = tmpl.chestStyle === 'prefix' ? `CHEST: ${chest || '—'}` : (chest || '—');
-        chestSvg = `<text x="300" y="${curY}" font-family="Arial, sans-serif" font-size="${chestSize}" font-weight="900" fill="${xmlEscape(color)}" letter-spacing="1">${xmlEscape(chestStr)}</text>`;
+        chestSvg = `<text x="${chestX}" y="${chestY}" font-family="Arial, sans-serif" font-size="${chestSize}" font-weight="900" fill="${xmlEscape(color)}" letter-spacing="1">${xmlEscape(chestStr)}</text>`;
+        curY = chestY;
     }
 
     const visibleFields = [];
@@ -3644,24 +3927,29 @@ const teamIdSvg=(member,team,color,header,logo,opts,tmpl)=>{
 
     let detailsSvg = '';
     if (visibleFields.length > 0) {
-        const lblSize = Math.max(7, Math.round(tmpl.labelSize * dimScale));
-        const valSize = Math.max(10, Math.round(tmpl.valueSize * dimScale));
-        curY += Math.round(lblSize * 1.6) + 10;
-        
+        const lblSize = Math.max(7, Math.round((tmpl.labelSize || 11) * dimScale));
+        const valSize = Math.max(10, Math.round((tmpl.valueSize || 17) * dimScale));
+        const detailsXShift = Math.round((tmpl.detailsX || 0) * dimScale);
+        const detailsYShift = Math.round((tmpl.detailsY || 0) * dimScale);
+
+        curY += Math.round(lblSize * 1.6) + 10 + detailsYShift;
+
         const row1Count = Math.min(visibleFields.length <= 3 ? visibleFields.length : 3, visibleFields.length);
         const row1 = visibleFields.slice(0, row1Count);
-        const xs1 = row1Count === 1 ? [300] : (row1Count === 2 ? [190, 410] : [125, 300, 475]);
-        
+        const baseXs1 = row1Count === 1 ? [300] : (row1Count === 2 ? [190, 410] : [125, 300, 475]);
+        const xs1 = baseXs1.map(x => x + detailsXShift);
+
         detailsSvg += row1.map((f, i) => `
             <text x="${xs1[i]}" y="${curY}" font-family="Arial, sans-serif" font-size="${lblSize}" font-weight="900" fill="#94a3b8" letter-spacing="2">${xmlEscape(f.label)}</text>
             <text x="${xs1[i]}" y="${curY + valSize + 2}" font-family="Arial, sans-serif" font-size="${valSize}" font-weight="900" fill="${f.color ? xmlEscape(f.color) : '#1f2937'}">${xmlEscape(f.val)}</text>
         `).join('');
-        
+
         curY += valSize + 2;
-        
+
         if (visibleFields.length > 3) {
             const row2 = visibleFields.slice(3);
-            const xs2 = row2.length === 1 ? [300] : [214, 386];
+            const baseXs2 = row2.length === 1 ? [300] : [214, 386];
+            const xs2 = baseXs2.map(x => x + detailsXShift);
             const row2LblY = curY + Math.round(lblSize * 1.5) + 6;
             const row2ValY = row2LblY + valSize + 2;
             detailsSvg += row2.map((f, i) => `
@@ -3673,25 +3961,30 @@ const teamIdSvg=(member,team,color,header,logo,opts,tmpl)=>{
     }
 
     const footerH = tmpl.showFooter ? 58 : 0;
-    const footerY = svgH - footerH;
+    const footerYShift = Math.round((tmpl.footerY || 0) * dimScale);
+    const footerY = svgH - footerH + footerYShift;
+    const festBg = tmpl.festBg || '#ffffff';
+    const festColor = tmpl.festColor || '#0f172a';
 
     let eventsSvg = '';
     if (tmpl.showEvents) {
-        const evBoxY = curY + 16;
+        const eventsYShift = Math.round((tmpl.eventsY || 0) * dimScale);
+        const evBoxY = curY + 16 + eventsYShift;
         const evBoxH = Math.max(70, (footerY - 12) - evBoxY);
-        const titleSize = Math.max(8, Math.round(tmpl.eventsTitleSize * dimScale));
-        const evNameSize = Math.max(9, Math.round(tmpl.eventNameSize * dimScale));
-        const evMetaSize = Math.max(8, Math.round(tmpl.eventMetaSize * dimScale));
+        const titleSize = Math.max(8, Math.round((tmpl.eventsTitleSize || 11) * dimScale));
+        const evNameSize = Math.max(9, Math.round((tmpl.eventNameSize || 12) * dimScale));
+        const evMetaSize = Math.max(8, Math.round((tmpl.eventMetaSize || 10) * dimScale));
         const rowH = Math.max(26, tmpl.showTime ? (evNameSize + evMetaSize + 12) : (evNameSize + 12));
         const maxRows = Math.max(1, Math.floor((evBoxH - titleSize - 20) / rowH));
         const showMore = eventsList.length > maxRows;
         const displayCount = showMore ? maxRows - 1 : Math.min(eventsList.length, maxRows);
         const displayList = eventsList.slice(0, displayCount);
         const remaining = eventsList.length - displayCount;
+        const cleanTitle = (tmpl.eventsTitle || 'REGISTERED EVENTS').trim().toUpperCase();
 
         eventsSvg = `
             <g>
-                <text x="52" y="${evBoxY + titleSize}" font-family="Arial, sans-serif" font-size="${titleSize}" font-weight="900" fill="#475569" letter-spacing="1.5">${xmlEscape(tmpl.eventsTitle.toUpperCase())}</text>
+                <text x="52" y="${evBoxY + titleSize}" font-family="Arial, sans-serif" font-size="${titleSize}" font-weight="900" fill="#475569" letter-spacing="1.5">${xmlEscape(cleanTitle)}</text>
                 <line x1="50" y1="${evBoxY + titleSize + 8}" x2="550" y2="${evBoxY + titleSize + 8}" stroke="#e2e8f0" stroke-width="1.2"/>
         `;
 
@@ -3720,22 +4013,21 @@ const teamIdSvg=(member,team,color,header,logo,opts,tmpl)=>{
 
     let footerSvg = '';
     if (tmpl.showFooter) {
-        const festSize = Math.max(9, Math.round(tmpl.festSize * dimScale));
+        const festSize = Math.max(9, Math.round((tmpl.festSize || 12) * dimScale));
+        const pillRadius = Math.round((footerH - 24) / 2);
         footerSvg = `
             <rect y="${footerY}" width="600" height="${footerH}" fill="#000703"/>
             <rect x="420" y="${footerY + 18}" width="180" height="${footerH - 18}" fill="${xmlEscape(color)}"/>
             <path d="M520 ${footerY}h52l28 ${footerH}H548z" fill="#ffffff"/>
-            <rect x="140" y="${footerY + 12}" width="320" height="${footerH - 24}" rx="0" fill="#ffffff" opacity=".92"/>
-            <text x="300" y="${footerY + Math.round(footerH/2) + Math.round(festSize * 0.35)}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${festSize}" font-weight="900" fill="#0f172a" letter-spacing="2">${fest.toUpperCase()}</text>
+            <rect x="140" y="${footerY + 12}" width="320" height="${footerH - 24}" rx="${pillRadius}" fill="${xmlEscape(festBg)}" opacity=".96"/>
+            <text x="300" y="${footerY + Math.round(footerH/2) + Math.round(festSize * 0.35)}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${festSize}" font-weight="900" fill="${xmlEscape(festColor)}" letter-spacing="2">${fest.toUpperCase()}</text>
         `;
     }
-
-    const safeUid = String(member.id || member.chestNo || 'm').replace(/[^a-zA-Z0-9]/g, '_');
 
     return `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="${svgH}" viewBox="0 0 600 ${svgH}">
 <defs>
   <clipPath id="cardClip_${safeUid}"><rect width="600" height="${svgH}" rx="0"/></clipPath>
-  <clipPath id="photoClip_${safeUid}"><circle cx="300" cy="${photoY}" r="${photoR}"/></clipPath>
+  ${photoClipDef}
   <filter id="shadow_${safeUid}" x="-20%" y="-20%" width="140%" height="140%">
     <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="${xmlEscape(color)}" flood-opacity=".32"/>
   </filter>
@@ -3752,17 +4044,13 @@ const teamIdSvg=(member,team,color,header,logo,opts,tmpl)=>{
     <image href="${xmlEscape(logo)}" x="44" y="40" width="60" height="60" preserveAspectRatio="xMidYMid meet"/>
   ` : ''}
   
-  <circle cx="300" cy="${photoY}" r="${photoR + 10}" fill="${xmlEscape(color)}" filter="url(#shadow_${safeUid})"/>
-  <circle cx="300" cy="${photoY}" r="${photoR}" fill="#ffffff"/>
-  ${photo ? `
-    <image href="${xmlEscape(photo)}" x="${300 - photoR}" y="${photoY - photoR}" width="${photoR * 2}" height="${photoR * 2}" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip_${safeUid})"/>
-  ` : `
-    <text x="300" y="${photoY + Math.round(photoR * 0.35)}" text-anchor="middle" font-size="${Math.round(photoR * 0.85)}" font-family="Arial, sans-serif" font-weight="900" fill="#111827">${xmlEscape(String(member.name||'?')[0])}</text>
-  `}
+  ${photoBorderSvg}
+  ${photoBgSvg}
+  ${photoImgSvg}
   
   <g text-anchor="middle" font-family="Arial, sans-serif">
-    <text x="300" y="${nameY1}" font-size="${nameSize}" font-weight="900" fill="#0f172a">${xmlEscape(nameLines[0])}</text>
-    ${nameLines[1] ? `<text x="300" y="${nameY2}" font-size="${Math.max(12, Math.round(nameSize * 0.85))}" font-weight="900" fill="#0f172a">${xmlEscape(nameLines[1])}</text>` : ''}
+    <text x="${nameX}" y="${nameY1}" font-size="${nameSize}" font-weight="900" fill="#0f172a">${xmlEscape(nameLines[0])}</text>
+    ${nameLines[1] ? `<text x="${nameX}" y="${nameY2}" font-size="${Math.max(12, Math.round(nameSize * 0.85))}" font-weight="900" fill="#0f172a">${xmlEscape(nameLines[1])}</text>` : ''}
     ${chestSvg}
     ${detailsSvg}
   </g>
@@ -3773,44 +4061,46 @@ const teamIdSvg=(member,team,color,header,logo,opts,tmpl)=>{
 </svg>`;
 };
 
-const teamIdPreviewCard=(member,team,color,header,logo,opts,tmpl)=>`<img src="${dataUrlForSvg(teamIdSvg(member,team,color,header,logo,opts,tmpl))}" class="block shadow-md" style="width:100%;height:100%;object-fit:contain;border-radius:0px;" alt="${escapeHtml(member.name||'ID card')}">`;
+const teamIdPreviewCard = (member, team, color, header, logo, opts, tmpl) => `<img src="${dataUrlForSvg(teamIdSvg(member, team, color, header, logo, opts, tmpl))}" class="block shadow-md" style="width:100%;height:100%;object-fit:contain;border-radius:0px;" alt="${escapeHtml(member.name || 'ID card')}">`;
 
-const svgToPng=svg=>new Promise((resolve,reject)=>{
-    const image=new Image();
-    image.onload=()=>{
+const svgToPng = svg => new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
         const matchW = svg.match(/width="(\d+)"/);
         const matchH = svg.match(/height="(\d+)"/);
         const w = matchW ? Number(matchW[1]) * 2 : 1200;
         const h = matchH ? Number(matchH[1]) * 2 : 1600;
-        const canvas=document.createElement('canvas');
-        canvas.width=w;
-        canvas.height=h;
-        const ctx=canvas.getContext('2d');
-        ctx.fillStyle='#ffffff';
-        ctx.fillRect(0,0,w,h);
-        ctx.drawImage(image,0,0,w,h);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(image, 0, 0, w, h);
         resolve(canvas.toDataURL('image/png'));
     };
-    image.onerror=reject;
-    image.src=dataUrlForSvg(svg);
+    image.onerror = reject;
+    image.src = dataUrlForSvg(svg);
 });
 
-window.openTeamIdCards=team=>{
-    teamIdCardTeam=team;
+window.openTeamIdCards = team => {
+    teamIdCardTeam = team;
+    teamIdSingleMemberIndex = 0;
     resetTeamIdControls();
     syncTeamIdCustomizerUI(currentTeamIdTemplate);
-    const title=document.getElementById('team-id-card-title');
-    if(title) title.textContent=`${teamLabel(team)} ID Cards`;
+    const title = document.getElementById('team-id-card-title');
+    if (title) title.textContent = `${teamLabel(team)} ID Cards Studio`;
     const modal = document.getElementById('team-id-card-modal');
     if (modal) {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
     }
+    window.setTeamIdViewMode?.(teamIdViewMode || 'single');
     window.lucide?.createIcons?.();
     renderTeamIdPreview();
 };
 
-window.closeTeamIdCards=()=>{
+window.closeTeamIdCards = () => {
     const modal = document.getElementById('team-id-card-modal');
     if (modal) {
         modal.classList.add('hidden');
@@ -3818,135 +4108,187 @@ window.closeTeamIdCards=()=>{
     }
 };
 
-window.teamIdPrevPage=()=>{
-    if(teamIdCurrentPage > 1){
+window.teamIdPrevPage = () => {
+    if (teamIdCurrentPage > 1) {
         teamIdCurrentPage--;
         window.renderTeamIdPreview();
     }
 };
 
-window.teamIdNextPage=()=>{
+window.teamIdNextPage = () => {
     const opts = teamIdOptions();
     const members = teamIdMembers(teamIdCardTeam);
     const totalPages = opts.previewLimit === Infinity ? 1 : Math.max(1, Math.ceil(members.length / opts.previewLimit));
-    if(teamIdCurrentPage < totalPages){
+    if (teamIdCurrentPage < totalPages) {
         teamIdCurrentPage++;
         window.renderTeamIdPreview();
     }
 };
 
-window.renderTeamIdPreview=()=>{
-    const box=document.getElementById('team-id-preview');
-    if(!box||!teamIdCardTeam) return;
-    const opts=teamIdOptions(),
-          tmpl=readTeamIdTemplateFromUI(),
-          layout=teamIdLayout(opts),
-          members=teamIdMembers(teamIdCardTeam),
-          color=teamColors[teamIdCardTeam]||'#4f46e5',
-          header=teamIdCardHeaders[teamIdCardTeam]||'',
-          logo=teamLogos[teamIdCardTeam]||homeConfig.logoUrl||homeConfig.logo||homeConfig.festLogo||'';
+window.renderTeamIdPreview = () => {
+    const box = document.getElementById('team-id-preview');
+    if (!box || !teamIdCardTeam) return;
+    const opts = teamIdOptions(),
+          tmpl = readTeamIdTemplateFromUI(),
+          layout = teamIdLayout(opts),
+          members = teamIdMembers(teamIdCardTeam),
+          color = teamColors[teamIdCardTeam] || '#4f46e5',
+          header = teamIdCardHeaders[teamIdCardTeam] || '',
+          logo = teamLogos[teamIdCardTeam] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '';
 
-    const isAll = opts.previewLimit === Infinity;
-    const totalPages = isAll ? 1 : Math.max(1, Math.ceil(members.length / opts.previewLimit));
-    if (teamIdCurrentPage > totalPages) teamIdCurrentPage = totalPages;
-    if (teamIdCurrentPage < 1) teamIdCurrentPage = 1;
-
-    const startIdx = members.length === 0 ? 0 : (isAll ? 0 : (teamIdCurrentPage - 1) * opts.previewLimit);
-    const endIdx = isAll ? members.length : Math.min(members.length, startIdx + opts.previewLimit);
-    const previewMembers = members.slice(startIdx, endIdx);
-
-    const pagInfo = document.getElementById('team-id-pagination-info') || document.getElementById('team-id-page-info');
-    if (pagInfo) {
-        pagInfo.textContent = members.length
-            ? `Showing ${startIdx + 1}–${endIdx} of ${members.length} members`
-            : 'No members found for this team';
-    }
-    const pagPage = document.getElementById('team-id-pagination-page');
-    if (pagPage) {
-        pagPage.textContent = `Page ${teamIdCurrentPage} of ${totalPages}`;
-    }
-    const prevBtn = document.querySelector('[data-admin-action="team-id-prev-page"]');
-    if (prevBtn) prevBtn.disabled = teamIdCurrentPage <= 1 || isAll;
-    const nextBtn = document.querySelector('[data-admin-action="team-id-next-page"]');
-    if (nextBtn) nextBtn.disabled = teamIdCurrentPage >= totalPages || isAll;
-
-    const warnings=[
-        !layout.valid&&`Card ${opts.cardW}×${opts.cardH}mm with ${opts.margin}mm margin does not fit inside the ${Math.round(layout.usableW)}×${Math.round(layout.usableH)}mm printable area. Reduce card size/margin/gap or choose a larger page/orientation.`,
-        !members.length&&'No members found for this team',
-        members.filter(m=>!m.photo).length&&`${members.filter(m=>!m.photo).length} member(s) without photo`,
-        members.filter(m=>!m.chestNo).length&&`${members.filter(m=>!m.chestNo).length} member(s) without chest number`,
-        header?'Header image will crop into the top band':'No custom header image: logo fallback will be shown'
+    const warnings = [
+        !layout.valid && `Card ${opts.cardW}×${opts.cardH}mm with ${opts.margin}mm margin does not fit inside the ${Math.round(layout.usableW)}×${Math.round(layout.usableH)}mm printable area. Reduce card size/margin/gap or choose a larger page/orientation.`,
+        !members.length && 'No members found for this team',
+        members.filter(m => !m.photo).length && `${members.filter(m => !m.photo).length} member(s) without photo`,
+        members.filter(m => !m.chestNo).length && `${members.filter(m => !m.chestNo).length} member(s) without chest number`,
+        header ? 'Header image will crop into the top band' : 'No custom header image: logo fallback will be shown'
     ].filter(Boolean);
 
     const summaryEl = document.getElementById('team-id-preview-summary');
     if (summaryEl) {
-        summaryEl.innerHTML=`${opts.size.toUpperCase()} ${opts.orientation} • ${opts.cardW}×${opts.cardH}mm card • printable ${Math.round(layout.usableW)}×${Math.round(layout.usableH)}mm • ${layout.cols}×${layout.rows} = ${layout.perPage} cards/sheet • ${members.length} total team members`;
+        summaryEl.innerHTML = `${opts.size.toUpperCase()} ${opts.orientation} • ${opts.cardW}×${opts.cardH}mm card • printable ${Math.round(layout.usableW)}×${Math.round(layout.usableH)}mm • ${layout.cols}×${layout.rows} = ${layout.perPage} cards/sheet • ${members.length} total team members`;
     }
 
-    if(!layout.valid){
-        box.innerHTML=`<div class="mb-4 grid gap-2">${warnings.map(text=>`<div class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-black text-red-700">${escapeHtml(text)}</div>`).join('')}</div>`;
+    if (!layout.valid) {
+        box.innerHTML = `<div class="mb-4 grid gap-2">${warnings.map(text => `<div class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-black text-red-700">${escapeHtml(text)}</div>`).join('')}</div>`;
         return;
     }
 
-    const previewSheetPages = layout.perPage > 0 ? Math.max(1, Math.ceil(previewMembers.length / layout.perPage)) : 1;
+    if (teamIdViewMode === 'single') {
+        if (members.length === 0) {
+            box.innerHTML = `<div class="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm font-bold text-slate-400">No members found for team "${escapeHtml(teamLabel(teamIdCardTeam))}".</div>`;
+            return;
+        }
+        if (teamIdSingleMemberIndex >= members.length) teamIdSingleMemberIndex = 0;
+        if (teamIdSingleMemberIndex < 0) teamIdSingleMemberIndex = 0;
 
-    box.innerHTML=`
-        <div class="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            ${warnings.map(text=>`<div class="rounded-xl border ${String(text).startsWith('No members')?'border-red-200 bg-red-50 text-red-700':'border-amber-200 bg-amber-50 text-amber-800'} p-3 text-xs font-black">${escapeHtml(text)}</div>`).join('')}
-        </div>
-        <div class="overflow-auto border border-slate-200 bg-slate-100 p-4 shadow-inner flex flex-wrap gap-6 justify-center" style="border-radius:0px;">
-            ${Array.from({length:previewSheetPages},(_,sheetIdx)=>{
-                const sheetMembers=previewMembers.slice(sheetIdx*layout.perPage,(sheetIdx+1)*layout.perPage);
-                return `
-                    <section class="inline-block align-top">
-                        <div class="mb-2 flex items-center justify-between px-1 text-xs font-black text-slate-600">
-                            <span>Preview Sheet ${sheetIdx+1} (${sheetMembers.length} card${sheetMembers.length===1?'':'s'})</span>
-                            <span class="text-[11px] text-slate-400 font-bold">${opts.cardW}×${opts.cardH} mm</span>
+        const activeMember = members[teamIdSingleMemberIndex];
+
+        // Update single-nav UI
+        const memberLabel = document.getElementById('team-id-single-member-label');
+        if (memberLabel) memberLabel.textContent = `Preview Member: ${teamIdSingleMemberIndex + 1} of ${members.length}`;
+
+        const memberSelect = document.getElementById('team-id-single-member-select');
+        if (memberSelect) {
+            memberSelect.innerHTML = members.map((m, idx) => `
+                <option value="${idx}" ${idx === teamIdSingleMemberIndex ? 'selected' : ''}>
+                    ${idx + 1}. ${escapeHtml(m.name || 'Member')} ${m.chestNo ? `(#${m.chestNo})` : ''}
+                </option>
+            `).join('');
+        }
+
+        const prevBtn = document.getElementById('btn-team-id-single-prev');
+        const nextBtn = document.getElementById('btn-team-id-single-next');
+        if (prevBtn) prevBtn.disabled = members.length <= 1;
+        if (nextBtn) nextBtn.disabled = members.length <= 1;
+
+        box.innerHTML = `
+            <div class="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                ${warnings.map(text => `<div class="rounded-xl border ${String(text).startsWith('No members') ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-800'} p-3 text-xs font-black">${escapeHtml(text)}</div>`).join('')}
+            </div>
+            <div class="flex flex-col items-center justify-center p-2 sm:p-4">
+                <div class="w-full max-w-[440px] rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden transition-all duration-200">
+                    <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-2 flex items-center justify-between text-xs font-black text-slate-600">
+                        <span class="truncate max-w-[240px] font-black">${escapeHtml(activeMember.name || 'Member')}</span>
+                        <span class="font-mono text-indigo-600 font-bold shrink-0">${opts.cardW}×${opts.cardH} mm</span>
+                    </div>
+                    <div class="p-4 bg-slate-100/50 flex items-center justify-center">
+                        <div style="width: 100%; aspect-ratio: ${opts.cardW} / ${opts.cardH};" class="shadow-lg overflow-hidden bg-white">
+                            ${teamIdPreviewCard(activeMember, teamIdCardTeam, color, header, logo, opts, tmpl)}
                         </div>
-                        <div class="relative bg-white shadow-xl transition-all" style="width:${opts.page.w}mm;height:${opts.page.h}mm;padding:${opts.margin}mm;box-sizing:border-box;border-radius:0px;display:grid;grid-template-columns:repeat(${layout.cols},${opts.cardW}mm);grid-auto-rows:${opts.cardH}mm;gap:${opts.gap}mm;align-content:start;justify-content:start">
-                            ${sheetMembers.map(member=>`<div style="width:${opts.cardW}mm;height:${opts.cardH}mm;border-radius:0px;" class="overflow-hidden bg-white shadow-xs border border-slate-200">${teamIdPreviewCard(member,teamIdCardTeam,color,header,logo,opts,tmpl)}</div>`).join('')}
-                        </div>
-                    </section>
-                `;
-            }).join('')}
-        </div>
-    `;
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        // Print Sheets Mode
+        const isAll = opts.previewLimit === Infinity;
+        const totalPages = isAll ? 1 : Math.max(1, Math.ceil(members.length / opts.previewLimit));
+        if (teamIdCurrentPage > totalPages) teamIdCurrentPage = totalPages;
+        if (teamIdCurrentPage < 1) teamIdCurrentPage = 1;
+
+        const startIdx = members.length === 0 ? 0 : (isAll ? 0 : (teamIdCurrentPage - 1) * opts.previewLimit);
+        const endIdx = isAll ? members.length : Math.min(members.length, startIdx + opts.previewLimit);
+        const previewMembers = members.slice(startIdx, endIdx);
+
+        const pagInfo = document.getElementById('team-id-pagination-info');
+        if (pagInfo) {
+            pagInfo.textContent = members.length
+                ? `Showing ${startIdx + 1}–${endIdx} of ${members.length} members`
+                : 'No members found for this team';
+        }
+        const pagPage = document.getElementById('team-id-pagination-page');
+        if (pagPage) {
+            pagPage.textContent = `Page ${teamIdCurrentPage} of ${totalPages}`;
+        }
+        const prevBtn = document.getElementById('btn-team-id-prev');
+        if (prevBtn) prevBtn.disabled = teamIdCurrentPage <= 1 || isAll;
+        const nextBtn = document.getElementById('btn-team-id-next');
+        if (nextBtn) nextBtn.disabled = teamIdCurrentPage >= totalPages || isAll;
+
+        const previewSheetPages = layout.perPage > 0 ? Math.max(1, Math.ceil(previewMembers.length / layout.perPage)) : 1;
+
+        box.innerHTML = `
+            <div class="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                ${warnings.map(text => `<div class="rounded-xl border ${String(text).startsWith('No members') ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-800'} p-3 text-xs font-black">${escapeHtml(text)}</div>`).join('')}
+            </div>
+            <div class="overflow-auto border border-slate-200 bg-slate-100 p-4 shadow-inner flex flex-wrap gap-6 justify-center" style="border-radius:0px;">
+                ${Array.from({ length: previewSheetPages }, (_, sheetIdx) => {
+                    const sheetMembers = previewMembers.slice(sheetIdx * layout.perPage, (sheetIdx + 1) * layout.perPage);
+                    return `
+                        <section class="inline-block align-top">
+                            <div class="mb-2 flex items-center justify-between px-1 text-xs font-black text-slate-600">
+                                <span>Preview Sheet ${sheetIdx + 1} (${sheetMembers.length} card${sheetMembers.length === 1 ? '' : 's'})</span>
+                                <span class="text-[11px] text-slate-400 font-bold">${opts.cardW}×${opts.cardH} mm</span>
+                            </div>
+                            <div class="relative bg-white shadow-xl transition-all" style="width:${opts.page.w}mm;height:${opts.page.h}mm;padding:${opts.margin}mm;box-sizing:border-box;border-radius:0px;display:grid;grid-template-columns:repeat(${layout.cols},${opts.cardW}mm);grid-auto-rows:${opts.cardH}mm;gap:${opts.gap}mm;align-content:start;justify-content:start">
+                                ${sheetMembers.map(member => `<div style="width:${opts.cardW}mm;height:${opts.cardH}mm;border-radius:0px;" class="overflow-hidden bg-white shadow-xs border border-slate-200">${teamIdPreviewCard(member, teamIdCardTeam, color, header, logo, opts, tmpl)}</div>`).join('')}
+                            </div>
+                        </section>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
 };
 
-async function addPdfImage(doc,img,x,y,w,h){const fmt=String(img).startsWith('data:image/png')?'PNG':String(img).startsWith('data:image/webp')?'WEBP':'JPEG';try{doc.addImage(img,fmt,x,y,w,h,undefined,'FAST')}catch{try{doc.addImage(img,x,y,w,h)}catch{}}}
+async function addPdfImage(doc, img, x, y, w, h) {
+    const fmt = String(img).startsWith('data:image/png') ? 'PNG' : String(img).startsWith('data:image/webp') ? 'WEBP' : 'JPEG';
+    try { doc.addImage(img, fmt, x, y, w, h, undefined, 'FAST'); } catch { try { doc.addImage(img, x, y, w, h); } catch {} }
+}
 
-window.downloadTeamIdCards=async()=>{
-    if(!teamIdCardTeam) return;
+window.downloadTeamIdCards = async () => {
+    if (!teamIdCardTeam) return;
     await window.ensureDep?.('jsPDF');
-    const { jsPDF }=window.jspdf||{};
-    if(!jsPDF) return window.showToast('PDF library not ready','error');
-    const opts=teamIdOptions(),layout=teamIdLayout(opts),members=teamIdMembers(teamIdCardTeam);
-    const tmpl=readTeamIdTemplateFromUI();
-    if(!members.length) return window.showToast('No members found for this team','error');
-    if(!layout.valid) return window.showToast('Card size, margin or gap does not fit inside the selected page','error');
+    const { jsPDF } = window.jspdf || {};
+    if (!jsPDF) return window.showToast('PDF library not ready', 'error');
+    const opts = teamIdOptions(), layout = teamIdLayout(opts), members = teamIdMembers(teamIdCardTeam);
+    const tmpl = readTeamIdTemplateFromUI();
+    if (!members.length) return window.showToast('No members found for this team', 'error');
+    if (!layout.valid) return window.showToast('Card size, margin or gap does not fit inside the selected page', 'error');
 
     window.showToast(`Generating PDF for all ${members.length} team members...`);
-    const docPdf=new jsPDF({unit:'mm',format:opts.pdfFormat,orientation:opts.orientation}),
-          color=teamColors[teamIdCardTeam]||'#4f46e5',
-          header=teamIdCardHeaders[teamIdCardTeam]||'',
-          logo=teamLogos[teamIdCardTeam]||homeConfig.logoUrl||homeConfig.logo||homeConfig.festLogo||'';
+    const docPdf = new jsPDF({ unit: 'mm', format: opts.pdfFormat, orientation: opts.orientation }),
+          color = teamColors[teamIdCardTeam] || '#4f46e5',
+          header = teamIdCardHeaders[teamIdCardTeam] || '',
+          logo = teamLogos[teamIdCardTeam] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '';
 
-    for(let i=0;i<members.length;i++){
-        if(i&&i%layout.perPage===0) docPdf.addPage();
-        const pageIndex=i%layout.perPage,
-              col=pageIndex%layout.cols,
-              row=Math.floor(pageIndex/layout.cols),
-              x=opts.margin+col*(opts.cardW+opts.gap),
-              y=opts.margin+row*(opts.cardH+opts.gap),
-              png=await svgToPng(teamIdSvg(members[i],teamIdCardTeam,color,header,logo,opts,tmpl));
-        docPdf.addImage(png,'PNG',x,y,opts.cardW,opts.cardH,undefined,'FAST');
+    for (let i = 0; i < members.length; i++) {
+        if (i && i % layout.perPage === 0) docPdf.addPage();
+        const pageIndex = i % layout.perPage,
+              col = pageIndex % layout.cols,
+              row = Math.floor(pageIndex / layout.cols),
+              x = opts.margin + col * (opts.cardW + opts.gap),
+              y = opts.margin + row * (opts.cardH + opts.gap),
+              png = await svgToPng(teamIdSvg(members[i], teamIdCardTeam, color, header, logo, opts, tmpl));
+        docPdf.addImage(png, 'PNG', x, y, opts.cardW, opts.cardH, undefined, 'FAST');
     }
     docPdf.save(`${teamIdCardTeam}-ID-Cards-${opts.size}-${opts.orientation}.pdf`);
     window.showToast(`Downloaded all ${members.length} ID cards successfully!`);
 };
 
-const teamIdBaseControlIds = ['team-id-page-size','team-id-orientation','team-id-card-width','team-id-card-height','team-id-gap','team-id-margin','team-id-preview-limit'];
-teamIdBaseControlIds.forEach(id=>{
+const teamIdBaseControlIds = ['team-id-page-size', 'team-id-orientation', 'team-id-card-width', 'team-id-card-height', 'team-id-gap', 'team-id-margin', 'team-id-preview-limit'];
+teamIdBaseControlIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
         el.addEventListener('input', () => { if (id === 'team-id-preview-limit') teamIdCurrentPage = 1; window.renderTeamIdPreview(); });
@@ -3956,10 +4298,17 @@ teamIdBaseControlIds.forEach(id=>{
 
 const teamIdTemplateControlIds = [
     'team-id-tmpl-photo-radius',
+    'team-id-tmpl-photo-shape',
+    'team-id-tmpl-photo-x',
+    'team-id-tmpl-photo-y',
     'team-id-tmpl-name-size',
+    'team-id-tmpl-name-x',
+    'team-id-tmpl-name-y',
     'team-id-tmpl-show-chest',
     'team-id-tmpl-chest-style',
     'team-id-tmpl-chest-size',
+    'team-id-tmpl-chest-x',
+    'team-id-tmpl-chest-y',
     'team-id-tmpl-show-team',
     'team-id-tmpl-show-category',
     'team-id-tmpl-show-class',
@@ -3967,16 +4316,22 @@ const teamIdTemplateControlIds = [
     'team-id-tmpl-show-status',
     'team-id-tmpl-label-size',
     'team-id-tmpl-value-size',
+    'team-id-tmpl-details-x',
+    'team-id-tmpl-details-y',
     'team-id-tmpl-show-events',
     'team-id-tmpl-events-title',
     'team-id-tmpl-events-title-size',
     'team-id-tmpl-event-name-size',
     'team-id-tmpl-event-meta-size',
     'team-id-tmpl-show-time',
+    'team-id-tmpl-events-y',
     'team-id-tmpl-show-footer',
-    'team-id-tmpl-fest-size'
+    'team-id-tmpl-fest-size',
+    'team-id-tmpl-fest-bg',
+    'team-id-tmpl-fest-color',
+    'team-id-tmpl-footer-y'
 ];
-teamIdTemplateControlIds.forEach(id=>{
+teamIdTemplateControlIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
         const handler = () => {
@@ -3991,6 +4346,14 @@ teamIdTemplateControlIds.forEach(id=>{
         el.addEventListener('change', handler);
     }
 });
+
+const singleMemberSelect = document.getElementById('team-id-single-member-select');
+if (singleMemberSelect) {
+    singleMemberSelect.addEventListener('change', e => {
+        teamIdSingleMemberIndex = Number(e.target.value) || 0;
+        window.renderTeamIdPreview();
+    });
+}
 
 window.removeItem = async (type, val) => {
     const affectedStudents = students.filter(s => type === 'teams' ? s.team === val : s.category === val).length;
@@ -5385,10 +5748,6 @@ function ensureEventRequirementLayout(prefix){const form=document.getElementById
 const syncEventGroupFields=prefix=>{const type=masterValue(`${prefix}-ev-type`)||'Single',groupVisible=type==='Group',groupInput=document.getElementById(prefix==='inp'?'inp-ev-grpsize':'edit-ev-grp'),groupWrap=document.getElementById(prefix==='inp'?'event-config-panel':'edit-event-config-panel');if(!groupWrap||!groupInput)return;groupWrap.classList.toggle('hidden',!groupVisible);groupWrap.setAttribute('aria-hidden',String(!groupVisible));groupInput.disabled=!groupVisible;groupInput.required=groupVisible;if(groupVisible&&Number(groupInput.value)<2)groupInput.value=2;};
 window.renderEventFormRequirements=prefix=>{const layout=ensureEventRequirementLayout(prefix);if(!layout)return;const rules=new Map((festSetup.eventFieldRules||[]).map(field=>[field.key,field.requirement])),place=(key,input,status)=>{const wrap=eventFieldWrapper(input,prefix,key);if(!wrap)return;wrap.dataset.eventLayoutField=key;wrap.classList.remove('hidden');wrap.classList.add('min-w-0','max-w-full');if(status==='hidden'||(status==='conditional'&&!eventFieldApplicable(key,prefix))){layout.querySelector('[data-event-hidden-storage]')?.append(wrap);wrap.classList.add('hidden');input.required=false;return;}layout.querySelector(`[data-event-requirement-section="${status}"] [data-event-requirement-grid]`)?.append(wrap);input.required=status==='required'||status==='conditional';const label=wrap.querySelector('.input-label,label,legend');let mark=wrap.querySelector('[data-event-required-mark]');if(input.required&&!mark&&label){mark=document.createElement('span');mark.dataset.eventRequiredMark='true';mark.className='ml-1 text-red-500';mark.textContent='*';label.append(mark);}else if(!input.required)mark?.remove();};for(const field of CORE_EVENT_FIELDS){const input=field.key==='stage'?document.querySelector(`input[name="${prefix==='inp'?'ev-stage':'edit-ev-stage'}"]`):document.getElementById(`${prefix}-${field.suffix}`);place(field.key,input,'required');}for(const[key,suffix]of Object.entries(EVENT_FORM_FIELD_IDS))place(key,document.getElementById(`${prefix}-${suffix}`),rules.get(key)||'hidden');const groupWrap=document.getElementById(prefix==='inp'?'event-config-panel':'edit-event-config-panel');if(groupWrap){groupWrap.dataset.eventLayoutField='groupSize';layout.querySelector('[data-event-requirement-section="required"] [data-event-requirement-grid]')?.append(groupWrap);}syncEventGroupFields(prefix);layout.querySelectorAll('[data-event-requirement-section]').forEach(section=>{const visible=[...section.querySelectorAll('[data-event-layout-field]')].filter(item=>!item.classList.contains('hidden')).length;section.classList.toggle('hidden',visible===0);const count=section.querySelector('[data-event-requirement-count]');if(count)count.textContent=`${visible} field${visible===1?'':'s'}`;});if(prefix==='inp'){const bulk=document.getElementById('inp-ev-bulk-names'),single=document.getElementById('inp-ev-name'),bulkEnabled=bulk&&!bulk.classList.contains('hidden');if(single)single.required=!bulkEnabled;if(bulk)bulk.required=!!bulkEnabled;}const legacy=document.getElementById(prefix==='inp'?'create-event-legacy-layout':'edit-event-legacy-layout');legacy?.classList.add('hidden');};
 const applyEventFieldRules=()=>{for(const prefix of ['inp','edit'])window.renderEventFormRequirements(prefix);};
-window.renderStudentFieldSettings = () => window.renderModalStudentFields?.();
-window.addStudentField = () => window.addModalStudentField?.();
-window.editStudentField = key => window.editModalStudentField?.(key);
-window.removeStudentField = key => window.removeModalStudentField?.(key);
 
 let studentImportRows=[];
 let studentImportHeaders=[];
