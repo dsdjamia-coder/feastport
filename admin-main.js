@@ -718,6 +718,8 @@ document.addEventListener('click', (event) => {
         'open-team-id-cards': () => window.openTeamIdCards(d.team),
         'close-team-id-cards': () => window.closeTeamIdCards(),
         'download-team-id-cards': () => window.downloadTeamIdCards(),
+        'team-id-prev-page': () => window.teamIdPrevPage(),
+        'team-id-next-page': () => window.teamIdNextPage(),
         'add-custom-landing-link': () => window.addCustomLandingLink(),
         'remove-custom-landing-link': () => window.removeCustomLandingLink(d.index),
         'save-access-user': () => window.saveAccessUser(),
@@ -3358,25 +3360,410 @@ window.saveTeamIdHeader = async (team) => {
 
 const teamIdPageSizes={A4:{w:210,h:297},A3:{w:297,h:420},IN12X18:{w:304.8,h:457.2}};
 let teamIdCardTeam='';
+let teamIdCurrentPage=1;
 const teamIdMembers=team=>[...students.filter(item=>item.team===team).map(item=>({...item,source:'Student',photo:item.photoData||''})),...participants.filter(item=>item.team===team&&!item.studentId).map(item=>({...item,source:item.participantType||'Participant',chestNo:item.chestNo||item.id?.slice(0,6)||'',photo:item.photo||item.photoData||''}))].sort((a,b)=>String(a.chestNo||'').localeCompare(String(b.chestNo||''),undefined,{numeric:true})||String(a.name||'').localeCompare(String(b.name||'')));
-const teamIdOptions=()=>{const size=document.getElementById('team-id-page-size')?.value||'A4',orientation=document.getElementById('team-id-orientation')?.value||'portrait',base=teamIdPageSizes[size]||teamIdPageSizes.A4,page=orientation==='landscape'?{w:base.h,h:base.w}:{...base};return{size,orientation,page,pdfFormat:[base.w,base.h],cardW:Number(document.getElementById('team-id-card-width')?.value||90),cardH:Number(document.getElementById('team-id-card-height')?.value||130),gap:Number(document.getElementById('team-id-gap')?.value||0),margin:Number(document.getElementById('team-id-margin')?.value||0)}};
-const TEAM_ID_DEFAULTS={size:'A4',orientation:'portrait',cardW:90,cardH:130,gap:0,margin:0};
-const resetTeamIdControls=()=>{[['team-id-page-size',TEAM_ID_DEFAULTS.size],['team-id-orientation',TEAM_ID_DEFAULTS.orientation],['team-id-card-width',TEAM_ID_DEFAULTS.cardW],['team-id-card-height',TEAM_ID_DEFAULTS.cardH],['team-id-gap',TEAM_ID_DEFAULTS.gap],['team-id-margin',TEAM_ID_DEFAULTS.margin]].forEach(([id,value])=>{const el=document.getElementById(id);if(el)el.value=value;});};
-const teamIdLayout=opts=>{const usableW=Math.max(0,opts.page.w-opts.margin*2),usableH=Math.max(0,opts.page.h-opts.margin*2),safeGap=Math.max(0,opts.gap),safeCardW=Math.max(1,opts.cardW),safeCardH=Math.max(1,opts.cardH),cols=Math.floor((usableW+safeGap)/(safeCardW+safeGap)),rows=Math.floor((usableH+safeGap)/(safeCardH+safeGap)),valid=cols>0&&rows>0;return{cols:valid?cols:0,rows:valid?rows:0,perPage:valid?cols*rows:0,usableW,usableH,valid}};
+
+const teamIdMemberEvents = member => {
+    if (!member) return [];
+    const memberId = member.id;
+    const chestNo = member.chestNo ? String(member.chestNo).trim() : '';
+    const memberRegs = registrations.filter(r => {
+        if (!r) return false;
+        if (memberId && ((r.studentIds && r.studentIds.includes(memberId)) || 
+                         (r.participantIds && r.participantIds.includes(memberId)) || 
+                         r.studentId === memberId || 
+                         r.participantId === memberId)) {
+            return true;
+        }
+        if (chestNo && r.chestNo && String(r.chestNo).trim() === chestNo) {
+            return true;
+        }
+        return false;
+    });
+    const map = new Map();
+    memberRegs.forEach(r => {
+        const ev = events.find(e => e.id === r.eventId);
+        if (ev && !map.has(ev.id)) {
+            map.set(ev.id, {
+                id: ev.id,
+                name: ev.name || 'Event',
+                category: ev.category || member.category || 'General',
+                stage: ev.scheduleStage || ev.stage || (ev.type === 'Off-Stage' ? 'Off-Stage' : 'Stage')
+            });
+        }
+    });
+    return Array.from(map.values());
+};
+
+const teamIdOptions=()=>{
+    const size=document.getElementById('team-id-page-size')?.value||'A4',
+          orientation=document.getElementById('team-id-orientation')?.value||'portrait',
+          base=teamIdPageSizes[size]||teamIdPageSizes.A4,
+          page=orientation==='landscape'?{w:base.h,h:base.w}:{...base},
+          fontScale=Number(document.getElementById('team-id-font-scale')?.value||100),
+          previewLimitVal=document.getElementById('team-id-preview-limit')?.value||'5',
+          previewLimit=previewLimitVal==='all'?Infinity:Number(previewLimitVal||5);
+    return {
+        size,
+        orientation,
+        page,
+        pdfFormat:[base.w,base.h],
+        cardW:Number(document.getElementById('team-id-card-width')?.value||90),
+        cardH:Number(document.getElementById('team-id-card-height')?.value||130),
+        gap:Number(document.getElementById('team-id-gap')?.value||0),
+        margin:Number(document.getElementById('team-id-margin')?.value||0),
+        fontScale,
+        previewLimitVal,
+        previewLimit
+    };
+};
+
+const TEAM_ID_DEFAULTS={size:'A4',orientation:'portrait',cardW:90,cardH:130,gap:0,margin:0,fontScale:100,previewLimit:'5'};
+
+const resetTeamIdControls=()=>{
+    [
+        ['team-id-page-size',TEAM_ID_DEFAULTS.size],
+        ['team-id-orientation',TEAM_ID_DEFAULTS.orientation],
+        ['team-id-card-width',TEAM_ID_DEFAULTS.cardW],
+        ['team-id-card-height',TEAM_ID_DEFAULTS.cardH],
+        ['team-id-gap',TEAM_ID_DEFAULTS.gap],
+        ['team-id-margin',TEAM_ID_DEFAULTS.margin],
+        ['team-id-font-scale',TEAM_ID_DEFAULTS.fontScale],
+        ['team-id-preview-limit',TEAM_ID_DEFAULTS.previewLimit]
+    ].forEach(([id,value])=>{
+        const el=document.getElementById(id);
+        if(el) el.value=value;
+    });
+    teamIdCurrentPage=1;
+};
+
+const teamIdLayout=opts=>{
+    const usableW=Math.max(0,opts.page.w-opts.margin*2),
+          usableH=Math.max(0,opts.page.h-opts.margin*2),
+          safeGap=Math.max(0,opts.gap),
+          safeCardW=Math.max(1,opts.cardW),
+          safeCardH=Math.max(1,opts.cardH),
+          cols=Math.floor((usableW+safeGap)/(safeCardW+safeGap)),
+          rows=Math.floor((usableH+safeGap)/(safeCardH+safeGap)),
+          valid=cols>0&&rows>0;
+    return{cols:valid?cols:0,rows:valid?rows:0,perPage:valid?cols*rows:0,usableW,usableH,valid};
+};
+
 const teamIdDetails=m=>[['Team',teamLabel(m.team||teamIdCardTeam)||'—'],['Category',m.category||'—'],['Class',m.details?.class||m.class||'—'],['Gender',studentGender(m)||m.gender||'—'],['Status','Verified']];
 const xmlEscape=value=>String(value??'').replace(/[&<>"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
 const dataUrlForSvg=svg=>`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-const splitSvgName=name=>{const words=String(name||'Member').trim().split(/\s+/),lines=[];let line='';words.forEach(word=>{const next=line?`${line} ${word}`:word;if(next.length>22&&line){lines.push(line);line=word}else line=next});if(line)lines.push(line);return(lines.length?lines:['Member']).slice(0,2)};
-const teamIdSvg=(member,team,color,header,logo)=>{const details=teamIdDetails(member),nameLines=splitSvgName(member.name||'Member'),chest=xmlEscape(member.chestNo||''),photo=member.photo||'',fest=xmlEscape(brandingName(homeConfig)||'Fest'),teamText=xmlEscape(details[0][1]),category=xmlEscape(details[1][1]),classText=xmlEscape(details[2][1]),gender=xmlEscape(details[3][1]);return `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800" viewBox="0 0 600 800"><defs><clipPath id="cardClip"><rect width="600" height="800"/></clipPath><clipPath id="photoClip"><circle cx="300" cy="212" r="116"/></clipPath><filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="${xmlEscape(color)}" flood-opacity=".32"/></filter></defs><g clip-path="url(#cardClip)"><rect width="600" height="232" fill="#000703"/>${header?`<image href="${xmlEscape(header)}" x="0" y="0" width="600" height="232" preserveAspectRatio="xMidYMid slice"/>`:''}<rect y="232" width="600" height="488" fill="#fff"/><rect y="720" width="600" height="80" fill="#000703"/><rect x="408" y="743" width="192" height="57" fill="${xmlEscape(color)}"/><path d="M520 720h52l28 80H548z" fill="#fff"/><text x="92" y="665" transform="rotate(-90 92 665)" font-family="Arial, sans-serif" font-size="188" font-weight="900" fill="${xmlEscape(color)}" opacity=".16" letter-spacing="-7">${chest}</text>${!header&&logo?`<rect x="36" y="34" width="84" height="84" rx="20" fill="#fff" opacity=".96"/><image href="${xmlEscape(logo)}" x="47" y="45" width="62" height="62" preserveAspectRatio="xMidYMid meet"/>`:''}<circle cx="300" cy="212" r="138" fill="${xmlEscape(color)}" filter="url(#shadow)"/><circle cx="300" cy="212" r="116" fill="#fff"/>${photo?`<image href="${xmlEscape(photo)}" x="184" y="96" width="232" height="232" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip)"/>`:`<text x="300" y="247" text-anchor="middle" font-size="92" font-family="Arial, sans-serif" font-weight="900" fill="#111827">${xmlEscape(String(member.name||'?')[0])}</text>`}<g text-anchor="middle" font-family="Arial, sans-serif"><text x="300" y="420" font-size="34" font-weight="900" fill="#0f172a">${xmlEscape(nameLines[0])}</text>${nameLines[1]?`<text x="300" y="458" font-size="30" font-weight="900" fill="#0f172a">${xmlEscape(nameLines[1])}</text>`:''}<text x="300" y="518" font-size="58" font-weight="900" fill="${xmlEscape(color)}" letter-spacing="1">${xmlEscape(member.chestNo||'—')}</text><text x="125" y="582" font-size="11" font-weight="900" fill="#94a3b8" letter-spacing="2">TEAM</text><text x="125" y="612" font-size="18" font-weight="900" fill="${xmlEscape(color)}">${teamText}</text><text x="300" y="582" font-size="11" font-weight="900" fill="#94a3b8" letter-spacing="2">CATEGORY</text><text x="300" y="612" font-size="18" font-weight="900" fill="#1f2937">${category}</text><text x="475" y="582" font-size="11" font-weight="900" fill="#94a3b8" letter-spacing="2">CLASS</text><text x="475" y="612" font-size="18" font-weight="900" fill="#1f2937">${classText}</text><text x="214" y="676" font-size="11" font-weight="900" fill="#94a3b8" letter-spacing="2">GENDER</text><text x="214" y="705" font-size="18" font-weight="900" fill="#1f2937">${gender}</text><text x="386" y="676" font-size="11" font-weight="900" fill="#94a3b8" letter-spacing="2">STATUS</text><text x="386" y="705" font-size="18" font-weight="900" fill="#059669">Verified</text><rect x="150" y="748" width="300" height="29" rx="15" fill="#fff" opacity=".88"/><text x="300" y="768" font-size="13" font-weight="900" fill="#0f172a" letter-spacing="2">${fest.toUpperCase()}</text></g></g></svg>`};
-const teamIdPreviewCard=(member,team,color,header,logo)=>`<img src="${dataUrlForSvg(teamIdSvg(member,team,color,header,logo))}" class="block shadow-sm" style="width:100%;height:100%" alt="${escapeHtml(member.name||'ID card')}">`;
-const svgToPng=svg=>new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>{const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=1600;const ctx=canvas.getContext('2d');ctx.drawImage(image,0,0,canvas.width,canvas.height);resolve(canvas.toDataURL('image/png'))};image.onerror=reject;image.src=dataUrlForSvg(svg)});
-window.openTeamIdCards=team=>{teamIdCardTeam=team;resetTeamIdControls();const title=document.getElementById('team-id-card-title');if(title)title.textContent=`${teamLabel(team)} ID Cards`;document.getElementById('team-id-card-modal')?.classList.remove('hidden');renderTeamIdPreview()};
-window.closeTeamIdCards=()=>document.getElementById('team-id-card-modal')?.classList.add('hidden');
-window.renderTeamIdPreview=()=>{const box=document.getElementById('team-id-preview');if(!box||!teamIdCardTeam)return;const opts=teamIdOptions(),layout=teamIdLayout(opts),members=teamIdMembers(teamIdCardTeam),pages=layout.valid?Math.max(1,Math.ceil(members.length/layout.perPage)):0,color=teamColors[teamIdCardTeam]||'#4f46e5',header=teamIdCardHeaders[teamIdCardTeam]||'',logo=teamLogos[teamIdCardTeam]||homeConfig.logoUrl||homeConfig.logo||homeConfig.festLogo||'',warnings=[!layout.valid&&`Card ${opts.cardW}×${opts.cardH}mm with ${opts.margin}mm margin does not fit inside the ${Math.round(layout.usableW)}×${Math.round(layout.usableH)}mm printable area. Reduce card size/margin/gap or choose a larger page/orientation.`,!members.length&&'No members found for this team',members.filter(m=>!m.photo).length&&`${members.filter(m=>!m.photo).length} member(s) without photo`,members.filter(m=>!m.chestNo).length&&`${members.filter(m=>!m.chestNo).length} member(s) without chest number`,header?'Header image will crop into the black top band':'No long header image: logo fallback will be shown'].filter(Boolean);document.getElementById('team-id-preview-summary').innerHTML=`${opts.size.toUpperCase()} ${opts.orientation} • ${opts.cardW}×${opts.cardH}mm card • printable ${Math.round(layout.usableW)}×${Math.round(layout.usableH)}mm • ${layout.cols}×${layout.rows} = ${layout.perPage} cards/page • ${members.length} members • ${pages} page(s) • margin ${opts.margin}mm • gap ${opts.gap}mm`;if(!layout.valid){box.innerHTML=`<div class="mb-4 grid gap-2">${warnings.map(text=>`<div class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-black text-red-700">${escapeHtml(text)}</div>`).join('')}</div>`;return}box.innerHTML=`<div class="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">${warnings.map(text=>`<div class="rounded-xl border ${String(text).startsWith('No members')?'border-red-200 bg-red-50 text-red-700':'border-amber-200 bg-amber-50 text-amber-800'} p-3 text-xs font-black">${escapeHtml(text)}</div>`).join('')}</div><div class="overflow-auto rounded-3xl border bg-slate-100 p-3">`+Array.from({length:pages},(_,pageIndex)=>{const pageMembers=members.slice(pageIndex*layout.perPage,(pageIndex+1)*layout.perPage);return `<section class="mb-5 inline-block align-top"><div class="mb-2 flex items-center justify-between px-1 text-xs font-black text-slate-600"><span>Page ${pageIndex+1} of ${pages}</span><span>${pageMembers.length} card(s)</span></div><div class="relative bg-white shadow" style="width:${opts.page.w}mm;height:${opts.page.h}mm;padding:${opts.margin}mm;box-sizing:border-box;display:grid;grid-template-columns:repeat(${layout.cols},${opts.cardW}mm);grid-auto-rows:${opts.cardH}mm;gap:${opts.gap}mm;align-content:start;justify-content:start">${pageMembers.map(member=>`<div style="width:${opts.cardW}mm;height:${opts.cardH}mm">${teamIdPreviewCard(member,teamIdCardTeam,color,header,logo)}</div>`).join('')}</div></section>`}).join('')+'</div>'};
-async function addPdfImage(doc,img,x,y,w,h){const fmt=String(img).startsWith('data:image/png')?'PNG':String(img).startsWith('data:image/webp')?'WEBP':'JPEG';try{doc.addImage(img,fmt,x,y,w,h,undefined,'FAST')}catch{try{doc.addImage(img,x,y,w,h)}catch{}}}
-window.downloadTeamIdCards=async()=>{if(!teamIdCardTeam)return;await window.ensureDep?.('jsPDF');const { jsPDF }=window.jspdf||{};if(!jsPDF)return window.showToast('PDF library not ready','error');const opts=teamIdOptions(),layout=teamIdLayout(opts),members=teamIdMembers(teamIdCardTeam);if(!members.length)return window.showToast('No members found for this team','error');if(!layout.valid)return window.showToast('Card size, margin or gap does not fit inside the selected page','error');const docPdf=new jsPDF({unit:'mm',format:opts.pdfFormat,orientation:opts.orientation}),color=teamColors[teamIdCardTeam]||'#4f46e5',header=teamIdCardHeaders[teamIdCardTeam]||'',logo=teamLogos[teamIdCardTeam]||homeConfig.logoUrl||homeConfig.logo||homeConfig.festLogo||'';for(let i=0;i<members.length;i++){if(i&&i%layout.perPage===0)docPdf.addPage();const pageIndex=i%layout.perPage,col=pageIndex%layout.cols,row=Math.floor(pageIndex/layout.cols),x=opts.margin+col*(opts.cardW+opts.gap),y=opts.margin+row*(opts.cardH+opts.gap),png=await svgToPng(teamIdSvg(members[i],teamIdCardTeam,color,header,logo));docPdf.addImage(png,'PNG',x,y,opts.cardW,opts.cardH,undefined,'FAST')}docPdf.save(`${teamIdCardTeam}-ID-Cards-${opts.size}-${opts.orientation}.pdf`)};
+const splitSvgName=name=>{
+    const words=String(name||'Member').trim().split(/\s+/),lines=[];
+    let line='';
+    words.forEach(word=>{
+        const next=line?`${line} ${word}`:word;
+        if(next.length>22&&line){lines.push(line);line=word}else line=next;
+    });
+    if(line)lines.push(line);
+    return(lines.length?lines:['Member']).slice(0,2);
+};
 
-['team-id-page-size','team-id-orientation','team-id-card-width','team-id-card-height','team-id-gap','team-id-margin'].forEach(id=>document.getElementById(id)?.addEventListener('input',()=>window.renderTeamIdPreview()));
+const teamIdSvg=(member,team,color,header,logo,opts)=>{
+    opts=opts||teamIdOptions();
+    const details=teamIdDetails(member),
+          nameLines=splitSvgName(member.name||'Member'),
+          chest=xmlEscape(member.chestNo||''),
+          photo=member.photo||'',
+          fest=xmlEscape(brandingName(homeConfig)||'Fest'),
+          teamText=xmlEscape(details[0][1]),
+          category=xmlEscape(details[1][1]),
+          classText=xmlEscape(details[2][1]),
+          gender=xmlEscape(details[3][1]),
+          eventsList=teamIdMemberEvents(member);
+
+    // Calculate aspect ratio and proportional scaling
+    const svgW = 600;
+    const svgH = Math.max(760, Math.round(svgW * (opts.cardH / opts.cardW)));
+    const autoScale = Math.min(opts.cardW / 90, opts.cardH / 130);
+    const manualScale = (opts.fontScale || 100) / 100;
+    const scale = Math.max(0.65, Math.min(1.4, autoScale * manualScale));
+
+    const headerH = Math.min(220, Math.round(svgH * 0.25));
+    const photoR = Math.min(95, Math.round(90 * scale));
+    const photoY = headerH - Math.round(photoR * 0.2);
+
+    const nameY1 = photoY + photoR + Math.round(36 * scale);
+    const nameY2 = nameY1 + Math.round(32 * scale);
+    const chestY = (nameLines.length > 1 ? nameY2 : nameY1) + Math.round(44 * scale);
+
+    const row1LabelY = chestY + Math.round(32 * scale);
+    const row1ValY = row1LabelY + Math.round(20 * scale);
+    const row2LabelY = row1ValY + Math.round(24 * scale);
+    const row2ValY = row2LabelY + Math.round(20 * scale);
+
+    const evBoxY = row2ValY + Math.round(18 * scale);
+    const footerH = 58;
+    const footerY = svgH - footerH;
+    const evBoxH = Math.max(90, (footerY - 16) - evBoxY);
+
+    const rowH = Math.round(28 * scale);
+    const maxRows = Math.max(2, Math.min(5, Math.floor((evBoxH - 45) / Math.max(20, rowH))));
+    const showMore = eventsList.length > maxRows;
+    const displayCount = showMore ? maxRows - 1 : Math.min(eventsList.length, maxRows);
+    const displayList = eventsList.slice(0, displayCount);
+    const remaining = eventsList.length - displayCount;
+
+    const safeUid = String(member.id || member.chestNo || 'm').replace(/[^a-zA-Z0-9]/g, '_');
+
+    let eventsHtml = '';
+    if (!eventsList.length) {
+        eventsHtml = `<text x="300" y="${evBoxY + Math.round(evBoxH / 2) + 8}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${Math.round(13 * scale)}" font-weight="600" fill="#94a3b8">No registered events</text>`;
+    } else {
+        eventsHtml = displayList.map((ev, i) => {
+            const itemY = evBoxY + 54 + (i * rowH);
+            const truncName = ev.name.length > 26 ? ev.name.slice(0, 25) + '…' : ev.name;
+            return `
+                <circle cx="56" cy="${itemY - 4}" r="${Math.round(3.5 * scale)}" fill="${xmlEscape(color)}"/>
+                <text x="68" y="${itemY}" font-family="Arial, sans-serif" font-size="${Math.round(12 * scale)}" font-weight="700" fill="#0f172a">${xmlEscape(truncName)}</text>
+                <text x="546" y="${itemY}" text-anchor="end" font-family="Arial, sans-serif" font-size="${Math.round(10.5 * scale)}" font-weight="700" fill="#64748b">${xmlEscape(ev.category)} • ${xmlEscape(ev.stage)}</text>
+            `;
+        }).join('');
+        if (showMore) {
+            const moreY = evBoxY + 54 + (displayCount * rowH);
+            eventsHtml += `<text x="300" y="${moreY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${Math.round(11 * scale)}" font-weight="800" fill="${xmlEscape(color)}">+ ${remaining} MORE EVENT${remaining > 1 ? 'S' : ''}</text>`;
+        }
+    }
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="${svgH}" viewBox="0 0 600 ${svgH}">
+<defs>
+  <clipPath id="cardClip_${safeUid}"><rect width="600" height="${svgH}"/></clipPath>
+  <clipPath id="photoClip_${safeUid}"><circle cx="300" cy="${photoY}" r="${photoR}"/></clipPath>
+  <filter id="shadow_${safeUid}" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="${xmlEscape(color)}" flood-opacity=".32"/>
+  </filter>
+</defs>
+<g clip-path="url(#cardClip_${safeUid})">
+  <rect width="600" height="${headerH}" fill="#000703"/>
+  ${header ? `<image href="${xmlEscape(header)}" x="0" y="0" width="600" height="${headerH}" preserveAspectRatio="xMidYMid slice"/>` : ''}
+  <rect y="${headerH}" width="600" height="${svgH - headerH - footerH}" fill="#ffffff"/>
+  
+  <text x="85" y="${Math.round(svgH * 0.72)}" transform="rotate(-90 85 ${Math.round(svgH * 0.72)})" font-family="Arial, sans-serif" font-size="160" font-weight="900" fill="${xmlEscape(color)}" opacity=".10" letter-spacing="-5">${chest}</text>
+  
+  ${!header && logo ? `
+    <rect x="36" y="32" width="76" height="76" rx="18" fill="#ffffff" opacity=".96"/>
+    <image href="${xmlEscape(logo)}" x="44" y="40" width="60" height="60" preserveAspectRatio="xMidYMid meet"/>
+  ` : ''}
+  
+  <circle cx="300" cy="${photoY}" r="${photoR + 10}" fill="${xmlEscape(color)}" filter="url(#shadow_${safeUid})"/>
+  <circle cx="300" cy="${photoY}" r="${photoR}" fill="#ffffff"/>
+  ${photo ? `
+    <image href="${xmlEscape(photo)}" x="${300 - photoR}" y="${photoY - photoR}" width="${photoR * 2}" height="${photoR * 2}" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip_${safeUid})"/>
+  ` : `
+    <text x="300" y="${photoY + Math.round(photoR * 0.35)}" text-anchor="middle" font-size="${Math.round(76 * scale)}" font-family="Arial, sans-serif" font-weight="900" fill="#111827">${xmlEscape(String(member.name||'?')[0])}</text>
+  `}
+  
+  <g text-anchor="middle" font-family="Arial, sans-serif">
+    <text x="300" y="${nameY1}" font-size="${Math.round(30 * scale)}" font-weight="900" fill="#0f172a">${xmlEscape(nameLines[0])}</text>
+    ${nameLines[1] ? `<text x="300" y="${nameY2}" font-size="${Math.round(25 * scale)}" font-weight="900" fill="#0f172a">${xmlEscape(nameLines[1])}</text>` : ''}
+    <text x="300" y="${chestY}" font-size="${Math.round(44 * scale)}" font-weight="900" fill="${xmlEscape(color)}" letter-spacing="1">CHEST: ${xmlEscape(member.chestNo||'—')}</text>
+    
+    <text x="125" y="${row1LabelY}" font-size="${Math.round(11 * scale)}" font-weight="900" fill="#94a3b8" letter-spacing="2">TEAM</text>
+    <text x="125" y="${row1ValY}" font-size="${Math.round(17 * scale)}" font-weight="900" fill="${xmlEscape(color)}">${teamText}</text>
+    <text x="300" y="${row1LabelY}" font-size="${Math.round(11 * scale)}" font-weight="900" fill="#94a3b8" letter-spacing="2">CATEGORY</text>
+    <text x="300" y="${row1ValY}" font-size="${Math.round(17 * scale)}" font-weight="900" fill="#1f2937">${category}</text>
+    <text x="475" y="${row1LabelY}" font-size="${Math.round(11 * scale)}" font-weight="900" fill="#94a3b8" letter-spacing="2">CLASS</text>
+    <text x="475" y="${row1ValY}" font-size="${Math.round(17 * scale)}" font-weight="900" fill="#1f2937">${classText}</text>
+    
+    <text x="214" y="${row2LabelY}" font-size="${Math.round(11 * scale)}" font-weight="900" fill="#94a3b8" letter-spacing="2">GENDER</text>
+    <text x="214" y="${row2ValY}" font-size="${Math.round(17 * scale)}" font-weight="900" fill="#1f2937">${gender}</text>
+    <text x="386" y="${row2LabelY}" font-size="${Math.round(11 * scale)}" font-weight="900" fill="#94a3b8" letter-spacing="2">STATUS</text>
+    <text x="386" y="${row2ValY}" font-size="${Math.round(17 * scale)}" font-weight="900" fill="#059669">Verified</text>
+  </g>
+  
+  <rect x="34" y="${evBoxY}" width="532" height="${evBoxH}" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+  <text x="52" y="${evBoxY + 24}" font-family="Arial, sans-serif" font-size="${Math.round(11 * scale)}" font-weight="900" fill="#475569" letter-spacing="1.5">REGISTERED EVENTS (${eventsList.length})</text>
+  <line x1="50" y1="${evBoxY + 33}" x2="550" y2="${evBoxY + 33}" stroke="#e2e8f0" stroke-width="1.2"/>
+  ${eventsHtml}
+  
+  <rect y="${footerY}" width="600" height="${footerH}" fill="#000703"/>
+  <rect x="420" y="${footerY + 18}" width="180" height="${footerH - 18}" fill="${xmlEscape(color)}"/>
+  <path d="M520 ${footerY}h52l28 ${footerH}H548z" fill="#ffffff"/>
+  <rect x="140" y="${footerY + 12}" width="320" height="${footerH - 24}" rx="${Math.round((footerH - 24)/2)}" fill="#ffffff" opacity=".92"/>
+  <text x="300" y="${footerY + Math.round(footerH/2) + 5}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="900" fill="#0f172a" letter-spacing="2">${fest.toUpperCase()}</text>
+</g>
+</svg>`;
+};
+
+const teamIdPreviewCard=(member,team,color,header,logo,opts)=>`<img src="${dataUrlForSvg(teamIdSvg(member,team,color,header,logo,opts))}" class="block shadow-md rounded-lg" style="width:100%;height:100%;object-fit:contain" alt="${escapeHtml(member.name||'ID card')}">`;
+
+const svgToPng=svg=>new Promise((resolve,reject)=>{
+    const image=new Image();
+    image.onload=()=>{
+        const matchW = svg.match(/width="(\d+)"/);
+        const matchH = svg.match(/height="(\d+)"/);
+        const w = matchW ? Number(matchW[1]) * 2 : 1200;
+        const h = matchH ? Number(matchH[1]) * 2 : 1600;
+        const canvas=document.createElement('canvas');
+        canvas.width=w;
+        canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.fillStyle='#ffffff';
+        ctx.fillRect(0,0,w,h);
+        ctx.drawImage(image,0,0,w,h);
+        resolve(canvas.toDataURL('image/png'));
+    };
+    image.onerror=reject;
+    image.src=dataUrlForSvg(svg);
+});
+
+window.openTeamIdCards=team=>{
+    teamIdCardTeam=team;
+    resetTeamIdControls();
+    const title=document.getElementById('team-id-card-title');
+    if(title) title.textContent=`${teamLabel(team)} ID Cards`;
+    const modal = document.getElementById('team-id-card-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+    renderTeamIdPreview();
+};
+
+window.closeTeamIdCards=()=>{
+    const modal = document.getElementById('team-id-card-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+window.teamIdPrevPage=()=>{
+    if(teamIdCurrentPage > 1){
+        teamIdCurrentPage--;
+        window.renderTeamIdPreview();
+    }
+};
+
+window.teamIdNextPage=()=>{
+    const opts = teamIdOptions();
+    const members = teamIdMembers(teamIdCardTeam);
+    const totalPages = opts.previewLimit === Infinity ? 1 : Math.max(1, Math.ceil(members.length / opts.previewLimit));
+    if(teamIdCurrentPage < totalPages){
+        teamIdCurrentPage++;
+        window.renderTeamIdPreview();
+    }
+};
+
+window.renderTeamIdPreview=()=>{
+    const box=document.getElementById('team-id-preview');
+    if(!box||!teamIdCardTeam) return;
+    const opts=teamIdOptions(),
+          layout=teamIdLayout(opts),
+          members=teamIdMembers(teamIdCardTeam),
+          color=teamColors[teamIdCardTeam]||'#4f46e5',
+          header=teamIdCardHeaders[teamIdCardTeam]||'',
+          logo=teamLogos[teamIdCardTeam]||homeConfig.logoUrl||homeConfig.logo||homeConfig.festLogo||'';
+
+    const isAll = opts.previewLimit === Infinity;
+    const totalPages = isAll ? 1 : Math.max(1, Math.ceil(members.length / opts.previewLimit));
+    if (teamIdCurrentPage > totalPages) teamIdCurrentPage = totalPages;
+    if (teamIdCurrentPage < 1) teamIdCurrentPage = 1;
+
+    const startIdx = members.length === 0 ? 0 : (isAll ? 0 : (teamIdCurrentPage - 1) * opts.previewLimit);
+    const endIdx = isAll ? members.length : Math.min(members.length, startIdx + opts.previewLimit);
+    const previewMembers = members.slice(startIdx, endIdx);
+
+    const pagInfo = document.getElementById('team-id-pagination-info') || document.getElementById('team-id-page-info');
+    if (pagInfo) {
+        pagInfo.textContent = members.length
+            ? `Showing ${startIdx + 1}–${endIdx} of ${members.length} members`
+            : 'No members found for this team';
+    }
+    const pagPage = document.getElementById('team-id-pagination-page');
+    if (pagPage) {
+        pagPage.textContent = `Page ${teamIdCurrentPage} of ${totalPages}`;
+    }
+    const prevBtn = document.querySelector('[data-admin-action="team-id-prev-page"]');
+    if (prevBtn) prevBtn.disabled = teamIdCurrentPage <= 1 || isAll;
+    const nextBtn = document.querySelector('[data-admin-action="team-id-next-page"]');
+    if (nextBtn) nextBtn.disabled = teamIdCurrentPage >= totalPages || isAll;
+
+    const warnings=[
+        !layout.valid&&`Card ${opts.cardW}×${opts.cardH}mm with ${opts.margin}mm margin does not fit inside the ${Math.round(layout.usableW)}×${Math.round(layout.usableH)}mm printable area. Reduce card size/margin/gap or choose a larger page/orientation.`,
+        !members.length&&'No members found for this team',
+        members.filter(m=>!m.photo).length&&`${members.filter(m=>!m.photo).length} member(s) without photo`,
+        members.filter(m=>!m.chestNo).length&&`${members.filter(m=>!m.chestNo).length} member(s) without chest number`,
+        header?'Header image will crop into the top band':'No custom header image: logo fallback will be shown'
+    ].filter(Boolean);
+
+    const summaryEl = document.getElementById('team-id-preview-summary');
+    if (summaryEl) {
+        summaryEl.innerHTML=`${opts.size.toUpperCase()} ${opts.orientation} • ${opts.cardW}×${opts.cardH}mm card • printable ${Math.round(layout.usableW)}×${Math.round(layout.usableH)}mm • ${layout.cols}×${layout.rows} = ${layout.perPage} cards/sheet • ${members.length} total team members • Scale: ${opts.fontScale}%`;
+    }
+
+    if(!layout.valid){
+        box.innerHTML=`<div class="mb-4 grid gap-2">${warnings.map(text=>`<div class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-black text-red-700">${escapeHtml(text)}</div>`).join('')}</div>`;
+        return;
+    }
+
+    const previewSheetPages = layout.perPage > 0 ? Math.max(1, Math.ceil(previewMembers.length / layout.perPage)) : 1;
+
+    box.innerHTML=`
+        <div class="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            ${warnings.map(text=>`<div class="rounded-xl border ${String(text).startsWith('No members')?'border-red-200 bg-red-50 text-red-700':'border-amber-200 bg-amber-50 text-amber-800'} p-3 text-xs font-black">${escapeHtml(text)}</div>`).join('')}
+        </div>
+        <div class="overflow-auto rounded-3xl border border-slate-200 bg-slate-100 p-4 shadow-inner flex flex-wrap gap-6 justify-center">
+            ${Array.from({length:previewSheetPages},(_,sheetIdx)=>{
+                const sheetMembers=previewMembers.slice(sheetIdx*layout.perPage,(sheetIdx+1)*layout.perPage);
+                return `
+                    <section class="inline-block align-top">
+                        <div class="mb-2 flex items-center justify-between px-1 text-xs font-black text-slate-600">
+                            <span>Preview Sheet ${sheetIdx+1} (${sheetMembers.length} card${sheetMembers.length===1?'':'s'})</span>
+                            <span class="text-[11px] text-slate-400 font-bold">${opts.cardW}×${opts.cardH} mm</span>
+                        </div>
+                        <div class="relative bg-white shadow-xl rounded-md transition-all" style="width:${opts.page.w}mm;height:${opts.page.h}mm;padding:${opts.margin}mm;box-sizing:border-box;display:grid;grid-template-columns:repeat(${layout.cols},${opts.cardW}mm);grid-auto-rows:${opts.cardH}mm;gap:${opts.gap}mm;align-content:start;justify-content:start">
+                            ${sheetMembers.map(member=>`<div style="width:${opts.cardW}mm;height:${opts.cardH}mm" class="overflow-hidden rounded">${teamIdPreviewCard(member,teamIdCardTeam,color,header,logo,opts)}</div>`).join('')}
+                        </div>
+                    </section>
+                `;
+            }).join('')}
+        </div>
+    `;
+};
+
+async function addPdfImage(doc,img,x,y,w,h){const fmt=String(img).startsWith('data:image/png')?'PNG':String(img).startsWith('data:image/webp')?'WEBP':'JPEG';try{doc.addImage(img,fmt,x,y,w,h,undefined,'FAST')}catch{try{doc.addImage(img,x,y,w,h)}catch{}}}
+
+window.downloadTeamIdCards=async()=>{
+    if(!teamIdCardTeam) return;
+    await window.ensureDep?.('jsPDF');
+    const { jsPDF }=window.jspdf||{};
+    if(!jsPDF) return window.showToast('PDF library not ready','error');
+    const opts=teamIdOptions(),layout=teamIdLayout(opts),members=teamIdMembers(teamIdCardTeam);
+    if(!members.length) return window.showToast('No members found for this team','error');
+    if(!layout.valid) return window.showToast('Card size, margin or gap does not fit inside the selected page','error');
+
+    window.showToast(`Generating PDF for all ${members.length} team members...`);
+    const docPdf=new jsPDF({unit:'mm',format:opts.pdfFormat,orientation:opts.orientation}),
+          color=teamColors[teamIdCardTeam]||'#4f46e5',
+          header=teamIdCardHeaders[teamIdCardTeam]||'',
+          logo=teamLogos[teamIdCardTeam]||homeConfig.logoUrl||homeConfig.logo||homeConfig.festLogo||'';
+
+    for(let i=0;i<members.length;i++){
+        if(i&&i%layout.perPage===0) docPdf.addPage();
+        const pageIndex=i%layout.perPage,
+              col=pageIndex%layout.cols,
+              row=Math.floor(pageIndex/layout.cols),
+              x=opts.margin+col*(opts.cardW+opts.gap),
+              y=opts.margin+row*(opts.cardH+opts.gap),
+              png=await svgToPng(teamIdSvg(members[i],teamIdCardTeam,color,header,logo,opts));
+        docPdf.addImage(png,'PNG',x,y,opts.cardW,opts.cardH,undefined,'FAST');
+    }
+    docPdf.save(`${teamIdCardTeam}-ID-Cards-${opts.size}-${opts.orientation}.pdf`);
+    window.showToast(`Downloaded all ${members.length} ID cards successfully!`);
+};
+
+['team-id-page-size','team-id-orientation','team-id-card-width','team-id-card-height','team-id-gap','team-id-margin','team-id-font-scale','team-id-preview-limit'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('input', () => { if (id === 'team-id-preview-limit') teamIdCurrentPage = 1; window.renderTeamIdPreview(); });
+        el.addEventListener('change', () => { if (id === 'team-id-preview-limit') teamIdCurrentPage = 1; window.renderTeamIdPreview(); });
+    }
+});
 
 window.removeItem = async (type, val) => {
     const affectedStudents = students.filter(s => type === 'teams' ? s.team === val : s.category === val).length;
