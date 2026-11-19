@@ -729,6 +729,11 @@ document.addEventListener('click', (event) => {
         'set-team-id-view-mode': () => window.setTeamIdViewMode(d.mode || btn.dataset.mode),
         'team-id-single-prev': () => window.teamIdSinglePrev(),
         'team-id-single-next': () => window.teamIdSingleNext(),
+        'toggle-layer-accordion': () => window.toggleLayerAccordion(d.layer || btn?.dataset?.layer),
+        'toggle-layer-visibility': () => window.toggleLayerVisibility(d.layer || btn?.dataset?.layer),
+        'deselect-card-layer': () => window.deselectCardLayer(),
+        'move-demo-field': () => window.moveDemographicField(d.field || btn?.dataset?.field, d.dir || btn?.dataset?.dir),
+        'toggle-demo-field': () => window.toggleDemographicField(d.field || btn?.dataset?.field),
         'add-custom-landing-link': () => window.addCustomLandingLink(),
         'remove-custom-landing-link': () => window.removeCustomLandingLink(d.index),
         'save-access-user': () => window.saveAccessUser(),
@@ -3540,16 +3545,28 @@ const teamIdMemberEvents = member => {
 
 const TEAM_ID_TEMPLATE_KEY = 'fest_team_id_template_config';
 const TEAM_ID_TEMPLATE_DEFAULTS = {
+    showHeader: true,
+    headerHeight: 180,
+    headerY: 0,
+    showWatermark: true,
+    watermarkOpacity: 10,
+    watermarkSize: 160,
+    watermarkAngle: -90,
+    watermarkX: 0,
+    watermarkY: 0,
+    showPhoto: true,
     photoRadius: 90,
     photoShape: 'circle',
     photoX: 0,
     photoY: 0,
     nameSize: 30,
+    nameColor: '#0f172a',
     nameX: 0,
     nameY: 0,
     showChest: true,
     chestStyle: 'number_only',
     chestSize: 44,
+    chestColor: '',
     chestX: 0,
     chestY: 0,
     showTeam: true,
@@ -3557,6 +3574,7 @@ const TEAM_ID_TEMPLATE_DEFAULTS = {
     showClass: true,
     showGender: true,
     showStatus: true,
+    detailsOrder: ['team', 'category', 'class', 'gender', 'status'],
     labelSize: 11,
     valueSize: 17,
     detailsX: 0,
@@ -3569,10 +3587,36 @@ const TEAM_ID_TEMPLATE_DEFAULTS = {
     showTime: true,
     eventsY: 0,
     showFooter: true,
-    festSize: 12,
+    footerHeight: 58,
+    footerBg: '#000703',
+    pillWidth: 320,
+    pillHeight: 34,
+    pillRadius: 17,
     festBg: '#ffffff',
     festColor: '#0f172a',
-    footerY: 0
+    festSize: 12,
+    footerY: 0,
+    cardBg: '#ffffff'
+};
+
+const LAYER_TITLES = {
+    header: '1. Header Banner',
+    watermark: '2. Watermark Background Chest',
+    photo: '3. Member Photo',
+    name: '4. Student Name',
+    chest: '5. Chest Number',
+    details: '6. Demographics Details',
+    events: '7. Registered Events',
+    footer: '8. Bottom Bar & Fest Pill Badge',
+    base: '9. Card Base Canvas'
+};
+
+const DEMOGRAPHIC_FIELD_LABELS = {
+    team: 'Team Name',
+    category: 'Category',
+    class: 'Class / Division',
+    gender: 'Gender',
+    status: 'Status (Verified)'
 };
 
 const loadTeamIdTemplate = () => {
@@ -3584,11 +3628,161 @@ const loadTeamIdTemplate = () => {
 };
 
 let currentTeamIdTemplate = loadTeamIdTemplate();
+let activeCardLayer = null;
 
 const saveTeamIdTemplate = tmpl => {
     try {
         localStorage.setItem(TEAM_ID_TEMPLATE_KEY, JSON.stringify(tmpl));
     } catch (e) {}
+};
+
+const updateCoordBadges = tmpl => {
+    const setBadge = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    };
+    setBadge('badge-coord-header', `H: ${tmpl.headerHeight ?? 180}px, Y: ${tmpl.headerY ?? 0}px`);
+    setBadge('badge-coord-watermark', `${tmpl.watermarkX ?? 0}, ${tmpl.watermarkY ?? 0}`);
+    setBadge('badge-coord-photo', `${tmpl.photoX ?? 0}, ${tmpl.photoY ?? 0}`);
+    setBadge('badge-coord-name', `${tmpl.nameX ?? 0}, ${tmpl.nameY ?? 0}`);
+    setBadge('badge-coord-chest', `${tmpl.chestX ?? 0}, ${tmpl.chestY ?? 0}`);
+    setBadge('badge-coord-details', `${tmpl.detailsX ?? 0}, ${tmpl.detailsY ?? 0}`);
+    setBadge('badge-coord-events', `Y: ${tmpl.eventsY ?? 0}`);
+    setBadge('badge-coord-footer', `Y: ${tmpl.footerY ?? 0}`);
+};
+
+const updateEyeIcon = (layerKey, isVisible) => {
+    const iconEl = document.getElementById(`eye-icon-${layerKey}`);
+    if (!iconEl) return;
+    iconEl.setAttribute('data-lucide', isVisible ? 'eye' : 'eye-off');
+    const btn = iconEl.closest('button');
+    if (btn) {
+        btn.classList.toggle('text-indigo-600', isVisible);
+        btn.classList.toggle('text-slate-300', !isVisible);
+    }
+    window.lucide?.createIcons?.();
+};
+
+const renderDemographicsOrderList = () => {
+    const container = document.getElementById('team-id-demographics-order-container');
+    if (!container) return;
+    const order = Array.isArray(currentTeamIdTemplate.detailsOrder) && currentTeamIdTemplate.detailsOrder.length
+        ? currentTeamIdTemplate.detailsOrder
+        : ['team', 'category', 'class', 'gender', 'status'];
+
+    container.innerHTML = order.map((fieldKey, idx) => {
+        const label = DEMOGRAPHIC_FIELD_LABELS[fieldKey] || fieldKey;
+        const showKey = `show${fieldKey.charAt(0).toUpperCase() + fieldKey.slice(1)}`;
+        const isChecked = currentTeamIdTemplate[showKey] !== false;
+        return `
+            <div class="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200">
+                <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer select-none">
+                    <input type="checkbox" data-admin-action="toggle-demo-field" data-field="${fieldKey}" ${isChecked ? 'checked' : ''} class="h-4 w-4 rounded accent-indigo-600">
+                    <span class="${isChecked ? 'text-slate-800' : 'text-slate-400 line-through'}">${label}</span>
+                </label>
+                <div class="flex items-center gap-1">
+                    <button type="button" data-admin-action="move-demo-field" data-field="${fieldKey}" data-dir="up" ${idx === 0 ? 'disabled' : ''} class="rounded-lg p-1 text-slate-500 hover:text-indigo-600 hover:bg-slate-200 disabled:opacity-20 disabled:hover:bg-transparent transition text-xs font-black" title="Move Up">▲</button>
+                    <button type="button" data-admin-action="move-demo-field" data-field="${fieldKey}" data-dir="down" ${idx === order.length - 1 ? 'disabled' : ''} class="rounded-lg p-1 text-slate-500 hover:text-indigo-600 hover:bg-slate-200 disabled:opacity-20 disabled:hover:bg-transparent transition text-xs font-black" title="Move Down">▼</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+};
+
+window.moveDemographicField = (fieldKey, dir) => {
+    const order = [...(currentTeamIdTemplate.detailsOrder || ['team', 'category', 'class', 'gender', 'status'])];
+    const idx = order.indexOf(fieldKey);
+    if (idx === -1) return;
+    const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= order.length) return;
+    const temp = order[idx];
+    order[idx] = order[targetIdx];
+    order[targetIdx] = temp;
+    currentTeamIdTemplate.detailsOrder = order;
+    saveTeamIdTemplate(currentTeamIdTemplate);
+    renderDemographicsOrderList();
+    window.renderTeamIdPreview();
+};
+
+window.toggleDemographicField = fieldKey => {
+    const showKey = `show${fieldKey.charAt(0).toUpperCase() + fieldKey.slice(1)}`;
+    currentTeamIdTemplate[showKey] = currentTeamIdTemplate[showKey] === false ? true : false;
+    const chk = document.getElementById(`team-id-tmpl-show-${fieldKey}`);
+    if (chk) chk.checked = !!currentTeamIdTemplate[showKey];
+    saveTeamIdTemplate(currentTeamIdTemplate);
+    renderDemographicsOrderList();
+    window.renderTeamIdPreview();
+};
+
+window.toggleLayerAccordion = layerKey => {
+    const layerEl = document.getElementById(`panel-layer-${layerKey}`);
+    if (!layerEl) return;
+    const body = layerEl.querySelector('.layer-body');
+    const chevron = layerEl.querySelector('[data-lucide="chevron-down"]');
+    if (!body) return;
+    const isHidden = body.classList.contains('hidden');
+    body.classList.toggle('hidden', !isHidden);
+    if (chevron) {
+        chevron.style.transform = isHidden ? 'rotate(180deg)' : '';
+    }
+    if (isHidden) {
+        window.setActiveCardLayer(layerKey, false);
+    }
+};
+
+window.toggleLayerVisibility = layerKey => {
+    const visMap = {
+        header: 'showHeader',
+        watermark: 'showWatermark',
+        photo: 'showPhoto',
+        chest: 'showChest',
+        events: 'showEvents',
+        footer: 'showFooter'
+    };
+    const prop = visMap[layerKey];
+    if (!prop) return;
+    currentTeamIdTemplate[prop] = currentTeamIdTemplate[prop] === false ? true : false;
+    const chk = document.getElementById(`team-id-tmpl-${prop.replace(/[A-Z]/g, m => '-' + m.toLowerCase())}`);
+    if (chk) chk.checked = currentTeamIdTemplate[prop];
+    updateEyeIcon(layerKey, currentTeamIdTemplate[prop]);
+    saveTeamIdTemplate(currentTeamIdTemplate);
+    window.renderTeamIdPreview();
+};
+
+window.setActiveCardLayer = (layerKey, expandSidebar = true) => {
+    activeCardLayer = layerKey;
+    const ind = document.getElementById('team-id-selected-layer-name');
+    const deselectBtn = document.getElementById('btn-deselect-card-layer');
+    if (ind) {
+        ind.textContent = layerKey ? LAYER_TITLES[layerKey] || layerKey : 'Click element on card to edit';
+    }
+    if (deselectBtn) {
+        deselectBtn.classList.toggle('hidden', !layerKey);
+    }
+
+    document.querySelectorAll('#team-id-customizer-panel .layer-item').forEach(el => {
+        const k = el.dataset.layerKey;
+        if (k === layerKey) {
+            el.classList.add('ring-2', 'ring-indigo-500', 'border-transparent');
+            if (expandSidebar) {
+                const body = el.querySelector('.layer-body');
+                if (body && body.classList.contains('hidden')) {
+                    body.classList.remove('hidden');
+                    const chevron = el.querySelector('[data-lucide="chevron-down"]');
+                    if (chevron) chevron.style.transform = 'rotate(180deg)';
+                }
+                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        } else {
+            el.classList.remove('ring-2', 'ring-indigo-500', 'border-transparent');
+        }
+    });
+
+    window.renderTeamIdPreview();
+};
+
+window.deselectCardLayer = () => {
+    window.setActiveCardLayer(null);
 };
 
 window.applyRemoteTeamIdTemplate = remoteTmpl => {
@@ -3606,21 +3800,44 @@ const syncTeamIdCustomizerUI = tmpl => {
     const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
     const setChecked = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
 
+    // Layer 1: Header
+    setChecked('team-id-tmpl-show-header', tmpl.showHeader !== false);
+    setVal('team-id-tmpl-header-height', tmpl.headerHeight ?? 180);
+    setVal('team-id-tmpl-header-y', tmpl.headerY ?? 0);
+    updateEyeIcon('header', tmpl.showHeader !== false);
+
+    // Layer 2: Watermark
+    setChecked('team-id-tmpl-show-watermark', tmpl.showWatermark !== false);
+    setVal('team-id-tmpl-watermark-opacity', tmpl.watermarkOpacity ?? 10);
+    setVal('team-id-tmpl-watermark-size', tmpl.watermarkSize ?? 160);
+    setVal('team-id-tmpl-watermark-angle', tmpl.watermarkAngle ?? -90);
+    setVal('team-id-tmpl-watermark-x', tmpl.watermarkX ?? 0);
+    setVal('team-id-tmpl-watermark-y', tmpl.watermarkY ?? 0);
+    updateEyeIcon('watermark', tmpl.showWatermark !== false);
+
+    // Layer 3: Photo
+    setChecked('team-id-tmpl-show-photo', tmpl.showPhoto !== false);
     setVal('team-id-tmpl-photo-radius', tmpl.photoRadius ?? 90);
     setVal('team-id-tmpl-photo-shape', tmpl.photoShape || 'circle');
     setVal('team-id-tmpl-photo-x', tmpl.photoX ?? 0);
     setVal('team-id-tmpl-photo-y', tmpl.photoY ?? 0);
+    updateEyeIcon('photo', tmpl.showPhoto !== false);
 
+    // Layer 4: Name
     setVal('team-id-tmpl-name-size', tmpl.nameSize ?? 30);
+    setVal('team-id-tmpl-name-color', tmpl.nameColor || '#0f172a');
     setVal('team-id-tmpl-name-x', tmpl.nameX ?? 0);
     setVal('team-id-tmpl-name-y', tmpl.nameY ?? 0);
 
+    // Layer 5: Chest
     setChecked('team-id-tmpl-show-chest', tmpl.showChest !== false);
     setVal('team-id-tmpl-chest-style', tmpl.chestStyle || 'number_only');
     setVal('team-id-tmpl-chest-size', tmpl.chestSize ?? 44);
     setVal('team-id-tmpl-chest-x', tmpl.chestX ?? 0);
     setVal('team-id-tmpl-chest-y', tmpl.chestY ?? 0);
+    updateEyeIcon('chest', tmpl.showChest !== false);
 
+    // Layer 6: Details
     setChecked('team-id-tmpl-show-team', tmpl.showTeam !== false);
     setChecked('team-id-tmpl-show-category', tmpl.showCategory !== false);
     setChecked('team-id-tmpl-show-class', tmpl.showClass !== false);
@@ -3630,7 +3847,9 @@ const syncTeamIdCustomizerUI = tmpl => {
     setVal('team-id-tmpl-value-size', tmpl.valueSize ?? 17);
     setVal('team-id-tmpl-details-x', tmpl.detailsX ?? 0);
     setVal('team-id-tmpl-details-y', tmpl.detailsY ?? 0);
+    renderDemographicsOrderList();
 
+    // Layer 7: Events
     setChecked('team-id-tmpl-show-events', tmpl.showEvents !== false);
     setVal('team-id-tmpl-events-title', tmpl.eventsTitle || 'REGISTERED EVENTS');
     setVal('team-id-tmpl-events-title-size', tmpl.eventsTitleSize ?? 11);
@@ -3638,12 +3857,25 @@ const syncTeamIdCustomizerUI = tmpl => {
     setVal('team-id-tmpl-event-meta-size', tmpl.eventMetaSize ?? 10);
     setChecked('team-id-tmpl-show-time', tmpl.showTime !== false);
     setVal('team-id-tmpl-events-y', tmpl.eventsY ?? 0);
+    updateEyeIcon('events', tmpl.showEvents !== false);
 
+    // Layer 8: Footer & Pill
     setChecked('team-id-tmpl-show-footer', tmpl.showFooter !== false);
-    setVal('team-id-tmpl-fest-size', tmpl.festSize ?? 12);
+    setVal('team-id-tmpl-footer-height', tmpl.footerHeight ?? 58);
+    setVal('team-id-tmpl-footer-bg', tmpl.footerBg || '#000703');
+    setVal('team-id-tmpl-pill-width', tmpl.pillWidth ?? 320);
+    setVal('team-id-tmpl-pill-height', tmpl.pillHeight ?? 34);
+    setVal('team-id-tmpl-pill-radius', tmpl.pillRadius ?? 17);
     setVal('team-id-tmpl-fest-bg', tmpl.festBg || '#ffffff');
     setVal('team-id-tmpl-fest-color', tmpl.festColor || '#0f172a');
+    setVal('team-id-tmpl-fest-size', tmpl.festSize ?? 12);
     setVal('team-id-tmpl-footer-y', tmpl.footerY ?? 0);
+    updateEyeIcon('footer', tmpl.showFooter !== false);
+
+    // Layer 9: Base
+    setVal('team-id-tmpl-card-bg', tmpl.cardBg || '#ffffff');
+
+    updateCoordBadges(tmpl);
 };
 
 const readTeamIdTemplateFromUI = () => {
@@ -3662,42 +3894,71 @@ const readTeamIdTemplateFromUI = () => {
     };
 
     const tmpl = {
-        photoRadius: getNum('team-id-tmpl-photo-radius', TEAM_ID_TEMPLATE_DEFAULTS.photoRadius),
-        photoShape: getVal('team-id-tmpl-photo-shape', TEAM_ID_TEMPLATE_DEFAULTS.photoShape),
-        photoX: getNum('team-id-tmpl-photo-x', TEAM_ID_TEMPLATE_DEFAULTS.photoX),
-        photoY: getNum('team-id-tmpl-photo-y', TEAM_ID_TEMPLATE_DEFAULTS.photoY),
-        nameSize: getNum('team-id-tmpl-name-size', TEAM_ID_TEMPLATE_DEFAULTS.nameSize),
-        nameX: getNum('team-id-tmpl-name-x', TEAM_ID_TEMPLATE_DEFAULTS.nameX),
-        nameY: getNum('team-id-tmpl-name-y', TEAM_ID_TEMPLATE_DEFAULTS.nameY),
-        showChest: getChecked('team-id-tmpl-show-chest', TEAM_ID_TEMPLATE_DEFAULTS.showChest),
-        chestStyle: getVal('team-id-tmpl-chest-style', TEAM_ID_TEMPLATE_DEFAULTS.chestStyle),
-        chestSize: getNum('team-id-tmpl-chest-size', TEAM_ID_TEMPLATE_DEFAULTS.chestSize),
-        chestX: getNum('team-id-tmpl-chest-x', TEAM_ID_TEMPLATE_DEFAULTS.chestX),
-        chestY: getNum('team-id-tmpl-chest-y', TEAM_ID_TEMPLATE_DEFAULTS.chestY),
-        showTeam: getChecked('team-id-tmpl-show-team', TEAM_ID_TEMPLATE_DEFAULTS.showTeam),
-        showCategory: getChecked('team-id-tmpl-show-category', TEAM_ID_TEMPLATE_DEFAULTS.showCategory),
-        showClass: getChecked('team-id-tmpl-show-class', TEAM_ID_TEMPLATE_DEFAULTS.showClass),
-        showGender: getChecked('team-id-tmpl-show-gender', TEAM_ID_TEMPLATE_DEFAULTS.showGender),
-        showStatus: getChecked('team-id-tmpl-show-status', TEAM_ID_TEMPLATE_DEFAULTS.showStatus),
-        labelSize: getNum('team-id-tmpl-label-size', TEAM_ID_TEMPLATE_DEFAULTS.labelSize),
-        valueSize: getNum('team-id-tmpl-value-size', TEAM_ID_TEMPLATE_DEFAULTS.valueSize),
-        detailsX: getNum('team-id-tmpl-details-x', TEAM_ID_TEMPLATE_DEFAULTS.detailsX),
-        detailsY: getNum('team-id-tmpl-details-y', TEAM_ID_TEMPLATE_DEFAULTS.detailsY),
-        showEvents: getChecked('team-id-tmpl-show-events', TEAM_ID_TEMPLATE_DEFAULTS.showEvents),
-        eventsTitle: getVal('team-id-tmpl-events-title', TEAM_ID_TEMPLATE_DEFAULTS.eventsTitle).trim() || 'REGISTERED EVENTS',
-        eventsTitleSize: getNum('team-id-tmpl-events-title-size', TEAM_ID_TEMPLATE_DEFAULTS.eventsTitleSize),
-        eventNameSize: getNum('team-id-tmpl-event-name-size', TEAM_ID_TEMPLATE_DEFAULTS.eventNameSize),
-        eventMetaSize: getNum('team-id-tmpl-event-meta-size', TEAM_ID_TEMPLATE_DEFAULTS.eventMetaSize),
-        showTime: getChecked('team-id-tmpl-show-time', TEAM_ID_TEMPLATE_DEFAULTS.showTime),
-        eventsY: getNum('team-id-tmpl-events-y', TEAM_ID_TEMPLATE_DEFAULTS.eventsY),
-        showFooter: getChecked('team-id-tmpl-show-footer', TEAM_ID_TEMPLATE_DEFAULTS.showFooter),
-        festSize: getNum('team-id-tmpl-fest-size', TEAM_ID_TEMPLATE_DEFAULTS.festSize),
-        festBg: getVal('team-id-tmpl-fest-bg', TEAM_ID_TEMPLATE_DEFAULTS.festBg),
-        festColor: getVal('team-id-tmpl-fest-color', TEAM_ID_TEMPLATE_DEFAULTS.festColor),
-        footerY: getNum('team-id-tmpl-footer-y', TEAM_ID_TEMPLATE_DEFAULTS.footerY)
+        showHeader: getChecked('team-id-tmpl-show-header', currentTeamIdTemplate.showHeader !== false),
+        headerHeight: getNum('team-id-tmpl-header-height', currentTeamIdTemplate.headerHeight ?? 180),
+        headerY: getNum('team-id-tmpl-header-y', currentTeamIdTemplate.headerY ?? 0),
+
+        showWatermark: getChecked('team-id-tmpl-show-watermark', currentTeamIdTemplate.showWatermark !== false),
+        watermarkOpacity: getNum('team-id-tmpl-watermark-opacity', currentTeamIdTemplate.watermarkOpacity ?? 10),
+        watermarkSize: getNum('team-id-tmpl-watermark-size', currentTeamIdTemplate.watermarkSize ?? 160),
+        watermarkAngle: getNum('team-id-tmpl-watermark-angle', currentTeamIdTemplate.watermarkAngle ?? -90),
+        watermarkX: getNum('team-id-tmpl-watermark-x', currentTeamIdTemplate.watermarkX ?? 0),
+        watermarkY: getNum('team-id-tmpl-watermark-y', currentTeamIdTemplate.watermarkY ?? 0),
+
+        showPhoto: getChecked('team-id-tmpl-show-photo', currentTeamIdTemplate.showPhoto !== false),
+        photoRadius: getNum('team-id-tmpl-photo-radius', currentTeamIdTemplate.photoRadius ?? 90),
+        photoShape: getVal('team-id-tmpl-photo-shape', currentTeamIdTemplate.photoShape || 'circle'),
+        photoX: getNum('team-id-tmpl-photo-x', currentTeamIdTemplate.photoX ?? 0),
+        photoY: getNum('team-id-tmpl-photo-y', currentTeamIdTemplate.photoY ?? 0),
+
+        nameSize: getNum('team-id-tmpl-name-size', currentTeamIdTemplate.nameSize ?? 30),
+        nameColor: getVal('team-id-tmpl-name-color', currentTeamIdTemplate.nameColor || '#0f172a'),
+        nameX: getNum('team-id-tmpl-name-x', currentTeamIdTemplate.nameX ?? 0),
+        nameY: getNum('team-id-tmpl-name-y', currentTeamIdTemplate.nameY ?? 0),
+
+        showChest: getChecked('team-id-tmpl-show-chest', currentTeamIdTemplate.showChest !== false),
+        chestStyle: getVal('team-id-tmpl-chest-style', currentTeamIdTemplate.chestStyle || 'number_only'),
+        chestSize: getNum('team-id-tmpl-chest-size', currentTeamIdTemplate.chestSize ?? 44),
+        chestColor: currentTeamIdTemplate.chestColor || '',
+        chestX: getNum('team-id-tmpl-chest-x', currentTeamIdTemplate.chestX ?? 0),
+        chestY: getNum('team-id-tmpl-chest-y', currentTeamIdTemplate.chestY ?? 0),
+
+        showTeam: getChecked('team-id-tmpl-show-team', currentTeamIdTemplate.showTeam !== false),
+        showCategory: getChecked('team-id-tmpl-show-category', currentTeamIdTemplate.showCategory !== false),
+        showClass: getChecked('team-id-tmpl-show-class', currentTeamIdTemplate.showClass !== false),
+        showGender: getChecked('team-id-tmpl-show-gender', currentTeamIdTemplate.showGender !== false),
+        showStatus: getChecked('team-id-tmpl-show-status', currentTeamIdTemplate.showStatus !== false),
+        detailsOrder: Array.isArray(currentTeamIdTemplate.detailsOrder) ? currentTeamIdTemplate.detailsOrder : ['team', 'category', 'class', 'gender', 'status'],
+        labelSize: getNum('team-id-tmpl-label-size', currentTeamIdTemplate.labelSize ?? 11),
+        valueSize: getNum('team-id-tmpl-value-size', currentTeamIdTemplate.valueSize ?? 17),
+        detailsX: getNum('team-id-tmpl-details-x', currentTeamIdTemplate.detailsX ?? 0),
+        detailsY: getNum('team-id-tmpl-details-y', currentTeamIdTemplate.detailsY ?? 0),
+
+        showEvents: getChecked('team-id-tmpl-show-events', currentTeamIdTemplate.showEvents !== false),
+        eventsTitle: getVal('team-id-tmpl-events-title', currentTeamIdTemplate.eventsTitle || 'REGISTERED EVENTS').trim() || 'REGISTERED EVENTS',
+        eventsTitleSize: getNum('team-id-tmpl-events-title-size', currentTeamIdTemplate.eventsTitleSize ?? 11),
+        eventNameSize: getNum('team-id-tmpl-event-name-size', currentTeamIdTemplate.eventNameSize ?? 12),
+        eventMetaSize: getNum('team-id-tmpl-event-meta-size', currentTeamIdTemplate.eventMetaSize ?? 10),
+        showTime: getChecked('team-id-tmpl-show-time', currentTeamIdTemplate.showTime !== false),
+        eventsY: getNum('team-id-tmpl-events-y', currentTeamIdTemplate.eventsY ?? 0),
+
+        showFooter: getChecked('team-id-tmpl-show-footer', currentTeamIdTemplate.showFooter !== false),
+        footerHeight: getNum('team-id-tmpl-footer-height', currentTeamIdTemplate.footerHeight ?? 58),
+        footerBg: getVal('team-id-tmpl-footer-bg', currentTeamIdTemplate.footerBg || '#000703'),
+        pillWidth: getNum('team-id-tmpl-pill-width', currentTeamIdTemplate.pillWidth ?? 320),
+        pillHeight: getNum('team-id-tmpl-pill-height', currentTeamIdTemplate.pillHeight ?? 34),
+        pillRadius: getNum('team-id-tmpl-pill-radius', currentTeamIdTemplate.pillRadius ?? 17),
+        festBg: getVal('team-id-tmpl-fest-bg', currentTeamIdTemplate.festBg || '#ffffff'),
+        festColor: getVal('team-id-tmpl-fest-color', currentTeamIdTemplate.festColor || '#0f172a'),
+        festSize: getNum('team-id-tmpl-fest-size', currentTeamIdTemplate.festSize ?? 12),
+        footerY: getNum('team-id-tmpl-footer-y', currentTeamIdTemplate.footerY ?? 0),
+
+        cardBg: getVal('team-id-tmpl-card-bg', currentTeamIdTemplate.cardBg || '#ffffff')
     };
+
     currentTeamIdTemplate = tmpl;
     saveTeamIdTemplate(tmpl);
+    updateCoordBadges(tmpl);
     return tmpl;
 };
 
@@ -3739,6 +4000,18 @@ window.toggleTeamIdCustomizer = () => {
 
 let teamIdViewMode = 'single';
 let teamIdSingleMemberIndex = 0;
+let teamIdParticipationFilter = 'all';
+
+const getFilteredTeamMembers = (team, filter = teamIdParticipationFilter) => {
+    const all = teamIdMembers(team);
+    if (filter === 'with_events') {
+        return all.filter(m => teamIdMemberEvents(m).length > 0);
+    }
+    if (filter === 'without_events') {
+        return all.filter(m => teamIdMemberEvents(m).length === 0);
+    }
+    return all;
+};
 
 window.setTeamIdViewMode = mode => {
     teamIdViewMode = mode === 'sheet' ? 'sheet' : 'single';
@@ -3746,6 +4019,8 @@ window.setTeamIdViewMode = mode => {
     const sheetBtn = document.getElementById('btn-team-id-mode-sheet');
     const singleNav = document.getElementById('team-id-single-nav');
     const sheetNav = document.getElementById('team-id-pagination-bar');
+    const singleToolbar = document.getElementById('team-id-toolbar-single');
+    const sheetToolbar = document.getElementById('team-id-toolbar-sheet');
 
     const isSingle = teamIdViewMode === 'single';
     if (singleBtn) {
@@ -3760,6 +4035,8 @@ window.setTeamIdViewMode = mode => {
     }
     if (singleNav) singleNav.classList.toggle('hidden', !isSingle);
     if (sheetNav) sheetNav.classList.toggle('hidden', isSingle);
+    if (singleToolbar) singleToolbar.classList.toggle('hidden', !isSingle);
+    if (sheetToolbar) sheetToolbar.classList.toggle('hidden', isSingle);
 
     window.renderTeamIdPreview();
 };
@@ -3802,6 +4079,9 @@ const teamIdOptions = () => {
 const TEAM_ID_DEFAULTS = { size: 'A4', orientation: 'portrait', cardW: 90, cardH: 130, gap: 0, margin: 0, previewLimit: '5' };
 
 const resetTeamIdControls = () => {
+    teamIdParticipationFilter = 'all';
+    const partEl = document.getElementById('team-id-filter-participation');
+    if (partEl) partEl.value = 'all';
     [
         ['team-id-page-size', TEAM_ID_DEFAULTS.size],
         ['team-id-orientation', TEAM_ID_DEFAULTS.orientation],
@@ -3843,7 +4123,7 @@ const splitSvgName = name => {
     return (lines.length ? lines : ['Member']).slice(0, 2);
 };
 
-const teamIdSvg = (member, team, color, header, logo, opts, tmpl) => {
+const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = false) => {
     opts = opts || teamIdOptions();
     tmpl = tmpl || currentTeamIdTemplate || TEAM_ID_TEMPLATE_DEFAULTS;
     const details = teamIdDetails(member),
@@ -3862,10 +4142,15 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl) => {
     const svgH = Math.max(760, Math.round(svgW * (opts.cardH / opts.cardW)));
     const dimScale = Math.min(opts.cardW / 90, opts.cardH / 130);
 
-    const headerH = Math.max(160, Math.min(240, Math.round(svgH * 0.24)));
+    // 1. Header Banner
+    const rawHeaderH = tmpl.headerHeight || 180;
+    const headerH = tmpl.showHeader !== false ? Math.max(60, Math.round(rawHeaderH * dimScale)) : 0;
+    const headerY = Math.round((tmpl.headerY || 0) * dimScale);
+
+    // 2. Photo
     const photoR = Math.max(38, Math.round((tmpl.photoRadius || 90) * dimScale));
     const photoCenterX = 300 + Math.round((tmpl.photoX || 0) * dimScale);
-    const photoCenterY = headerH - Math.round(photoR * 0.18) + Math.round((tmpl.photoY || 0) * dimScale);
+    const photoCenterY = (headerH > 0 ? headerH - Math.round(photoR * 0.18) : Math.round(photoR * 1.2)) + Math.round((tmpl.photoY || 0) * dimScale);
     const photoShape = tmpl.photoShape || 'circle';
 
     const safeUid = String(member.id || member.chestNo || 'm').replace(/[^a-zA-Z0-9]/g, '_');
@@ -3902,30 +4187,71 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl) => {
             : `<text x="${photoCenterX}" y="${photoCenterY + Math.round(photoR * 0.35)}" text-anchor="middle" font-size="${Math.round(photoR * 0.85)}" font-family="Arial, sans-serif" font-weight="900" fill="#111827">${xmlEscape(String(member.name||'?')[0])}</text>`;
     }
 
+    let photoGroupSvg = '';
+    if (tmpl.showPhoto !== false) {
+        photoGroupSvg = `
+            <g data-card-layer="photo" class="card-layer-group cursor-pointer">
+                ${photoBorderSvg}
+                ${photoBgSvg}
+                ${photoImgSvg}
+            </g>
+        `;
+    }
+
+    // 3. Name
     const nameSize = Math.max(14, Math.round((tmpl.nameSize || 30) * dimScale));
+    const nameColor = tmpl.nameColor || '#0f172a';
     const nameX = 300 + Math.round((tmpl.nameX || 0) * dimScale);
-    const nameY1 = photoCenterY + photoR + Math.round(nameSize * 1.15) + Math.round((tmpl.nameY || 0) * dimScale);
+    const nameY1 = (tmpl.showPhoto !== false ? photoCenterY + photoR : headerH + 40) + Math.round(nameSize * 1.15) + Math.round((tmpl.nameY || 0) * dimScale);
     const nameY2 = nameY1 + Math.round(nameSize * 0.95);
     let curY = nameLines.length > 1 ? nameY2 : nameY1;
 
+    const nameSvg = `
+        <g data-card-layer="name" class="card-layer-group cursor-pointer" text-anchor="middle" font-family="Arial, sans-serif">
+            <text x="${nameX}" y="${nameY1}" font-size="${nameSize}" font-weight="900" fill="${xmlEscape(nameColor)}">${xmlEscape(nameLines[0])}</text>
+            ${nameLines[1] ? `<text x="${nameX}" y="${nameY2}" font-size="${Math.max(12, Math.round(nameSize * 0.85))}" font-weight="900" fill="${xmlEscape(nameColor)}">${xmlEscape(nameLines[1])}</text>` : ''}
+        </g>
+    `;
+
+    // 4. Chest Number
     let chestSvg = '';
+    let chestY = curY;
+    let chestSize = 44;
     if (tmpl.showChest) {
-        const chestSize = Math.max(18, Math.round((tmpl.chestSize || 44) * dimScale));
+        chestSize = Math.max(18, Math.round((tmpl.chestSize || 44) * dimScale));
         const chestX = 300 + Math.round((tmpl.chestX || 0) * dimScale);
-        const chestY = curY + Math.round(chestSize * 0.95) + Math.round((tmpl.chestY || 0) * dimScale);
+        chestY = curY + Math.round(chestSize * 0.95) + Math.round((tmpl.chestY || 0) * dimScale);
         const chestStr = tmpl.chestStyle === 'prefix' ? `CHEST: ${chest || '—'}` : (chest || '—');
-        chestSvg = `<text x="${chestX}" y="${chestY}" font-family="Arial, sans-serif" font-size="${chestSize}" font-weight="900" fill="${xmlEscape(color)}" letter-spacing="1">${xmlEscape(chestStr)}</text>`;
+        const chestFill = tmpl.chestColor || color;
+        chestSvg = `
+            <g data-card-layer="chest" class="card-layer-group cursor-pointer" text-anchor="middle">
+                <text x="${chestX}" y="${chestY}" font-family="Arial, sans-serif" font-size="${chestSize}" font-weight="900" fill="${xmlEscape(chestFill)}" letter-spacing="1">${xmlEscape(chestStr)}</text>
+            </g>
+        `;
         curY = chestY;
     }
 
+    // 5. Demographics Details
+    const order = Array.isArray(tmpl.detailsOrder) && tmpl.detailsOrder.length
+        ? tmpl.detailsOrder
+        : ['team', 'category', 'class', 'gender', 'status'];
+
+    const fieldMap = {
+        team: { show: tmpl.showTeam !== false, label: 'TEAM', val: teamText, color: color },
+        category: { show: tmpl.showCategory !== false, label: 'CATEGORY', val: category },
+        class: { show: tmpl.showClass !== false, label: 'CLASS', val: classText },
+        gender: { show: tmpl.showGender !== false, label: 'GENDER', val: gender },
+        status: { show: tmpl.showStatus !== false, label: 'STATUS', val: 'Verified', color: '#059669' }
+    };
+
     const visibleFields = [];
-    if (tmpl.showTeam) visibleFields.push({ label: 'TEAM', val: teamText, color: color });
-    if (tmpl.showCategory) visibleFields.push({ label: 'CATEGORY', val: category });
-    if (tmpl.showClass) visibleFields.push({ label: 'CLASS', val: classText });
-    if (tmpl.showGender) visibleFields.push({ label: 'GENDER', val: gender });
-    if (tmpl.showStatus) visibleFields.push({ label: 'STATUS', val: 'Verified', color: '#059669' });
+    order.forEach(key => {
+        const item = fieldMap[key];
+        if (item && item.show) visibleFields.push(item);
+    });
 
     let detailsSvg = '';
+    let detailsStartCurY = curY;
     if (visibleFields.length > 0) {
         const lblSize = Math.max(7, Math.round((tmpl.labelSize || 11) * dimScale));
         const valSize = Math.max(10, Math.round((tmpl.valueSize || 17) * dimScale));
@@ -3933,44 +4259,77 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl) => {
         const detailsYShift = Math.round((tmpl.detailsY || 0) * dimScale);
 
         curY += Math.round(lblSize * 1.6) + 10 + detailsYShift;
+        detailsStartCurY = curY - Math.round(lblSize * 1.6);
 
         const row1Count = Math.min(visibleFields.length <= 3 ? visibleFields.length : 3, visibleFields.length);
         const row1 = visibleFields.slice(0, row1Count);
         const baseXs1 = row1Count === 1 ? [300] : (row1Count === 2 ? [190, 410] : [125, 300, 475]);
         const xs1 = baseXs1.map(x => x + detailsXShift);
 
-        detailsSvg += row1.map((f, i) => `
+        let row1Svg = row1.map((f, i) => `
             <text x="${xs1[i]}" y="${curY}" font-family="Arial, sans-serif" font-size="${lblSize}" font-weight="900" fill="#94a3b8" letter-spacing="2">${xmlEscape(f.label)}</text>
             <text x="${xs1[i]}" y="${curY + valSize + 2}" font-family="Arial, sans-serif" font-size="${valSize}" font-weight="900" fill="${f.color ? xmlEscape(f.color) : '#1f2937'}">${xmlEscape(f.val)}</text>
         `).join('');
 
         curY += valSize + 2;
 
+        let row2Svg = '';
         if (visibleFields.length > 3) {
             const row2 = visibleFields.slice(3);
             const baseXs2 = row2.length === 1 ? [300] : [214, 386];
             const xs2 = baseXs2.map(x => x + detailsXShift);
             const row2LblY = curY + Math.round(lblSize * 1.5) + 6;
             const row2ValY = row2LblY + valSize + 2;
-            detailsSvg += row2.map((f, i) => `
+            row2Svg = row2.map((f, i) => `
                 <text x="${xs2[i]}" y="${row2LblY}" font-family="Arial, sans-serif" font-size="${lblSize}" font-weight="900" fill="#94a3b8" letter-spacing="2">${xmlEscape(f.label)}</text>
                 <text x="${xs2[i]}" y="${row2ValY}" font-family="Arial, sans-serif" font-size="${valSize}" font-weight="900" fill="${f.color ? xmlEscape(f.color) : '#1f2937'}">${xmlEscape(f.val)}</text>
             `).join('');
             curY = row2ValY;
         }
+
+        detailsSvg = `
+            <g data-card-layer="details" class="card-layer-group cursor-pointer" text-anchor="middle">
+                ${row1Svg}
+                ${row2Svg}
+            </g>
+        `;
     }
 
-    const footerH = tmpl.showFooter ? 58 : 0;
+    // 6. Footer & Fest Pill Badge
+    const footerH = tmpl.showFooter ? (tmpl.footerHeight || 58) : 0;
     const footerYShift = Math.round((tmpl.footerY || 0) * dimScale);
     const footerY = svgH - footerH + footerYShift;
+    const footerBg = tmpl.footerBg || '#000703';
+    const pillW = Math.min(540, Math.round((tmpl.pillWidth || 320) * dimScale));
+    const pillH = Math.min(Math.max(20, footerH - 8), Math.round((tmpl.pillHeight || 34) * dimScale));
+    const pillRadius = Math.min(pillH / 2, Math.round((tmpl.pillRadius ?? 17) * dimScale));
+    const pillX = Math.round((600 - pillW) / 2);
+    const pillY = footerY + Math.round((footerH - pillH) / 2);
     const festBg = tmpl.festBg || '#ffffff';
     const festColor = tmpl.festColor || '#0f172a';
+    const festSize = Math.max(8, Math.round((tmpl.festSize || 12) * dimScale));
 
+    let footerSvg = '';
+    if (tmpl.showFooter && footerH > 0) {
+        footerSvg = `
+            <g data-card-layer="footer" class="card-layer-group cursor-pointer">
+                <rect y="${footerY}" width="600" height="${footerH}" fill="${xmlEscape(footerBg)}"/>
+                <rect x="420" y="${footerY + 18}" width="180" height="${Math.max(1, footerH - 18)}" fill="${xmlEscape(color)}"/>
+                <path d="M520 ${footerY}h52l28 ${footerH}H548z" fill="#ffffff"/>
+                <rect x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="${pillRadius}" fill="${xmlEscape(festBg)}" opacity=".96"/>
+                <text x="300" y="${pillY + Math.round(pillH / 2) + Math.round(festSize * 0.35)}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${festSize}" font-weight="900" fill="${xmlEscape(festColor)}" letter-spacing="2">${fest.toUpperCase()}</text>
+            </g>
+        `;
+    }
+
+    // 7. Registered Events
     let eventsSvg = '';
+    let evBoxY = curY + 16;
+    let evBoxH = 70;
     if (tmpl.showEvents) {
         const eventsYShift = Math.round((tmpl.eventsY || 0) * dimScale);
-        const evBoxY = curY + 16 + eventsYShift;
-        const evBoxH = Math.max(70, (footerY - 12) - evBoxY);
+        evBoxY = curY + 16 + eventsYShift;
+        evBoxH = Math.max(70, (footerY - 12) - evBoxY);
         const titleSize = Math.max(8, Math.round((tmpl.eventsTitleSize || 11) * dimScale));
         const evNameSize = Math.max(9, Math.round((tmpl.eventNameSize || 12) * dimScale));
         const evMetaSize = Math.max(8, Math.round((tmpl.eventMetaSize || 10) * dimScale));
@@ -3983,7 +4342,7 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl) => {
         const cleanTitle = (tmpl.eventsTitle || 'REGISTERED EVENTS').trim().toUpperCase();
 
         eventsSvg = `
-            <g>
+            <g data-card-layer="events" class="card-layer-group cursor-pointer">
                 <text x="52" y="${evBoxY + titleSize}" font-family="Arial, sans-serif" font-size="${titleSize}" font-weight="900" fill="#475569" letter-spacing="1.5">${xmlEscape(cleanTitle)}</text>
                 <line x1="50" y1="${evBoxY + titleSize + 8}" x2="550" y2="${evBoxY + titleSize + 8}" stroke="#e2e8f0" stroke-width="1.2"/>
         `;
@@ -4011,57 +4370,105 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl) => {
         eventsSvg += `</g>`;
     }
 
-    let footerSvg = '';
-    if (tmpl.showFooter) {
-        const festSize = Math.max(9, Math.round((tmpl.festSize || 12) * dimScale));
-        const pillRadius = Math.round((footerH - 24) / 2);
-        footerSvg = `
-            <rect y="${footerY}" width="600" height="${footerH}" fill="#000703"/>
-            <rect x="420" y="${footerY + 18}" width="180" height="${footerH - 18}" fill="${xmlEscape(color)}"/>
-            <path d="M520 ${footerY}h52l28 ${footerH}H548z" fill="#ffffff"/>
-            <rect x="140" y="${footerY + 12}" width="320" height="${footerH - 24}" rx="${pillRadius}" fill="${xmlEscape(festBg)}" opacity=".96"/>
-            <text x="300" y="${footerY + Math.round(footerH/2) + Math.round(festSize * 0.35)}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${festSize}" font-weight="900" fill="${xmlEscape(festColor)}" letter-spacing="2">${fest.toUpperCase()}</text>
+    // 8. Watermark Chest Number
+    let watermarkSvg = '';
+    let baseWmX = 85;
+    let baseWmY = Math.round(svgH * 0.72);
+    let wmSize = 160;
+    if (tmpl.showWatermark !== false && chest) {
+        const wmOpacity = Math.max(0, Math.min(0.5, (tmpl.watermarkOpacity ?? 10) / 100));
+        wmSize = Math.max(50, Math.round((tmpl.watermarkSize || 160) * dimScale));
+        const wmAngle = tmpl.watermarkAngle !== undefined ? Number(tmpl.watermarkAngle) : -90;
+        baseWmX = 85 + Math.round((tmpl.watermarkX || 0) * dimScale);
+        baseWmY = Math.round(svgH * 0.72) + Math.round((tmpl.watermarkY || 0) * dimScale);
+        const transform = wmAngle !== 0 ? `transform="rotate(${wmAngle} ${baseWmX} ${baseWmY})"` : '';
+        watermarkSvg = `
+            <g data-card-layer="watermark" class="card-layer-group cursor-pointer">
+                <text x="${baseWmX}" y="${baseWmY}" ${transform} font-family="Arial, sans-serif" font-size="${wmSize}" font-weight="900" fill="${xmlEscape(color)}" opacity="${wmOpacity}" letter-spacing="-5">${chest}</text>
+            </g>
         `;
     }
 
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="${svgH}" viewBox="0 0 600 ${svgH}">
+    // 9. Header Group
+    let headerGroupSvg = '';
+    if (tmpl.showHeader !== false && headerH > 0) {
+        headerGroupSvg = `
+            <g data-card-layer="header" class="card-layer-group cursor-pointer">
+                <rect y="${headerY}" width="600" height="${headerH}" fill="#000703"/>
+                ${header ? `<image href="${xmlEscape(header)}" x="0" y="${headerY}" width="600" height="${headerH}" preserveAspectRatio="xMidYMid slice"/>` : ''}
+                ${!header && logo ? `
+                    <rect x="36" y="${headerY + 32}" width="76" height="76" rx="0" fill="#ffffff" opacity=".96"/>
+                    <image href="${xmlEscape(logo)}" x="44" y="${headerY + 40}" width="60" height="60" preserveAspectRatio="xMidYMid meet"/>
+                ` : ''}
+            </g>
+        `;
+    }
+
+    // Card Base Canvas
+    const cardBg = tmpl.cardBg || '#ffffff';
+
+    // Interactive Selection Box
+    let selectionOverlay = '';
+    if (interactive && activeCardLayer) {
+        const bboxes = {
+            header: { x: 0, y: headerY, w: 600, h: Math.max(20, headerH) },
+            watermark: { x: Math.max(6, baseWmX - 80), y: Math.max(60, baseWmY - wmSize), w: 200, h: wmSize + 20 },
+            photo: { x: photoCenterX - photoR - 8, y: photoCenterY - photoR - 8, w: (photoR + 8) * 2, h: (photoR + 8) * 2 },
+            name: { x: 40, y: nameY1 - nameSize - 6, w: 520, h: nameLines.length > 1 ? (nameY2 - nameY1 + nameSize + 14) : (nameSize + 16) },
+            chest: { x: 80, y: chestY - chestSize - 4, w: 440, h: chestSize + 16 },
+            details: { x: 30, y: detailsStartCurY, w: 540, h: Math.max(40, curY - detailsStartCurY + 12) },
+            events: { x: 36, y: evBoxY, w: 528, h: Math.max(60, evBoxH) },
+            footer: { x: 0, y: footerY, w: 600, h: Math.max(20, footerH) },
+            base: { x: 4, y: 4, w: 592, h: svgH - 8 }
+        };
+        const b = bboxes[activeCardLayer];
+        if (b) {
+            const layerTitle = LAYER_TITLES[activeCardLayer] || activeCardLayer;
+            selectionOverlay = `
+                <g id="canvas-selection-box" pointer-events="none">
+                    <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="rgba(99, 102, 241, 0.08)" stroke="#4f46e5" stroke-width="2.5" stroke-dasharray="6,4" rx="4"/>
+                    <rect x="${b.x - 5}" y="${b.y - 5}" width="10" height="10" fill="#ffffff" stroke="#4f46e5" stroke-width="2.5"/>
+                    <rect x="${b.x + b.w - 5}" y="${b.y - 5}" width="10" height="10" fill="#ffffff" stroke="#4f46e5" stroke-width="2.5"/>
+                    <rect x="${b.x - 5}" y="${b.y + b.h - 5}" width="10" height="10" fill="#ffffff" stroke="#4f46e5" stroke-width="2.5"/>
+                    <rect x="${b.x + b.w - 5}" y="${b.y + b.h - 5}" width="10" height="10" fill="#ffffff" stroke="#4f46e5" stroke-width="2.5"/>
+                    <rect x="${b.x}" y="${Math.max(6, b.y - 24)}" width="${Math.min(240, Math.max(110, layerTitle.length * 8.5))}" height="22" rx="5" fill="#4f46e5"/>
+                    <text x="${b.x + 8}" y="${Math.max(6, b.y - 24) + 15}" font-family="Arial, sans-serif" font-size="11" font-weight="900" fill="#ffffff">${xmlEscape(layerTitle)}</text>
+                </g>
+            `;
+        }
+    }
+
+    const svgIdAttr = interactive ? 'id="team-id-card-svg"' : '';
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" ${svgIdAttr} width="600" height="${svgH}" viewBox="0 0 600 ${svgH}" style="width:100%;height:100%;display:block;touch-action:none;user-select:none;">
 <defs>
   <clipPath id="cardClip_${safeUid}"><rect width="600" height="${svgH}" rx="0"/></clipPath>
   ${photoClipDef}
   <filter id="shadow_${safeUid}" x="-20%" y="-20%" width="140%" height="140%">
     <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="${xmlEscape(color)}" flood-opacity=".32"/>
   </filter>
+  <style>
+    [data-card-layer] { cursor: grab; }
+    [data-card-layer]:active { cursor: grabbing; }
+    [data-card-layer]:hover { filter: drop-shadow(0 0 5px rgba(79, 70, 229, 0.45)); }
+  </style>
 </defs>
 <g clip-path="url(#cardClip_${safeUid})">
-  <rect width="600" height="${headerH}" fill="#000703"/>
-  ${header ? `<image href="${xmlEscape(header)}" x="0" y="0" width="600" height="${headerH}" preserveAspectRatio="xMidYMid slice"/>` : ''}
-  <rect y="${headerH}" width="600" height="${svgH - headerH - footerH}" fill="#ffffff"/>
-  
-  <text x="85" y="${Math.round(svgH * 0.72)}" transform="rotate(-90 85 ${Math.round(svgH * 0.72)})" font-family="Arial, sans-serif" font-size="160" font-weight="900" fill="${xmlEscape(color)}" opacity=".10" letter-spacing="-5">${chest}</text>
-  
-  ${!header && logo ? `
-    <rect x="36" y="32" width="76" height="76" rx="0" fill="#ffffff" opacity=".96"/>
-    <image href="${xmlEscape(logo)}" x="44" y="40" width="60" height="60" preserveAspectRatio="xMidYMid meet"/>
-  ` : ''}
-  
-  ${photoBorderSvg}
-  ${photoBgSvg}
-  ${photoImgSvg}
-  
-  <g text-anchor="middle" font-family="Arial, sans-serif">
-    <text x="${nameX}" y="${nameY1}" font-size="${nameSize}" font-weight="900" fill="#0f172a">${xmlEscape(nameLines[0])}</text>
-    ${nameLines[1] ? `<text x="${nameX}" y="${nameY2}" font-size="${Math.max(12, Math.round(nameSize * 0.85))}" font-weight="900" fill="#0f172a">${xmlEscape(nameLines[1])}</text>` : ''}
-    ${chestSvg}
-    ${detailsSvg}
-  </g>
-  
+  <rect width="600" height="${svgH}" fill="${xmlEscape(cardBg)}"/>
+  ${headerGroupSvg}
+  ${watermarkSvg}
+  ${photoGroupSvg}
+  ${nameSvg}
+  ${chestSvg}
+  ${detailsSvg}
   ${eventsSvg}
   ${footerSvg}
+  ${selectionOverlay}
 </g>
 </svg>`;
 };
 
-const teamIdPreviewCard = (member, team, color, header, logo, opts, tmpl) => `<img src="${dataUrlForSvg(teamIdSvg(member, team, color, header, logo, opts, tmpl))}" class="block shadow-md" style="width:100%;height:100%;object-fit:contain;border-radius:0px;" alt="${escapeHtml(member.name || 'ID card')}">`;
+const teamIdPreviewCard = (member, team, color, header, logo, opts, tmpl) => `<img src="${dataUrlForSvg(teamIdSvg(member, team, color, header, logo, opts, tmpl, false))}" class="block shadow-md" style="width:100%;height:100%;object-fit:contain;border-radius:0px;" alt="${escapeHtml(member.name || 'ID card')}">`;
 
 const svgToPng = svg => new Promise((resolve, reject) => {
     const image = new Image();
@@ -4082,6 +4489,119 @@ const svgToPng = svg => new Promise((resolve, reject) => {
     image.onerror = reject;
     image.src = dataUrlForSvg(svg);
 });
+
+function bindCardCanvasInteraction(svgEl) {
+    if (!svgEl) return;
+    let isDragging = false;
+    let startClientX = 0;
+    let startClientY = 0;
+    let draggedLayer = null;
+    let initialCoords = { x: 0, y: 0 };
+
+    const getLayerOffset = key => {
+        const tmpl = currentTeamIdTemplate;
+        switch (key) {
+            case 'header': return { x: 0, y: tmpl.headerY || 0 };
+            case 'watermark': return { x: tmpl.watermarkX || 0, y: tmpl.watermarkY || 0 };
+            case 'photo': return { x: tmpl.photoX || 0, y: tmpl.photoY || 0 };
+            case 'name': return { x: tmpl.nameX || 0, y: tmpl.nameY || 0 };
+            case 'chest': return { x: tmpl.chestX || 0, y: tmpl.chestY || 0 };
+            case 'details': return { x: tmpl.detailsX || 0, y: tmpl.detailsY || 0 };
+            case 'events': return { x: 0, y: tmpl.eventsY || 0 };
+            case 'footer': return { x: 0, y: tmpl.footerY || 0 };
+            default: return { x: 0, y: 0 };
+        }
+    };
+
+    const setLayerOffset = (key, x, y) => {
+        const tmpl = currentTeamIdTemplate;
+        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+        switch (key) {
+            case 'header':
+                tmpl.headerY = y;
+                setVal('team-id-tmpl-header-y', y);
+                break;
+            case 'watermark':
+                tmpl.watermarkX = x; tmpl.watermarkY = y;
+                setVal('team-id-tmpl-watermark-x', x); setVal('team-id-tmpl-watermark-y', y);
+                break;
+            case 'photo':
+                tmpl.photoX = x; tmpl.photoY = y;
+                setVal('team-id-tmpl-photo-x', x); setVal('team-id-tmpl-photo-y', y);
+                break;
+            case 'name':
+                tmpl.nameX = x; tmpl.nameY = y;
+                setVal('team-id-tmpl-name-x', x); setVal('team-id-tmpl-name-y', y);
+                break;
+            case 'chest':
+                tmpl.chestX = x; tmpl.chestY = y;
+                setVal('team-id-tmpl-chest-x', x); setVal('team-id-tmpl-chest-y', y);
+                break;
+            case 'details':
+                tmpl.detailsX = x; tmpl.detailsY = y;
+                setVal('team-id-tmpl-details-x', x); setVal('team-id-tmpl-details-y', y);
+                break;
+            case 'events':
+                tmpl.eventsY = y;
+                setVal('team-id-tmpl-events-y', y);
+                break;
+            case 'footer':
+                tmpl.footerY = y;
+                setVal('team-id-tmpl-footer-y', y);
+                break;
+        }
+        updateCoordBadges(tmpl);
+    };
+
+    svgEl.addEventListener('pointerdown', e => {
+        const targetLayerEl = e.target.closest('[data-card-layer]');
+        if (!targetLayerEl) {
+            window.setActiveCardLayer(null);
+            return;
+        }
+        draggedLayer = targetLayerEl.getAttribute('data-card-layer');
+        window.setActiveCardLayer(draggedLayer, true);
+        isDragging = true;
+        startClientX = e.clientX;
+        startClientY = e.clientY;
+        initialCoords = getLayerOffset(draggedLayer);
+        try { svgEl.setPointerCapture(e.pointerId); } catch {}
+    });
+
+    svgEl.addEventListener('pointermove', e => {
+        if (!isDragging || !draggedLayer) return;
+        const rect = svgEl.getBoundingClientRect();
+        const scaleX = 600 / (rect.width || 1);
+        const svgH = Number(svgEl.getAttribute('height')) || 867;
+        const scaleY = svgH / (rect.height || 1);
+        const dx = Math.round((e.clientX - startClientX) * scaleX);
+        const dy = Math.round((e.clientY - startClientY) * scaleY);
+        const newX = initialCoords.x + dx;
+        const newY = initialCoords.y + dy;
+        setLayerOffset(draggedLayer, newX, newY);
+
+        const group = svgEl.querySelector(`[data-card-layer="${draggedLayer}"]`);
+        if (group) {
+            group.setAttribute('transform', `translate(${dx}, ${dy})`);
+        }
+        const selectionBox = svgEl.querySelector('#canvas-selection-box');
+        if (selectionBox) {
+            selectionBox.setAttribute('transform', `translate(${dx}, ${dy})`);
+        }
+    });
+
+    const finishDrag = () => {
+        if (isDragging) {
+            isDragging = false;
+            draggedLayer = null;
+            saveTeamIdTemplate(currentTeamIdTemplate);
+            window.renderTeamIdPreview();
+        }
+    };
+
+    svgEl.addEventListener('pointerup', finishDrag);
+    svgEl.addEventListener('pointercancel', finishDrag);
+}
 
 window.openTeamIdCards = team => {
     teamIdCardTeam = team;
@@ -4117,7 +4637,7 @@ window.teamIdPrevPage = () => {
 
 window.teamIdNextPage = () => {
     const opts = teamIdOptions();
-    const members = teamIdMembers(teamIdCardTeam);
+    const members = getFilteredTeamMembers(teamIdCardTeam, teamIdParticipationFilter);
     const totalPages = opts.previewLimit === Infinity ? 1 : Math.max(1, Math.ceil(members.length / opts.previewLimit));
     if (teamIdCurrentPage < totalPages) {
         teamIdCurrentPage++;
@@ -4131,22 +4651,30 @@ window.renderTeamIdPreview = () => {
     const opts = teamIdOptions(),
           tmpl = readTeamIdTemplateFromUI(),
           layout = teamIdLayout(opts),
-          members = teamIdMembers(teamIdCardTeam),
+          allMembers = teamIdMembers(teamIdCardTeam),
+          members = teamIdViewMode === 'single' ? allMembers : getFilteredTeamMembers(teamIdCardTeam, teamIdParticipationFilter),
           color = teamColors[teamIdCardTeam] || '#4f46e5',
           header = teamIdCardHeaders[teamIdCardTeam] || '',
           logo = teamLogos[teamIdCardTeam] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '';
 
     const warnings = [
         !layout.valid && `Card ${opts.cardW}×${opts.cardH}mm with ${opts.margin}mm margin does not fit inside the ${Math.round(layout.usableW)}×${Math.round(layout.usableH)}mm printable area. Reduce card size/margin/gap or choose a larger page/orientation.`,
-        !members.length && 'No members found for this team',
-        members.filter(m => !m.photo).length && `${members.filter(m => !m.photo).length} member(s) without photo`,
-        members.filter(m => !m.chestNo).length && `${members.filter(m => !m.chestNo).length} member(s) without chest number`,
+        !allMembers.length && 'No members found for this team',
+        allMembers.filter(m => !m.photo).length && `${allMembers.filter(m => !m.photo).length} member(s) without photo`,
+        allMembers.filter(m => !m.chestNo).length && `${allMembers.filter(m => !m.chestNo).length} member(s) without chest number`,
         header ? 'Header image will crop into the top band' : 'No custom header image: logo fallback will be shown'
     ].filter(Boolean);
 
+    const filterLabels = {
+        all: 'All Members',
+        with_events: 'With Registered Events',
+        without_events: 'Without Events (ID Only)'
+    };
+    const filterText = filterLabels[teamIdParticipationFilter] || 'All Members';
+
     const summaryEl = document.getElementById('team-id-preview-summary');
     if (summaryEl) {
-        summaryEl.innerHTML = `${opts.size.toUpperCase()} ${opts.orientation} • ${opts.cardW}×${opts.cardH}mm card • printable ${Math.round(layout.usableW)}×${Math.round(layout.usableH)}mm • ${layout.cols}×${layout.rows} = ${layout.perPage} cards/sheet • ${members.length} total team members`;
+        summaryEl.innerHTML = `${opts.size.toUpperCase()} ${opts.orientation} • ${opts.cardW}×${opts.cardH}mm card • printable ${Math.round(layout.usableW)}×${Math.round(layout.usableH)}mm • ${layout.cols}×${layout.rows} = ${layout.perPage} cards/sheet • ${allMembers.length} total team members (${filterText}: ${members.length})`;
     }
 
     if (!layout.valid) {
@@ -4155,22 +4683,22 @@ window.renderTeamIdPreview = () => {
     }
 
     if (teamIdViewMode === 'single') {
-        if (members.length === 0) {
+        if (allMembers.length === 0) {
             box.innerHTML = `<div class="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm font-bold text-slate-400">No members found for team "${escapeHtml(teamLabel(teamIdCardTeam))}".</div>`;
             return;
         }
-        if (teamIdSingleMemberIndex >= members.length) teamIdSingleMemberIndex = 0;
+        if (teamIdSingleMemberIndex >= allMembers.length) teamIdSingleMemberIndex = 0;
         if (teamIdSingleMemberIndex < 0) teamIdSingleMemberIndex = 0;
 
-        const activeMember = members[teamIdSingleMemberIndex];
+        const activeMember = allMembers[teamIdSingleMemberIndex];
 
         // Update single-nav UI
         const memberLabel = document.getElementById('team-id-single-member-label');
-        if (memberLabel) memberLabel.textContent = `Preview Member: ${teamIdSingleMemberIndex + 1} of ${members.length}`;
+        if (memberLabel) memberLabel.textContent = `Preview Member: ${teamIdSingleMemberIndex + 1} of ${allMembers.length}`;
 
         const memberSelect = document.getElementById('team-id-single-member-select');
         if (memberSelect) {
-            memberSelect.innerHTML = members.map((m, idx) => `
+            memberSelect.innerHTML = allMembers.map((m, idx) => `
                 <option value="${idx}" ${idx === teamIdSingleMemberIndex ? 'selected' : ''}>
                     ${idx + 1}. ${escapeHtml(m.name || 'Member')} ${m.chestNo ? `(#${m.chestNo})` : ''}
                 </option>
@@ -4179,29 +4707,37 @@ window.renderTeamIdPreview = () => {
 
         const prevBtn = document.getElementById('btn-team-id-single-prev');
         const nextBtn = document.getElementById('btn-team-id-single-next');
-        if (prevBtn) prevBtn.disabled = members.length <= 1;
-        if (nextBtn) nextBtn.disabled = members.length <= 1;
+        if (prevBtn) prevBtn.disabled = allMembers.length <= 1;
+        if (nextBtn) nextBtn.disabled = allMembers.length <= 1;
+
+        const zoomVal = document.getElementById('team-id-canvas-zoom')?.value || 'fit';
+        let zoomClass = 'w-full max-w-[440px]';
+        if (zoomVal === '100') zoomClass = 'w-[400px] shrink-0';
+        else if (zoomVal === '125') zoomClass = 'w-[500px] shrink-0';
+        else if (zoomVal === '150') zoomClass = 'w-[600px] shrink-0';
 
         box.innerHTML = `
             <div class="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 ${warnings.map(text => `<div class="rounded-xl border ${String(text).startsWith('No members') ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-800'} p-3 text-xs font-black">${escapeHtml(text)}</div>`).join('')}
             </div>
-            <div class="flex flex-col items-center justify-center p-2 sm:p-4">
-                <div class="w-full max-w-[440px] rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden transition-all duration-200">
+            <div class="flex flex-col items-center justify-center p-2 sm:p-4 overflow-auto min-h-[520px]">
+                <div class="${zoomClass} rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden transition-all duration-200">
                     <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-2 flex items-center justify-between text-xs font-black text-slate-600">
                         <span class="truncate max-w-[240px] font-black">${escapeHtml(activeMember.name || 'Member')}</span>
                         <span class="font-mono text-indigo-600 font-bold shrink-0">${opts.cardW}×${opts.cardH} mm</span>
                     </div>
-                    <div class="p-4 bg-slate-100/50 flex items-center justify-center">
-                        <div style="width: 100%; aspect-ratio: ${opts.cardW} / ${opts.cardH};" class="shadow-lg overflow-hidden bg-white">
-                            ${teamIdPreviewCard(activeMember, teamIdCardTeam, color, header, logo, opts, tmpl)}
+                    <div class="p-4 bg-slate-100/50 flex items-center justify-center select-none" id="team-id-canvas-stage">
+                        <div style="width: 100%; aspect-ratio: ${opts.cardW} / ${opts.cardH};" class="shadow-lg overflow-hidden bg-white select-none">
+                            ${teamIdSvg(activeMember, teamIdCardTeam, color, header, logo, opts, tmpl, true)}
                         </div>
                     </div>
                 </div>
             </div>
         `;
+
+        bindCardCanvasInteraction(document.getElementById('team-id-card-svg'));
     } else {
-        // Print Sheets Mode
+        // Print Sheets Mode (with 3-Way Participation Filter)
         const isAll = opts.previewLimit === Infinity;
         const totalPages = isAll ? 1 : Math.max(1, Math.ceil(members.length / opts.previewLimit));
         if (teamIdCurrentPage > totalPages) teamIdCurrentPage = totalPages;
@@ -4214,8 +4750,8 @@ window.renderTeamIdPreview = () => {
         const pagInfo = document.getElementById('team-id-pagination-info');
         if (pagInfo) {
             pagInfo.textContent = members.length
-                ? `Showing ${startIdx + 1}–${endIdx} of ${members.length} members`
-                : 'No members found for this team';
+                ? `Showing ${startIdx + 1}–${endIdx} of ${members.length} members (${filterText})`
+                : `No members match filter: ${filterText}`;
         }
         const pagPage = document.getElementById('team-id-pagination-page');
         if (pagPage) {
@@ -4262,12 +4798,21 @@ window.downloadTeamIdCards = async () => {
     await window.ensureDep?.('jsPDF');
     const { jsPDF } = window.jspdf || {};
     if (!jsPDF) return window.showToast('PDF library not ready', 'error');
-    const opts = teamIdOptions(), layout = teamIdLayout(opts), members = teamIdMembers(teamIdCardTeam);
+    const opts = teamIdOptions(), layout = teamIdLayout(opts);
+    const members = getFilteredTeamMembers(teamIdCardTeam, teamIdParticipationFilter);
     const tmpl = readTeamIdTemplateFromUI();
-    if (!members.length) return window.showToast('No members found for this team', 'error');
+
+    const filterLabels = {
+        all: 'All Members',
+        with_events: 'With Registered Events',
+        without_events: 'Without Events (ID Only)'
+    };
+    const filterText = filterLabels[teamIdParticipationFilter] || 'All Members';
+
+    if (!members.length) return window.showToast(`No members found for filter: ${filterText}`, 'error');
     if (!layout.valid) return window.showToast('Card size, margin or gap does not fit inside the selected page', 'error');
 
-    window.showToast(`Generating PDF for all ${members.length} team members...`);
+    window.showToast(`Generating PDF for ${members.length} members (${filterText})...`);
     const docPdf = new jsPDF({ unit: 'mm', format: opts.pdfFormat, orientation: opts.orientation }),
           color = teamColors[teamIdCardTeam] || '#4f46e5',
           header = teamIdCardHeaders[teamIdCardTeam] || '',
@@ -4280,28 +4825,52 @@ window.downloadTeamIdCards = async () => {
               row = Math.floor(pageIndex / layout.cols),
               x = opts.margin + col * (opts.cardW + opts.gap),
               y = opts.margin + row * (opts.cardH + opts.gap),
-              png = await svgToPng(teamIdSvg(members[i], teamIdCardTeam, color, header, logo, opts, tmpl));
+              png = await svgToPng(teamIdSvg(members[i], teamIdCardTeam, color, header, logo, opts, tmpl, false));
         docPdf.addImage(png, 'PNG', x, y, opts.cardW, opts.cardH, undefined, 'FAST');
     }
-    docPdf.save(`${teamIdCardTeam}-ID-Cards-${opts.size}-${opts.orientation}.pdf`);
-    window.showToast(`Downloaded all ${members.length} ID cards successfully!`);
+    const filterSuffix = teamIdParticipationFilter === 'all' ? '' : `-${teamIdParticipationFilter}`;
+    docPdf.save(`${teamIdCardTeam}-ID-Cards${filterSuffix}-${opts.size}-${opts.orientation}.pdf`);
+    window.showToast(`Downloaded ${members.length} ID cards successfully!`);
 };
 
-const teamIdBaseControlIds = ['team-id-page-size', 'team-id-orientation', 'team-id-card-width', 'team-id-card-height', 'team-id-gap', 'team-id-margin', 'team-id-preview-limit'];
+const teamIdBaseControlIds = ['team-id-page-size', 'team-id-orientation', 'team-id-card-width', 'team-id-card-height', 'team-id-gap', 'team-id-margin', 'team-id-preview-limit', 'team-id-filter-participation', 'team-id-canvas-zoom'];
 teamIdBaseControlIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
-        el.addEventListener('input', () => { if (id === 'team-id-preview-limit') teamIdCurrentPage = 1; window.renderTeamIdPreview(); });
-        el.addEventListener('change', () => { if (id === 'team-id-preview-limit') teamIdCurrentPage = 1; window.renderTeamIdPreview(); });
+        el.addEventListener('input', () => {
+            if (id === 'team-id-preview-limit' || id === 'team-id-filter-participation') {
+                if (id === 'team-id-filter-participation') teamIdParticipationFilter = el.value || 'all';
+                teamIdCurrentPage = 1;
+            }
+            window.renderTeamIdPreview();
+        });
+        el.addEventListener('change', () => {
+            if (id === 'team-id-preview-limit' || id === 'team-id-filter-participation') {
+                if (id === 'team-id-filter-participation') teamIdParticipationFilter = el.value || 'all';
+                teamIdCurrentPage = 1;
+            }
+            window.renderTeamIdPreview();
+        });
     }
 });
 
 const teamIdTemplateControlIds = [
+    'team-id-tmpl-show-header',
+    'team-id-tmpl-header-height',
+    'team-id-tmpl-header-y',
+    'team-id-tmpl-show-watermark',
+    'team-id-tmpl-watermark-opacity',
+    'team-id-tmpl-watermark-size',
+    'team-id-tmpl-watermark-angle',
+    'team-id-tmpl-watermark-x',
+    'team-id-tmpl-watermark-y',
+    'team-id-tmpl-show-photo',
     'team-id-tmpl-photo-radius',
     'team-id-tmpl-photo-shape',
     'team-id-tmpl-photo-x',
     'team-id-tmpl-photo-y',
     'team-id-tmpl-name-size',
+    'team-id-tmpl-name-color',
     'team-id-tmpl-name-x',
     'team-id-tmpl-name-y',
     'team-id-tmpl-show-chest',
@@ -4326,19 +4895,22 @@ const teamIdTemplateControlIds = [
     'team-id-tmpl-show-time',
     'team-id-tmpl-events-y',
     'team-id-tmpl-show-footer',
-    'team-id-tmpl-fest-size',
+    'team-id-tmpl-footer-height',
+    'team-id-tmpl-footer-bg',
+    'team-id-tmpl-pill-width',
+    'team-id-tmpl-pill-height',
+    'team-id-tmpl-pill-radius',
     'team-id-tmpl-fest-bg',
     'team-id-tmpl-fest-color',
-    'team-id-tmpl-footer-y'
+    'team-id-tmpl-fest-size',
+    'team-id-tmpl-footer-y',
+    'team-id-tmpl-card-bg'
 ];
+
 teamIdTemplateControlIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
         const handler = () => {
-            if (id === 'team-id-tmpl-photo-radius') {
-                const badge = document.getElementById('team-id-val-photo-radius');
-                if (badge) badge.textContent = `${el.value} px`;
-            }
             readTeamIdTemplateFromUI();
             window.renderTeamIdPreview();
         };

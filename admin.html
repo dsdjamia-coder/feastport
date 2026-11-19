@@ -2458,9 +2458,50 @@
                 </div>
             </header>
 
-            <!-- Controls Toolbar -->
-            <div class="shrink-0 border-b border-slate-200 bg-slate-50/90 px-4 py-3">
-                <div class="grid gap-2.5 grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 items-end">
+            <!-- Controls Toolbar (Context-Sensitive) -->
+            <div class="shrink-0 border-b border-slate-200 bg-slate-50/90 px-4 py-2.5">
+                <!-- Single Card Focus Toolbar -->
+                <div id="team-id-toolbar-single" class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <label class="flex items-center gap-1.5 text-[11px] font-black uppercase text-slate-500">
+                            <span>Width mm</span>
+                            <input id="team-id-card-width" type="number" min="30" max="250" value="90" class="w-16 rounded-xl border border-slate-300 bg-white p-1.5 text-xs font-bold text-slate-800 text-center">
+                        </label>
+                        <label class="flex items-center gap-1.5 text-[11px] font-black uppercase text-slate-500">
+                            <span>Height mm</span>
+                            <input id="team-id-card-height" type="number" min="30" max="350" value="130" class="w-16 rounded-xl border border-slate-300 bg-white p-1.5 text-xs font-bold text-slate-800 text-center">
+                        </label>
+                        <label class="flex items-center gap-1.5 text-[11px] font-black uppercase text-slate-500">
+                            <span>Zoom</span>
+                            <select id="team-id-canvas-zoom" class="rounded-xl border border-slate-300 bg-white p-1.5 text-xs font-bold text-slate-800">
+                                <option value="fit" selected>Fit View</option>
+                                <option value="100">100%</option>
+                                <option value="125">125%</option>
+                                <option value="150">150%</option>
+                            </select>
+                        </label>
+                        <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
+                        <!-- Active Element Status & Deselect -->
+                        <div class="flex items-center gap-1.5">
+                            <span id="team-id-active-layer-indicator" class="rounded-xl bg-slate-100 border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                                <i data-lucide="mouse-pointer" class="h-3.5 w-3.5 text-slate-400"></i>
+                                <span id="team-id-selected-layer-name">Click element on card to edit</span>
+                            </span>
+                            <button type="button" data-admin-action="deselect-card-layer" id="btn-deselect-card-layer" class="hidden rounded-lg p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Deselect element">
+                                <i data-lucide="x" class="h-4 w-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" data-admin-action="toggle-team-id-customizer" id="btn-toggle-team-id-customizer" class="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 text-xs font-bold transition active:scale-95 shadow-2xs">
+                            <i data-lucide="layers" class="h-4 w-4 shrink-0"></i>
+                            <span>Layers &amp; Styling</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Print Sheets Toolbar -->
+                <div id="team-id-toolbar-sheet" class="hidden grid gap-2.5 grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 items-end">
                     <label class="text-[11px] font-black uppercase text-slate-500">
                         Page size
                         <select id="team-id-page-size" class="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
@@ -2477,14 +2518,6 @@
                         </select>
                     </label>
                     <label class="text-[11px] font-black uppercase text-slate-500">
-                        Card width mm
-                        <input id="team-id-card-width" type="number" min="30" value="90" class="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
-                    </label>
-                    <label class="text-[11px] font-black uppercase text-slate-500">
-                        Card height mm
-                        <input id="team-id-card-height" type="number" min="30" value="130" class="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
-                    </label>
-                    <label class="text-[11px] font-black uppercase text-slate-500">
                         Gap mm
                         <input id="team-id-gap" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
                     </label>
@@ -2492,9 +2525,17 @@
                         Margin mm
                         <input id="team-id-margin" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
                     </label>
-                    <label class="text-[11px] font-black uppercase text-indigo-700">
+                    <label class="text-[11px] font-black uppercase text-indigo-700 col-span-2 sm:col-span-1 lg:col-span-2">
+                        Participation Filter
+                        <select id="team-id-filter-participation" class="mt-1 w-full rounded-xl border border-indigo-200 bg-indigo-50/50 p-2 text-xs font-black text-indigo-950">
+                            <option value="all" selected>All Members</option>
+                            <option value="with_events">With Registered Events</option>
+                            <option value="without_events">Without Events (ID Only)</option>
+                        </select>
+                    </label>
+                    <label class="text-[11px] font-black uppercase text-slate-500">
                         Cards per View
-                        <select id="team-id-preview-limit" class="mt-1 w-full rounded-xl border border-indigo-200 bg-indigo-50/40 p-2 text-xs font-bold text-indigo-950">
+                        <select id="team-id-preview-limit" class="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
                             <option value="5" selected>5 Cards</option>
                             <option value="10">10 Cards</option>
                             <option value="15">15 Cards</option>
@@ -2503,9 +2544,9 @@
                         </select>
                     </label>
                     <div class="flex items-end">
-                        <button type="button" data-admin-action="toggle-team-id-customizer" id="btn-toggle-team-id-customizer" class="w-full flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white p-2 text-xs font-bold transition active:scale-95 shadow-2xs">
-                            <i data-lucide="sliders" class="h-4 w-4 shrink-0"></i>
-                            <span class="truncate">Customize Template</span>
+                        <button type="button" data-admin-action="toggle-team-id-customizer" class="w-full flex items-center justify-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white p-2 text-xs font-bold transition active:scale-95 shadow-2xs">
+                            <i data-lucide="layers" class="h-4 w-4 shrink-0"></i>
+                            <span class="truncate">Layers &amp; Styling</span>
                         </button>
                     </div>
                 </div>
@@ -2513,15 +2554,15 @@
 
             <!-- Main Studio Workspace (Split View: Customizer Panel + Live Preview) -->
             <div class="min-h-0 flex-1 flex flex-col lg:flex-row overflow-hidden bg-slate-100">
-                <!-- Left: Collapsible Template Customizer Panel -->
-                <aside id="team-id-customizer-panel" class="w-full lg:w-[410px] shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200 bg-white overflow-y-auto p-4 space-y-4 max-h-[45vh] lg:max-h-none shadow-xs">
+                <!-- Left: Collapsible Template Customizer Panel (Layer Stack) -->
+                <aside id="team-id-customizer-panel" class="w-full lg:w-[410px] shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200 bg-white overflow-y-auto p-4 space-y-3 max-h-[45vh] lg:max-h-none shadow-xs">
                     <div class="flex items-center justify-between border-b pb-3">
                         <div class="flex items-center gap-2">
                             <span class="grid h-7 w-7 place-items-center rounded-lg bg-indigo-50 text-indigo-600 font-black text-xs">
-                                <i data-lucide="palette" class="h-4 w-4"></i>
+                                <i data-lucide="layers" class="h-4 w-4"></i>
                             </span>
                             <div>
-                                <h3 class="text-xs font-black uppercase text-slate-800 tracking-wide">Template Customizer</h3>
+                                <h3 class="text-xs font-black uppercase text-slate-800 tracking-wide">Design Layer Stack</h3>
                                 <p class="text-[10px] text-slate-400 font-medium">Applied globally across all teams</p>
                             </div>
                         </div>
@@ -2533,199 +2574,387 @@
                         </div>
                     </div>
 
-                    <!-- 1. Photo Section -->
-                    <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-3 space-y-2.5">
-                        <div class="flex items-center justify-between">
-                            <label class="text-[11px] font-black uppercase text-slate-700">Photo Size &amp; Shape</label>
-                            <span id="team-id-val-photo-radius" class="text-xs font-black text-indigo-600">90 px</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Photo Radius (px)</label>
-                                <input id="team-id-tmpl-photo-radius" type="number" min="30" max="300" value="90" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                    <!-- Layer 1: Header Banner -->
+                    <div class="layer-item rounded-2xl border border-slate-200 bg-white transition shadow-2xs overflow-hidden" data-layer-key="header" id="panel-layer-header">
+                        <div class="flex items-center justify-between p-3 bg-slate-50/70 cursor-pointer select-none" data-admin-action="toggle-layer-accordion" data-layer="header">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <button type="button" data-admin-action="toggle-layer-visibility" data-layer="header" class="text-slate-400 hover:text-indigo-600 transition p-0.5" title="Toggle visibility">
+                                    <i data-lucide="eye" class="h-4 w-4" id="eye-icon-header"></i>
+                                </button>
+                                <i data-lucide="image" class="h-4 w-4 text-indigo-600 shrink-0"></i>
+                                <span class="text-xs font-black text-slate-800 truncate">1. Header Banner</span>
                             </div>
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Photo Shape</label>
-                                <select id="team-id-tmpl-photo-shape" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
-                                    <option value="circle" selected>Circle (Round)</option>
-                                    <option value="rounded">Rounded Square</option>
-                                    <option value="square">Square (Crisp)</option>
-                                </select>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span class="text-[10px] font-mono text-slate-400 font-bold" id="badge-coord-header">H: 180px</span>
+                                <i data-lucide="chevron-down" class="h-4 w-4 text-slate-400 transition-transform"></i>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-2 border-t border-slate-200/80 pt-2">
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Position X (px)</label>
-                                <input id="team-id-tmpl-photo-x" type="number" min="-150" max="150" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800" title="Shift left or right">
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Position Y (px)</label>
-                                <input id="team-id-tmpl-photo-y" type="number" min="-150" max="150" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800" title="Shift up or down">
+                        <div class="layer-body p-3 space-y-2.5 border-t border-slate-100 hidden">
+                            <input id="team-id-tmpl-show-header" type="checkbox" checked class="hidden">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Height (px)</label>
+                                    <input id="team-id-tmpl-header-height" type="number" min="100" max="320" value="180" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Y Shift (px)</label>
+                                    <input id="team-id-tmpl-header-y" type="number" min="-100" max="100" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 2. Participant Identity & Chest -->
-                    <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-3 space-y-3">
-                        <span class="text-[11px] font-black uppercase text-slate-700 block">Name &amp; Chest Number</span>
-                        <div class="grid grid-cols-3 gap-2">
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Name Size</label>
-                                <input id="team-id-tmpl-name-size" type="number" min="14" max="52" value="30" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                    <!-- Layer 2: Side Watermark Chest -->
+                    <div class="layer-item rounded-2xl border border-slate-200 bg-white transition shadow-2xs overflow-hidden" data-layer-key="watermark" id="panel-layer-watermark">
+                        <div class="flex items-center justify-between p-3 bg-slate-50/70 cursor-pointer select-none" data-admin-action="toggle-layer-accordion" data-layer="watermark">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <button type="button" data-admin-action="toggle-layer-visibility" data-layer="watermark" class="text-slate-400 hover:text-indigo-600 transition p-0.5" title="Toggle visibility">
+                                    <i data-lucide="eye" class="h-4 w-4" id="eye-icon-watermark"></i>
+                                </button>
+                                <i data-lucide="hash" class="h-4 w-4 text-indigo-600 shrink-0"></i>
+                                <span class="text-xs font-black text-slate-800 truncate">2. Watermark Background Chest</span>
                             </div>
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Name X</label>
-                                <input id="team-id-tmpl-name-x" type="number" min="-150" max="150" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Name Y</label>
-                                <input id="team-id-tmpl-name-y" type="number" min="-100" max="100" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span class="text-[10px] font-mono text-slate-400 font-bold" id="badge-coord-watermark">0, 0</span>
+                                <i data-lucide="chevron-down" class="h-4 w-4 text-slate-400 transition-transform"></i>
                             </div>
                         </div>
-
-                        <div class="border-t border-slate-200/80 pt-2 space-y-2">
-                            <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
-                                <input id="team-id-tmpl-show-chest" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
-                                <span>Show Chest Number</span>
-                            </label>
+                        <div class="layer-body p-3 space-y-2.5 border-t border-slate-100 hidden">
+                            <input id="team-id-tmpl-show-watermark" type="checkbox" checked class="hidden">
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Chest Style</label>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Opacity (%)</label>
+                                    <input id="team-id-tmpl-watermark-opacity" type="number" min="0" max="50" step="5" value="10" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Font Size (px)</label>
+                                    <input id="team-id-tmpl-watermark-size" type="number" min="60" max="260" value="160" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Angle</label>
+                                    <select id="team-id-tmpl-watermark-angle" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                        <option value="-90" selected>-90° (Vert)</option>
+                                        <option value="0">0° (Horiz)</option>
+                                        <option value="90">90° (Vert)</option>
+                                        <option value="45">45° (Diag)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Shift X</label>
+                                    <input id="team-id-tmpl-watermark-x" type="number" min="-200" max="200" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Shift Y</label>
+                                    <input id="team-id-tmpl-watermark-y" type="number" min="-200" max="200" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Layer 3: Member Photo -->
+                    <div class="layer-item rounded-2xl border border-slate-200 bg-white transition shadow-2xs overflow-hidden" data-layer-key="photo" id="panel-layer-photo">
+                        <div class="flex items-center justify-between p-3 bg-slate-50/70 cursor-pointer select-none" data-admin-action="toggle-layer-accordion" data-layer="photo">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <button type="button" data-admin-action="toggle-layer-visibility" data-layer="photo" class="text-slate-400 hover:text-indigo-600 transition p-0.5" title="Toggle visibility">
+                                    <i data-lucide="eye" class="h-4 w-4" id="eye-icon-photo"></i>
+                                </button>
+                                <i data-lucide="camera" class="h-4 w-4 text-indigo-600 shrink-0"></i>
+                                <span class="text-xs font-black text-slate-800 truncate">3. Member Photo</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span class="text-[10px] font-mono text-slate-400 font-bold" id="badge-coord-photo">0, 0</span>
+                                <i data-lucide="chevron-down" class="h-4 w-4 text-slate-400 transition-transform"></i>
+                            </div>
+                        </div>
+                        <div class="layer-body p-3 space-y-2.5 border-t border-slate-100 hidden">
+                            <input id="team-id-tmpl-show-photo" type="checkbox" checked class="hidden">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Photo Radius (px)</label>
+                                    <input id="team-id-tmpl-photo-radius" type="number" min="30" max="300" value="90" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Photo Shape</label>
+                                    <select id="team-id-tmpl-photo-shape" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                        <option value="circle" selected>Circle (Round)</option>
+                                        <option value="rounded">Rounded Square</option>
+                                        <option value="square">Square (Crisp)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 border-t border-slate-100 pt-2">
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Shift X (px)</label>
+                                    <input id="team-id-tmpl-photo-x" type="number" min="-180" max="180" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Shift Y (px)</label>
+                                    <input id="team-id-tmpl-photo-y" type="number" min="-180" max="180" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Layer 4: Student Name -->
+                    <div class="layer-item rounded-2xl border border-slate-200 bg-white transition shadow-2xs overflow-hidden" data-layer-key="name" id="panel-layer-name">
+                        <div class="flex items-center justify-between p-3 bg-slate-50/70 cursor-pointer select-none" data-admin-action="toggle-layer-accordion" data-layer="name">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="user" class="h-4 w-4 text-indigo-600 shrink-0"></i>
+                                <span class="text-xs font-black text-slate-800 truncate">4. Student Name</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span class="text-[10px] font-mono text-slate-400 font-bold" id="badge-coord-name">0, 0</span>
+                                <i data-lucide="chevron-down" class="h-4 w-4 text-slate-400 transition-transform"></i>
+                            </div>
+                        </div>
+                        <div class="layer-body p-3 space-y-2.5 border-t border-slate-100 hidden">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Font Size (pt)</label>
+                                    <input id="team-id-tmpl-name-size" type="number" min="14" max="52" value="30" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Text Color</label>
+                                    <input id="team-id-tmpl-name-color" type="color" value="#0f172a" class="h-9 w-full rounded-xl border border-slate-300 bg-white p-1 cursor-pointer">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 border-t border-slate-100 pt-2">
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Shift X (px)</label>
+                                    <input id="team-id-tmpl-name-x" type="number" min="-180" max="180" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Shift Y (px)</label>
+                                    <input id="team-id-tmpl-name-y" type="number" min="-120" max="120" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Layer 5: Chest Number -->
+                    <div class="layer-item rounded-2xl border border-slate-200 bg-white transition shadow-2xs overflow-hidden" data-layer-key="chest" id="panel-layer-chest">
+                        <div class="flex items-center justify-between p-3 bg-slate-50/70 cursor-pointer select-none" data-admin-action="toggle-layer-accordion" data-layer="chest">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <button type="button" data-admin-action="toggle-layer-visibility" data-layer="chest" class="text-slate-400 hover:text-indigo-600 transition p-0.5" title="Toggle visibility">
+                                    <i data-lucide="eye" class="h-4 w-4" id="eye-icon-chest"></i>
+                                </button>
+                                <i data-lucide="tag" class="h-4 w-4 text-indigo-600 shrink-0"></i>
+                                <span class="text-xs font-black text-slate-800 truncate">5. Chest Number</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span class="text-[10px] font-mono text-slate-400 font-bold" id="badge-coord-chest">0, 0</span>
+                                <i data-lucide="chevron-down" class="h-4 w-4 text-slate-400 transition-transform"></i>
+                            </div>
+                        </div>
+                        <div class="layer-body p-3 space-y-2.5 border-t border-slate-100 hidden">
+                            <input id="team-id-tmpl-show-chest" type="checkbox" checked class="hidden">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Style</label>
                                     <select id="team-id-tmpl-chest-style" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
                                         <option value="number_only" selected>101 (Number Only)</option>
                                         <option value="prefix">CHEST: 101 (Prefix)</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Chest Font Size</label>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Font Size (pt)</label>
                                     <input id="team-id-tmpl-chest-size" type="number" min="16" max="72" value="44" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 border-t border-slate-100 pt-2">
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Shift X (px)</label>
+                                    <input id="team-id-tmpl-chest-x" type="number" min="-180" max="180" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Shift Y (px)</label>
+                                    <input id="team-id-tmpl-chest-y" type="number" min="-120" max="120" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Layer 6: Demographics Details -->
+                    <div class="layer-item rounded-2xl border border-slate-200 bg-white transition shadow-2xs overflow-hidden" data-layer-key="details" id="panel-layer-details">
+                        <div class="flex items-center justify-between p-3 bg-slate-50/70 cursor-pointer select-none" data-admin-action="toggle-layer-accordion" data-layer="details">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="list" class="h-4 w-4 text-indigo-600 shrink-0"></i>
+                                <span class="text-xs font-black text-slate-800 truncate">6. Demographics Details</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span class="text-[10px] font-mono text-slate-400 font-bold" id="badge-coord-details">0, 0</span>
+                                <i data-lucide="chevron-down" class="h-4 w-4 text-slate-400 transition-transform"></i>
+                            </div>
+                        </div>
+                        <div class="layer-body p-3 space-y-3 border-t border-slate-100 hidden">
+                            <!-- Hidden individual checkboxes for sync -->
+                            <input id="team-id-tmpl-show-team" type="checkbox" checked class="hidden">
+                            <input id="team-id-tmpl-show-category" type="checkbox" checked class="hidden">
+                            <input id="team-id-tmpl-show-class" type="checkbox" checked class="hidden">
+                            <input id="team-id-tmpl-show-gender" type="checkbox" checked class="hidden">
+                            <input id="team-id-tmpl-show-status" type="checkbox" checked class="hidden">
+                            
+                            <div>
+                                <span class="text-[10px] font-black uppercase text-slate-500 block mb-1.5">Fields &amp; Display Order (Reorderable)</span>
+                                <div id="team-id-demographics-order-container" class="space-y-1.5">
+                                    <!-- Populated dynamically by renderDemographicsOrderList -->
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2 border-t border-slate-100 pt-2">
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Label Size (pt)</label>
+                                    <input id="team-id-tmpl-label-size" type="number" min="8" max="18" value="11" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Value Size (pt)</label>
+                                    <input id="team-id-tmpl-value-size" type="number" min="10" max="28" value="17" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Chest X Offset</label>
-                                    <input id="team-id-tmpl-chest-x" type="number" min="-150" max="150" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Shift X (px)</label>
+                                    <input id="team-id-tmpl-details-x" type="number" min="-180" max="180" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
                                 </div>
                                 <div>
-                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Chest Y Offset</label>
-                                    <input id="team-id-tmpl-chest-y" type="number" min="-100" max="100" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Shift Y (px)</label>
+                                    <input id="team-id-tmpl-details-y" type="number" min="-120" max="120" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 3. Details Fields Grid Toggles -->
-                    <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-3 space-y-3">
-                        <span class="text-[11px] font-black uppercase text-slate-700 block">Member Details Fields</span>
-                        <div class="grid grid-cols-2 gap-2 text-xs font-bold text-slate-700">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input id="team-id-tmpl-show-team" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
-                                <span>Team</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input id="team-id-tmpl-show-category" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
-                                <span>Category</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input id="team-id-tmpl-show-class" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
-                                <span>Class</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input id="team-id-tmpl-show-gender" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
-                                <span>Gender</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer col-span-2">
-                                <input id="team-id-tmpl-show-status" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
-                                <span>Status (Verified)</span>
-                            </label>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 border-t border-slate-200/80 pt-2">
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Label Size (pt)</label>
-                                <input id="team-id-tmpl-label-size" type="number" min="8" max="18" value="11" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                    <!-- Layer 7: Registered Events -->
+                    <div class="layer-item rounded-2xl border border-slate-200 bg-white transition shadow-2xs overflow-hidden" data-layer-key="events" id="panel-layer-events">
+                        <div class="flex items-center justify-between p-3 bg-slate-50/70 cursor-pointer select-none" data-admin-action="toggle-layer-accordion" data-layer="events">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <button type="button" data-admin-action="toggle-layer-visibility" data-layer="events" class="text-slate-400 hover:text-indigo-600 transition p-0.5" title="Toggle visibility">
+                                    <i data-lucide="eye" class="h-4 w-4" id="eye-icon-events"></i>
+                                </button>
+                                <i data-lucide="calendar" class="h-4 w-4 text-indigo-600 shrink-0"></i>
+                                <span class="text-xs font-black text-slate-800 truncate">7. Registered Events</span>
                             </div>
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Value Size (pt)</label>
-                                <input id="team-id-tmpl-value-size" type="number" min="10" max="28" value="17" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span class="text-[10px] font-mono text-slate-400 font-bold" id="badge-coord-events">Y: 0</span>
+                                <i data-lucide="chevron-down" class="h-4 w-4 text-slate-400 transition-transform"></i>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="layer-body p-3 space-y-2.5 border-t border-slate-100 hidden">
+                            <input id="team-id-tmpl-show-events" type="checkbox" checked class="hidden">
                             <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Details X Offset</label>
-                                <input id="team-id-tmpl-details-x" type="number" min="-150" max="150" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Title (No Count)</label>
+                                <input id="team-id-tmpl-events-title" type="text" value="REGISTERED EVENTS" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
                             </div>
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Details Y Offset</label>
-                                <input id="team-id-tmpl-details-y" type="number" min="-100" max="100" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                            <div class="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Title Size</label>
+                                    <input id="team-id-tmpl-events-title-size" type="number" min="8" max="20" value="11" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Event Size</label>
+                                    <input id="team-id-tmpl-event-name-size" type="number" min="9" max="22" value="12" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Meta Size</label>
+                                    <input id="team-id-tmpl-event-meta-size" type="number" min="8" max="18" value="10" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- 4. Registered Events Section -->
-                    <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-3 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[11px] font-black uppercase text-slate-700 block">Registered Events</span>
-                            <label class="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
-                                <input id="team-id-tmpl-show-events" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
-                                <span>Show</span>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Section Title (No Count)</label>
-                            <input id="team-id-tmpl-events-title" type="text" value="REGISTERED EVENTS" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800" placeholder="e.g. REGISTERED EVENTS">
-                        </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Title Size</label>
-                                <input id="team-id-tmpl-events-title-size" type="number" min="8" max="20" value="11" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Event Size</label>
-                                <input id="team-id-tmpl-event-name-size" type="number" min="9" max="22" value="12" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Meta Size</label>
-                                <input id="team-id-tmpl-event-meta-size" type="number" min="8" max="18" value="10" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 border-t border-slate-200/80 pt-2 items-center">
-                            <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
-                                <input id="team-id-tmpl-show-time" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
-                                <span>Show Scheduled Time</span>
-                            </label>
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Events Y Offset</label>
-                                <input id="team-id-tmpl-events-y" type="number" min="-100" max="100" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                            <div class="grid grid-cols-2 gap-2 border-t border-slate-100 pt-2 items-center">
+                                <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                                    <input id="team-id-tmpl-show-time" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
+                                    <span>Show Scheduled Time</span>
+                                </label>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Shift Y (px)</label>
+                                    <input id="team-id-tmpl-events-y" type="number" min="-150" max="150" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 5. Footer Section -->
-                    <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-3 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[11px] font-black uppercase text-slate-700 block">Fest Bottom Footer (Pill Shape)</span>
-                            <label class="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
-                                <input id="team-id-tmpl-show-footer" type="checkbox" checked class="h-4 w-4 rounded accent-indigo-600">
-                                <span>Show</span>
-                            </label>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Font Size</label>
-                                <input id="team-id-tmpl-fest-size" type="number" min="8" max="24" value="12" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                    <!-- Layer 8: Bottom Bar & Fest Pill Badge -->
+                    <div class="layer-item rounded-2xl border border-slate-200 bg-white transition shadow-2xs overflow-hidden" data-layer-key="footer" id="panel-layer-footer">
+                        <div class="flex items-center justify-between p-3 bg-slate-50/70 cursor-pointer select-none" data-admin-action="toggle-layer-accordion" data-layer="footer">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <button type="button" data-admin-action="toggle-layer-visibility" data-layer="footer" class="text-slate-400 hover:text-indigo-600 transition p-0.5" title="Toggle visibility">
+                                    <i data-lucide="eye" class="h-4 w-4" id="eye-icon-footer"></i>
+                                </button>
+                                <i data-lucide="award" class="h-4 w-4 text-indigo-600 shrink-0"></i>
+                                <span class="text-xs font-black text-slate-800 truncate">8. Bottom Bar &amp; Fest Pill Badge</span>
                             </div>
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Pill Bg Color</label>
-                                <input id="team-id-tmpl-fest-bg" type="color" value="#ffffff" class="h-9 w-full rounded-xl border border-slate-300 bg-white p-1 cursor-pointer">
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Text Color</label>
-                                <input id="team-id-tmpl-fest-color" type="color" value="#0f172a" class="h-9 w-full rounded-xl border border-slate-300 bg-white p-1 cursor-pointer">
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span class="text-[10px] font-mono text-slate-400 font-bold" id="badge-coord-footer">Y: 0</span>
+                                <i data-lucide="chevron-down" class="h-4 w-4 text-slate-400 transition-transform"></i>
                             </div>
                         </div>
-                        <div>
-                            <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Footer Y Offset</label>
-                            <input id="team-id-tmpl-footer-y" type="number" min="-50" max="50" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                        <div class="layer-body p-3 space-y-2.5 border-t border-slate-100 hidden">
+                            <input id="team-id-tmpl-show-footer" type="checkbox" checked class="hidden">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Bar Height (px)</label>
+                                    <input id="team-id-tmpl-footer-height" type="number" min="30" max="100" value="58" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Bar Color</label>
+                                    <input id="team-id-tmpl-footer-bg" type="color" value="#000703" class="h-9 w-full rounded-xl border border-slate-300 bg-white p-1 cursor-pointer">
+                                </div>
+                            </div>
+                            <div class="border-t border-slate-100 pt-2 space-y-2">
+                                <span class="text-[10px] font-black uppercase text-indigo-700 block">Fest Pill Badge Geometry</span>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div>
+                                        <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Pill Width</label>
+                                        <input id="team-id-tmpl-pill-width" type="number" min="120" max="540" value="320" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Pill Height</label>
+                                        <input id="team-id-tmpl-pill-height" type="number" min="20" max="60" value="34" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Pill Radius</label>
+                                        <input id="team-id-tmpl-pill-radius" type="number" min="0" max="30" value="17" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800" title="0 for sharp, 17+ for smooth round pill">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div>
+                                        <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Pill Bg</label>
+                                        <input id="team-id-tmpl-fest-bg" type="color" value="#ffffff" class="h-9 w-full rounded-xl border border-slate-300 bg-white p-1 cursor-pointer">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Text Color</label>
+                                        <input id="team-id-tmpl-fest-color" type="color" value="#0f172a" class="h-9 w-full rounded-xl border border-slate-300 bg-white p-1 cursor-pointer">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Font Size</label>
+                                        <input id="team-id-tmpl-fest-size" type="number" min="8" max="24" value="12" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Footer Y Shift (px)</label>
+                                    <input id="team-id-tmpl-footer-y" type="number" min="-60" max="60" value="0" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Layer 9: Base Card -->
+                    <div class="layer-item rounded-2xl border border-slate-200 bg-white transition shadow-2xs overflow-hidden" data-layer-key="base" id="panel-layer-base">
+                        <div class="flex items-center justify-between p-3 bg-slate-50/70 cursor-pointer select-none" data-admin-action="toggle-layer-accordion" data-layer="base">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="square" class="h-4 w-4 text-indigo-600 shrink-0"></i>
+                                <span class="text-xs font-black text-slate-800 truncate">9. Card Base Canvas</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <i data-lucide="chevron-down" class="h-4 w-4 text-slate-400 transition-transform"></i>
+                            </div>
+                        </div>
+                        <div class="layer-body p-3 space-y-2 border-t border-slate-100 hidden">
+                            <div>
+                                <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Card Background Color</label>
+                                <input id="team-id-tmpl-card-bg" type="color" value="#ffffff" class="h-9 w-full rounded-xl border border-slate-300 bg-white p-1 cursor-pointer">
+                            </div>
                         </div>
                     </div>
                 </aside>
