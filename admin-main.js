@@ -4279,8 +4279,14 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
 
     // 2. Photo
     const photoR = Math.max(38, Math.round((tmpl.photoRadius || 90) * dimScale));
+    const basePhotoCenterY = (headerH > 0 ? headerH - Math.round(photoR * 0.18) : Math.round(photoR * 1.2));
+    const baseNameY = Math.round(290 * dimScale);
+    const baseChestY = Math.round(345 * dimScale);
+    const baseDetailsY = Math.round(390 * dimScale);
+    const baseEventsY = Math.round(465 * dimScale);
+
     const photoCenterX = 300 + Math.round((tmpl.photoX || 0) * dimScale);
-    const photoCenterY = (headerH > 0 ? headerH - Math.round(photoR * 0.18) : Math.round(photoR * 1.2)) + Math.round((tmpl.photoY || 0) * dimScale);
+    const photoCenterY = basePhotoCenterY + Math.round((tmpl.photoY || 0) * dimScale);
     const photoShape = tmpl.photoShape || 'circle';
     const photoAngle = tmpl.photoAngle || 0;
     const photoTransform = photoAngle !== 0 ? `transform="rotate(${photoAngle} ${photoCenterX} ${photoCenterY})"` : '';
@@ -4330,15 +4336,14 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
         `;
     }
 
-    // 3. Name
+    // 3. Name - 100% independent decoupled anchor
     const nameSize = Math.max(14, Math.round((tmpl.nameSize || 30) * dimScale));
     const nameColor = tmpl.nameColor || '#0f172a';
     const nameX = 300 + Math.round((tmpl.nameX || 0) * dimScale);
-    const nameY1 = (tmpl.showPhoto !== false ? photoCenterY + photoR : headerH + 40) + Math.round(nameSize * 1.15) + Math.round((tmpl.nameY || 0) * dimScale);
+    const nameY1 = baseNameY + Math.round((tmpl.nameY || 0) * dimScale);
     const nameY2 = nameY1 + Math.round(nameSize * 0.95);
     const nameAngle = tmpl.nameAngle || 0;
     const nameTransform = nameAngle !== 0 ? `transform="rotate(${nameAngle} ${nameX} ${nameY1})"` : '';
-    let curY = nameLines.length > 1 ? nameY2 : nameY1;
 
     const nameSvg = `
         <g data-card-layer="name" class="card-layer-group cursor-pointer" text-anchor="middle" font-family="Arial, sans-serif" ${nameTransform}>
@@ -4347,15 +4352,14 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
         </g>
     `;
 
-    // 4. Chest Number
+    // 4. Chest Number - 100% independent decoupled anchor
     let chestSvg = '';
-    let chestY = curY;
+    const chestX = 300 + Math.round((tmpl.chestX || 0) * dimScale);
+    const chestY = baseChestY + Math.round((tmpl.chestY || 0) * dimScale);
+    const chestStr = tmpl.chestStyle === 'prefix' ? `CHEST: ${chest || '—'}` : (chest || '—');
     let chestSize = 44;
     if (tmpl.showChest) {
         chestSize = Math.max(18, Math.round((tmpl.chestSize || 44) * dimScale));
-        const chestX = 300 + Math.round((tmpl.chestX || 0) * dimScale);
-        chestY = curY + Math.round(chestSize * 0.95) + Math.round((tmpl.chestY || 0) * dimScale);
-        const chestStr = tmpl.chestStyle === 'prefix' ? `CHEST: ${chest || '—'}` : (chest || '—');
         const chestFill = tmpl.chestColor || color;
         const chestAngle = tmpl.chestAngle || 0;
         const chestTransform = chestAngle !== 0 ? `transform="rotate(${chestAngle} ${chestX} ${chestY})"` : '';
@@ -4364,7 +4368,6 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
                 <text x="${chestX}" y="${chestY}" font-family="Arial, sans-serif" font-size="${chestSize}" font-weight="900" fill="${xmlEscape(chestFill)}" letter-spacing="1">${xmlEscape(chestStr)}</text>
             </g>
         `;
-        curY = chestY;
     }
 
     // 5. Independent Demographics Badges
@@ -4389,15 +4392,14 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
     });
 
     let detailsSvg = '';
-    let detailsStartCurY = curY;
+    const demoRenderedCoords = {};
+    const detailsXShift = Math.round((tmpl.detailsX || 0) * dimScale);
+    const detailsYShift = Math.round((tmpl.detailsY || 0) * dimScale);
+    const detailsStartCurY = baseDetailsY + detailsYShift;
+
     if (visibleDemoKeys.length > 0) {
         const lblSize = Math.max(7, Math.round((tmpl.labelSize || 11) * dimScale));
         const valSize = Math.max(10, Math.round((tmpl.valueSize || 17) * dimScale));
-        const detailsXShift = Math.round((tmpl.detailsX || 0) * dimScale);
-        const detailsYShift = Math.round((tmpl.detailsY || 0) * dimScale);
-
-        curY += Math.round(lblSize * 1.6) + 10 + detailsYShift;
-        detailsStartCurY = curY - Math.round(lblSize * 1.6);
 
         const row1Count = Math.min(visibleDemoKeys.length <= 3 ? visibleDemoKeys.length : 3, visibleDemoKeys.length);
         const row1Keys = visibleDemoKeys.slice(0, row1Count);
@@ -4409,7 +4411,8 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
             const itemDef = fieldDefinitions[key];
             const itemCfg = demoConfig[key] || {};
             const posX = (baseXs1[i] + detailsXShift) + Math.round((itemCfg.x || 0) * dimScale);
-            const posY = curY + Math.round((itemCfg.y || 0) * dimScale);
+            const posY = detailsStartCurY + Math.round((itemCfg.y || 0) * dimScale);
+            demoRenderedCoords[key] = { x: posX, y: posY };
             const angle = itemCfg.angle || 0;
             const itemLblSize = itemCfg.labelSize ? Math.max(7, Math.round(itemCfg.labelSize * dimScale)) : lblSize;
             const itemValSize = itemCfg.valSize ? Math.max(9, Math.round(itemCfg.valSize * dimScale)) : valSize;
@@ -4429,12 +4432,13 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
         if (visibleDemoKeys.length > 3) {
             const row2Keys = visibleDemoKeys.slice(3);
             const baseXs2 = row2Keys.length === 1 ? [300] : [214, 386];
-            const row2LblY = curY + Math.round(lblSize * 1.5) + 6;
+            const row2LblY = detailsStartCurY + Math.round(lblSize * 1.5) + valSize + 10;
             row2Keys.forEach((key, i) => {
                 const itemDef = fieldDefinitions[key];
                 const itemCfg = demoConfig[key] || {};
                 const posX = (baseXs2[i] + detailsXShift) + Math.round((itemCfg.x || 0) * dimScale);
                 const posY = row2LblY + Math.round((itemCfg.y || 0) * dimScale);
+                demoRenderedCoords[key] = { x: posX, y: posY };
                 const angle = itemCfg.angle || 0;
                 const itemLblSize = itemCfg.labelSize ? Math.max(7, Math.round(itemCfg.labelSize * dimScale)) : lblSize;
                 const itemValSize = itemCfg.valSize ? Math.max(9, Math.round(itemCfg.valSize * dimScale)) : valSize;
@@ -4488,15 +4492,14 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
         `;
     }
 
-    // 7. Registered Events (Zero Truncation - Full Comprehensive Listing)
+    // 7. Registered Events (Zero Truncation - Full Comprehensive Listing) - 100% decoupled
     let eventsSvg = '';
-    let evBoxY = curY + 16;
+    const eventsXShift = Math.round((tmpl.eventsX || 0) * dimScale);
+    const eventsYShift = Math.round((tmpl.eventsY || 0) * dimScale);
+    const eventsAngle = tmpl.eventsAngle || 0;
+    let evBoxY = baseEventsY + eventsYShift;
     let evBoxH = 70;
     if (tmpl.showEvents !== false) {
-        const eventsXShift = Math.round((tmpl.eventsX || 0) * dimScale);
-        const eventsYShift = Math.round((tmpl.eventsY || 0) * dimScale);
-        const eventsAngle = tmpl.eventsAngle || 0;
-        evBoxY = curY + 16 + eventsYShift;
         evBoxH = Math.max(70, (footerY - 12) - evBoxY);
         const titleSize = Math.max(8, Math.round((tmpl.eventsTitleSize || 11) * dimScale));
         const evNameSize = Math.max(8, Math.round((tmpl.eventNameSize || 12) * dimScale));
@@ -4621,7 +4624,7 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
                 const fSize = Math.max(8, Math.round((el.fontSize || 16) * dimScale));
                 const transform = angle ? `transform="rotate(${angle} ${x} ${y})"` : '';
                 return `
-                    <g data-card-layer="${el.id}" class="card-layer-group cursor-pointer" ${transform}>
+                    <g data-card-layer="${el.id}" class="card-layer-group cursor-pointer select-none" ${transform} ondblclick="window.promptEditCustomText('${el.id}')" title="Double click to edit text">
                         <text x="${x}" y="${y}" font-family="Arial, sans-serif" font-size="${fSize}" font-weight="${el.fontWeight || 'bold'}" fill="${xmlEscape(el.color || '#0f172a')}" opacity="${op}">${xmlEscape(el.text || 'Text')}</text>
                     </g>
                 `;
@@ -4732,17 +4735,33 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
         } else if (activeCardLayer.startsWith('demo_')) {
             const demoKey = activeCardLayer.replace('demo_', '');
             layerTitle = `Demo: ${demoKey.toUpperCase()}`;
-            const cfg = (tmpl.demographics || {})[demoKey] || {};
-            b = { x: Math.max(20, 200 + Math.round((cfg.x || 0) * dimScale)), y: Math.max(100, curY - 40 + Math.round((cfg.y || 0) * dimScale)), w: 180, h: 42 };
+            const itemDef = fieldDefinitions[demoKey] || { label: demoKey.toUpperCase(), val: '—' };
+            const estW = Math.max(80, Math.max(itemDef.label.length * 8.5, String(itemDef.val).length * 11) + 20);
+            const renderedCoord = demoRenderedCoords[demoKey] || { x: 300, y: baseDetailsY };
+            b = {
+                x: Math.round(renderedCoord.x - estW / 2),
+                y: Math.round(renderedCoord.y - 12),
+                w: estW,
+                h: 46
+            };
         } else {
+            // Tight, content-fitted bounding boxes
+            const maxNameLen = Math.max(...nameLines.map(l => (l || '').length), 1);
+            const nameBoxW = Math.min(560, Math.max(100, Math.round(maxNameLen * nameSize * 0.58) + 24));
+            const nameBoxH = nameLines.length > 1 ? (Math.round(nameSize * 2.1) + 12) : (Math.round(nameSize * 1.25) + 10);
+
+            const chestStrVal = tmpl.chestStyle === 'prefix' ? `CHEST: ${chest || '—'}` : (chest || '—');
+            const chestBoxW = Math.min(500, Math.max(80, Math.round(chestStrVal.length * chestSize * 0.65) + 24));
+            const chestBoxH = Math.round(chestSize * 1.25) + 8;
+
             const bboxes = {
                 header: { x: headerX, y: headerY, w: 600, h: Math.max(20, headerH) },
                 watermark: { x: Math.max(6, baseWmX - 80), y: Math.max(60, baseWmY - wmSize), w: 200, h: wmSize + 20 },
-                photo: { x: photoCenterX - photoR - 8, y: photoCenterY - photoR - 8, w: (photoR + 8) * 2, h: (photoR + 8) * 2 },
-                name: { x: 40, y: nameY1 - nameSize - 6, w: 520, h: nameLines.length > 1 ? (nameY2 - nameY1 + nameSize + 14) : (nameSize + 16) },
-                chest: { x: 80, y: chestY - chestSize - 4, w: 440, h: chestSize + 16 },
-                details: { x: 30, y: detailsStartCurY, w: 540, h: Math.max(40, curY - detailsStartCurY + 12) },
-                events: { x: 36, y: evBoxY, w: 528, h: Math.max(60, evBoxH) },
+                photo: { x: photoCenterX - photoR - 6, y: photoCenterY - photoR - 6, w: (photoR + 6) * 2, h: (photoR + 6) * 2 },
+                name: { x: Math.round(nameX - nameBoxW / 2), y: Math.round(nameY1 - nameSize), w: nameBoxW, h: nameBoxH },
+                chest: { x: Math.round(chestX - chestBoxW / 2), y: Math.round(chestY - chestSize * 0.95), w: chestBoxW, h: chestBoxH },
+                details: { x: 30 + detailsXShift, y: detailsStartCurY - 14, w: 540, h: 90 },
+                events: { x: 36 + eventsXShift, y: evBoxY, w: 528, h: Math.max(60, evBoxH) },
                 footer: { x: footerXShift, y: footerY, w: 600, h: Math.max(20, footerH) },
                 base: { x: 4, y: 4, w: 592, h: svgH - 8 }
             };
@@ -4760,24 +4779,27 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
                     <rect x="${b.x - 4}" y="${b.y + b.h - 4}" width="8" height="8" fill="#ffffff" stroke="#4f46e5" stroke-width="2" class="pointer-events-none"/>
                     <rect x="${b.x + b.w - 4}" y="${b.y + b.h - 4}" width="8" height="8" fill="#ffffff" stroke="#4f46e5" stroke-width="2" class="pointer-events-none"/>
                     
-                    <!-- 1. TOP-RIGHT RESIZE HANDLE -->
-                    <g data-studio-handle="resize" class="cursor-nesw-resize hover:scale-125 transition-transform pointer-events-auto" transform="translate(${b.x + b.w}, ${b.y})">
+                    <!-- 1. TOP-RIGHT RESIZE HANDLE (zero hover:scale to eliminate oscillation jitter) -->
+                    <g data-studio-handle="resize" class="cursor-nesw-resize pointer-events-auto" transform="translate(${b.x + b.w}, ${b.y})">
+                        <circle cx="0" cy="0" r="18" fill="transparent" pointer-events="all"/>
                         <circle cx="0" cy="0" r="11" fill="#4f46e5" stroke="#ffffff" stroke-width="2.5" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))"/>
-                        <path d="M-4 4 L4 -4 M0 -4 L4 -4 L4 0 M0 4 L-4 4 L-4 0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M-4 4 L4 -4 M0 -4 L4 -4 L4 0 M0 4 L-4 4 L-4 0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
                     </g>
 
-                    <!-- 2. RIGHT 360° ROTATION HANDLE -->
+                    <!-- 2. RIGHT 360° ROTATION HANDLE (zero hover:scale to eliminate oscillation jitter) -->
                     <line x1="${b.x + b.w}" y1="${b.y + b.h/2}" x2="${b.x + b.w + 28}" y2="${b.y + b.h/2}" stroke="#4f46e5" stroke-width="2" stroke-dasharray="3,2" class="pointer-events-none"/>
-                    <g data-studio-handle="rotate" class="cursor-grab hover:scale-125 transition-transform pointer-events-auto" transform="translate(${b.x + b.w + 28}, ${b.y + b.h/2})">
+                    <g data-studio-handle="rotate" class="cursor-grab pointer-events-auto" transform="translate(${b.x + b.w + 28}, ${b.y + b.h/2})">
+                        <circle cx="0" cy="0" r="20" fill="transparent" pointer-events="all"/>
                         <circle cx="0" cy="0" r="13" fill="#6366f1" stroke="#ffffff" stroke-width="2.5" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))"/>
-                        <path d="M-4 -4 A6 6 0 1 1 -5 3 M-5 3 L-8 1 M-5 3 L-3 1" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M-4 -4 A6 6 0 1 1 -5 3 M-5 3 L-8 1 M-5 3 L-3 1" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
                     </g>
 
-                    <!-- 3. BOTTOM DRAG / MOVE HANDLE -->
-                    <g data-studio-handle="move" class="cursor-move hover:scale-105 transition-transform pointer-events-auto" transform="translate(${b.x + b.w/2}, ${b.y + b.h + 20})">
+                    <!-- 3. BOTTOM DRAG / MOVE HANDLE (zero hover:scale to eliminate oscillation jitter) -->
+                    <g data-studio-handle="move" class="cursor-move pointer-events-auto" transform="translate(${b.x + b.w/2}, ${b.y + b.h + 20})">
+                        <rect x="-46" y="-16" width="92" height="32" fill="transparent" pointer-events="all"/>
                         <rect x="-42" y="-13" width="84" height="26" rx="13" fill="#1e1b4b" stroke="#ffffff" stroke-width="2" filter="drop-shadow(0 2px 5px rgba(0,0,0,0.35))"/>
-                        <path d="M-26 0 h6 M-23 -3 l-3 3 l3 3 M-29 0 l3 -3 M-29 0 l3 3" stroke="#a5b4fc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                        <text x="6" y="4" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="900" fill="#ffffff" letter-spacing="1">DRAG</text>
+                        <path d="M-26 0 h6 M-23 -3 l-3 3 l3 3 M-29 0 l3 -3 M-29 0 l3 3" stroke="#a5b4fc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+                        <text x="6" y="4" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="900" fill="#ffffff" letter-spacing="1" pointer-events="none">DRAG</text>
                     </g>
 
                     <!-- Layer Tag Badge Top-Left -->
@@ -5495,10 +5517,35 @@ window.setStudioActiveLayer = (layerKey, skipRender = false) => {
     if (indicator) indicator.textContent = title;
     if (deselectBtn) deselectBtn.classList.toggle('hidden', !layerKey);
 
+    if (layerKey) {
+        window.switchInspectorTab('props');
+    }
+
     window.renderStudioPropertiesPanel();
     window.renderStudioLayersList();
     if (!skipRender) {
         window.renderStudioCanvas();
+    }
+};
+
+window.promptEditCustomText = (id) => {
+    window.setStudioActiveLayer(id);
+    const tmpl = currentTeamIdTemplate;
+    const el = (tmpl.customElements || []).find(e => e.id === id);
+    if (!el) return;
+    const current = el.text || '';
+    const updated = prompt('Edit Custom Text:', current);
+    if (updated !== null && updated !== current) {
+        el.text = updated;
+        saveTeamIdTemplate(tmpl);
+        window.renderStudioPropertiesPanel();
+        window.renderStudioCanvas();
+    }
+    const inp = document.getElementById('inspector-text-val');
+    if (inp) {
+        inp.value = el.text;
+        inp.focus();
+        inp.select();
     }
 };
 
@@ -5862,11 +5909,93 @@ window.renderStudioPropertiesPanel = () => {
         }
     });
 
-    // Custom text value
+    // Custom text value live edit
     const textVal = document.getElementById('inspector-text-val');
     if (textVal && customEl) {
-        textVal.addEventListener('input', () => {
+        const onTextChange = () => {
             customEl.text = textVal.value;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        };
+        textVal.addEventListener('input', onTextChange);
+        textVal.addEventListener('change', onTextChange);
+    }
+
+    // Custom text font size & color
+    const customTextSize = document.getElementById('inspector-prop-size');
+    const customTextColor = document.getElementById('inspector-prop-color');
+    if (customTextSize && customEl) {
+        customTextSize.addEventListener('input', () => {
+            customEl.fontSize = Number(customTextSize.value) || 16;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+    if (customTextColor && customEl) {
+        customTextColor.addEventListener('input', () => {
+            customEl.color = customTextColor.value;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+
+    // Custom rectangle dimensions & radius
+    const rectW = document.getElementById('inspector-rect-w');
+    const rectH = document.getElementById('inspector-rect-h');
+    const rectRx = document.getElementById('inspector-rect-rx');
+    if (rectW && customEl) {
+        rectW.addEventListener('input', () => {
+            customEl.width = Number(rectW.value) || 100;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+    if (rectH && customEl) {
+        rectH.addEventListener('input', () => {
+            customEl.height = Number(rectH.value) || 60;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+    if (rectRx && customEl) {
+        rectRx.addEventListener('input', () => {
+            customEl.rx = Number(rectRx.value) || 0;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+
+    // Custom fill & stroke colors
+    const propFill = document.getElementById('inspector-prop-fill');
+    const propStroke = document.getElementById('inspector-prop-stroke');
+    if (propFill && customEl) {
+        propFill.addEventListener('input', () => {
+            customEl.fill = propFill.value;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+    if (propStroke && customEl) {
+        propStroke.addEventListener('input', () => {
+            customEl.stroke = propStroke.value;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+
+    // Custom image dimensions
+    const imgW = document.getElementById('inspector-img-w');
+    const imgH = document.getElementById('inspector-img-h');
+    if (imgW && customEl) {
+        imgW.addEventListener('input', () => {
+            customEl.width = Number(imgW.value) || 80;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+    if (imgH && customEl) {
+        imgH.addEventListener('input', () => {
+            customEl.height = Number(imgH.value) || 80;
             saveTeamIdTemplate(tmpl);
             window.renderStudioCanvas();
         });
@@ -6036,6 +6165,9 @@ window.renderStudioLayersList = () => {
 
     const allLayers = [...baseLayers, ...customLayers];
 
+    const countBadge = document.getElementById('studio-layers-count-badge');
+    if (countBadge) countBadge.textContent = allLayers.length;
+
     container.innerHTML = allLayers.map(layer => {
         const isSelected = activeCardLayer === layer.key;
         return `
@@ -6150,10 +6282,10 @@ window.addStudioText = () => {
     const newEl = {
         id,
         type: 'text',
-        text: 'Custom Label',
-        x: 250,
+        text: 'Custom Text',
+        x: 240,
         y: 400,
-        fontSize: 16,
+        fontSize: 20,
         color: '#0f172a',
         fontWeight: 'bold',
         angle: 0,
@@ -6164,6 +6296,14 @@ window.addStudioText = () => {
     currentTeamIdTemplate.customElements.push(newEl);
     saveTeamIdTemplate(currentTeamIdTemplate);
     window.setStudioActiveLayer(id);
+    window.switchInspectorTab('props');
+    setTimeout(() => {
+        const inp = document.getElementById('inspector-text-val');
+        if (inp) {
+            inp.focus();
+            inp.select();
+        }
+    }, 60);
     window.showToast('Text element added to canvas');
 };
 
@@ -6259,7 +6399,7 @@ window.studioNextMember = () => {
 };
 
 window.switchInspectorTab = tab => {
-    const tabs = ['props', 'layers', 'setup'];
+    const tabs = ['tools', 'props', 'setup'];
     tabs.forEach(t => {
         const btn = document.getElementById(`btn-inspect-${t}`);
         const panel = document.getElementById(`inspector-panel-${t}`);
@@ -6272,7 +6412,7 @@ window.switchInspectorTab = tab => {
         if (panel) panel.classList.toggle('hidden', !active);
     });
     if (tab === 'props') window.renderStudioPropertiesPanel();
-    if (tab === 'layers') window.renderStudioLayersList();
+    window.renderStudioLayersList();
     window.lucide?.createIcons?.();
 };
 
@@ -6679,6 +6819,7 @@ window.initStudioView = () => {
     window.renderStudioPropertiesPanel();
     window.renderStudioLayersList();
     window.updateStudioHeaderThumbnail();
+    window.switchInspectorTab?.(activeCardLayer ? 'props' : 'tools');
     window.lucide?.createIcons?.();
 };
 

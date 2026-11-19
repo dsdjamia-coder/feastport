@@ -883,185 +883,96 @@
 
                         <!-- 3-Column Studio Workbench -->
                         <div class="flex flex-col lg:flex-row gap-4 items-stretch studio-workbench-flex">
-                        <!-- LEFT COLUMN: CREATIVE TOOLS PALETTE -->
-                        <aside class="w-full lg:w-60 shrink-0 bg-white border border-slate-200 rounded-2xl p-3.5 space-y-4 shadow-xs">
-                            <!-- Tools Group -->
-                            <div>
-                                <span class="text-[10px] font-black uppercase text-slate-400 block mb-2 tracking-wider">Canvas Tools</span>
-                                <div class="grid grid-cols-2 gap-1.5">
-                                    <button type="button" data-admin-action="studio-set-tool" data-tool="select" id="btn-tool-select" class="flex items-center gap-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-2 text-xs font-black transition active:scale-95">
-                                        <i data-lucide="mouse-pointer" class="h-4 w-4"></i>
-                                        <span>Select</span>
-                                    </button>
-                                    <button type="button" data-admin-action="studio-add-text" id="btn-tool-add-text" class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3 py-2 text-xs font-bold transition active:scale-95 shadow-2xs">
-                                        <i data-lucide="type" class="h-4 w-4 text-indigo-600"></i>
-                                        <span>+ Text</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Add Shapes Group -->
-                            <div>
-                                <span class="text-[10px] font-black uppercase text-slate-400 block mb-2 tracking-wider">Add Vector Shapes</span>
-                                <div class="grid grid-cols-3 gap-1.5">
-                                    <button type="button" data-admin-action="studio-add-shape" data-shape="rect" class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[10px] font-bold transition active:scale-95" title="Rectangle Box">
-                                        <i data-lucide="square" class="h-4 w-4 text-indigo-600 mb-1"></i>
-                                        <span>Box</span>
-                                    </button>
-                                    <button type="button" data-admin-action="studio-add-shape" data-shape="circle" class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[10px] font-bold transition active:scale-95" title="Circle">
-                                        <i data-lucide="circle" class="h-4 w-4 text-indigo-600 mb-1"></i>
-                                        <span>Circle</span>
-                                    </button>
-                                    <button type="button" data-admin-action="studio-add-shape" data-shape="triangle" class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[10px] font-bold transition active:scale-95" title="Triangle">
-                                        <i data-lucide="triangle" class="h-4 w-4 text-indigo-600 mb-1"></i>
-                                        <span>Triangle</span>
-                                    </button>
-                                    <button type="button" data-admin-action="studio-add-shape" data-shape="star" class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[10px] font-bold transition active:scale-95" title="5-Point Star">
-                                        <i data-lucide="star" class="h-4 w-4 text-amber-500 mb-1"></i>
-                                        <span>Star</span>
-                                    </button>
-                                    <button type="button" data-admin-action="studio-add-shape" data-shape="polygon" class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[10px] font-bold transition active:scale-95" title="Hexagon Polygon">
-                                        <i data-lucide="hexagon" class="h-4 w-4 text-indigo-600 mb-1"></i>
-                                        <span>Polygon</span>
-                                    </button>
-                                    <button type="button" data-admin-action="studio-add-image-click" class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[10px] font-bold transition active:scale-95" title="Upload Logo / Seal / Badge">
-                                        <i data-lucide="image-plus" class="h-4 w-4 text-emerald-600 mb-1"></i>
-                                        <span>+ Image</span>
-                                    </button>
-                                </div>
-                                <input type="file" id="studio-custom-image-file" accept="image/*" class="hidden">
-                            </div>
-
-                            <!-- Team ID Header Banner Direct Upload -->
-                            <div class="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 space-y-2">
-                                <span class="text-[10px] font-black uppercase text-indigo-900 block tracking-wider">Team ID Header Banner</span>
-                                <div class="space-y-1.5">
-                                    <select id="studio-header-team-select" class="w-full rounded-lg border border-indigo-200 bg-white p-1 text-xs font-bold text-slate-800">
-                                        <!-- populated dynamically -->
-                                    </select>
-                                    <div id="studio-header-thumbnail-container" class="w-full h-14 rounded-lg bg-slate-900 overflow-hidden relative border border-slate-200 flex items-center justify-center">
-                                        <img id="studio-header-thumbnail" src="" class="w-full h-full object-cover hidden" alt="Header">
-                                        <span id="studio-header-empty-notice" class="text-[10px] text-slate-400 font-bold">No custom header</span>
-                                    </div>
-                                    <div class="flex items-center gap-1.5">
-                                        <button type="button" data-admin-action="studio-trigger-header-upload" class="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white p-1.5 text-[11px] font-black transition active:scale-95 flex items-center justify-center gap-1">
-                                            <i data-lucide="upload" class="h-3 w-3"></i>
-                                            <span>Upload</span>
-                                        </button>
-                                        <button type="button" data-admin-action="studio-remove-header" id="btn-studio-remove-header" class="rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 p-1.5 text-[11px] font-black transition active:scale-95" title="Remove custom header">
-                                            <i data-lucide="trash-2" class="h-3 w-3"></i>
-                                        </button>
-                                    </div>
-                                    <input type="file" id="studio-header-file-input" accept="image/*" class="hidden">
-                                </div>
-                            </div>
-
-                            <!-- Independent Demographic Badges Quick Toggle -->
-                            <div class="space-y-2">
-                                <span class="text-[10px] font-black uppercase text-slate-400 block tracking-wider">Demographic Badges</span>
-                                <div class="space-y-1 text-xs">
-                                    <label class="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer select-none">
-                                        <span class="font-bold text-slate-700">Team Name</span>
-                                        <input type="checkbox" id="chk-demo-team" checked class="h-4 w-4 rounded accent-indigo-600" data-admin-action="studio-toggle-demo" data-field="team">
-                                    </label>
-                                    <label class="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer select-none">
-                                        <span class="font-bold text-slate-700">Category</span>
-                                        <input type="checkbox" id="chk-demo-category" checked class="h-4 w-4 rounded accent-indigo-600" data-admin-action="studio-toggle-demo" data-field="category">
-                                    </label>
-                                    <label class="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer select-none">
-                                        <span class="font-bold text-slate-700">Class / Division</span>
-                                        <input type="checkbox" id="chk-demo-class" checked class="h-4 w-4 rounded accent-indigo-600" data-admin-action="studio-toggle-demo" data-field="class">
-                                    </label>
-                                    <label class="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer select-none">
-                                        <span class="font-bold text-slate-700">Gender</span>
-                                        <input type="checkbox" id="chk-demo-gender" checked class="h-4 w-4 rounded accent-indigo-600" data-admin-action="studio-toggle-demo" data-field="gender">
-                                    </label>
-                                    <label class="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer select-none">
-                                        <span class="font-bold text-slate-700">Status</span>
-                                        <input type="checkbox" id="chk-demo-status" checked class="h-4 w-4 rounded accent-indigo-600" data-admin-action="studio-toggle-demo" data-field="status">
-                                    </label>
-                                </div>
-                            </div>
-                        </aside>
-
-                        <!-- CENTER COLUMN: CANVAS STAGE -->
-                        <main class="flex-1 bg-slate-100/90 rounded-2xl border border-slate-200 p-3 sm:p-4 flex flex-col items-center justify-start overflow-hidden relative shadow-inner min-h-[660px]">
-                            <!-- Top Floating Stage Controls -->
-                            <div class="w-full flex flex-wrap items-center justify-between gap-2.5 pb-3 border-b border-slate-200 mb-4 bg-white/70 backdrop-blur rounded-xl px-3 py-2">
-                                <div class="flex items-center gap-2">
-                                    <label class="flex items-center gap-1 text-[11px] font-black uppercase text-slate-500">
-                                        <span>Zoom</span>
-                                        <select id="studio-zoom-select" class="rounded-lg border border-slate-300 bg-white p-1 text-xs font-bold text-slate-800">
-                                            <option value="fit" selected>Fit</option>
-                                            <option value="75">75%</option>
-                                            <option value="100">100%</option>
-                                            <option value="125">125%</option>
-                                            <option value="150">150%</option>
-                                        </select>
-                                    </label>
-                                    <span class="text-[11px] font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5" id="studio-dimension-badge">90 × 130 mm</span>
-                                </div>
-
-                                <!-- Active Selection Info & Deselect -->
-                                <div class="flex items-center gap-1.5">
-                                    <span id="studio-active-layer-indicator" class="rounded-lg bg-slate-100 border border-slate-200 px-2.5 py-1 text-xs font-bold text-slate-600 flex items-center gap-1.5">
-                                        <i data-lucide="mouse-pointer" class="h-3 w-3 text-slate-400"></i>
-                                        <span id="studio-selected-layer-name">Click canvas element to edit</span>
-                                    </span>
-                                    <button type="button" data-admin-action="studio-deselect" id="btn-studio-deselect" class="hidden rounded-lg p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Deselect element">
-                                        <i data-lucide="x" class="h-3.5 w-3.5"></i>
-                                    </button>
-                                </div>
-
-                                <!-- Member Navigator (when real member is previewed) -->
-                                <div id="studio-member-nav" class="flex items-center gap-1.5">
-                                    <button type="button" data-admin-action="studio-prev-member" id="btn-studio-prev-member" class="rounded-lg border border-slate-200 bg-white hover:bg-slate-50 p-1 text-slate-600 transition" title="Previous member">
-                                        <i data-lucide="chevron-left" class="h-4 w-4"></i>
-                                    </button>
-                                    <select id="studio-member-picker" class="max-w-[180px] rounded-lg border border-slate-300 bg-white p-1 text-xs font-bold text-slate-800 truncate">
-                                        <!-- populated dynamically -->
-                                    </select>
-                                    <button type="button" data-admin-action="studio-next-member" id="btn-studio-next-member" class="rounded-lg border border-slate-200 bg-white hover:bg-slate-50 p-1 text-slate-600 transition" title="Next member">
-                                        <i data-lucide="chevron-right" class="h-4 w-4"></i>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Canvas Stage Container -->
-                            <div class="w-full flex-1 flex items-center justify-center overflow-auto p-4 select-none studio-canvas-pattern rounded-2xl" id="studio-canvas-viewport">
-                                <div id="studio-canvas-card-wrapper" class="w-full max-w-[440px] rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10 overflow-hidden transition-all duration-200">
-                                    <div class="border-b border-slate-100 bg-slate-50/90 backdrop-blur px-4 py-2 flex items-center justify-between text-xs font-black text-slate-600">
-                                        <span id="studio-card-preview-name" class="truncate max-w-[240px] font-black">Member ID</span>
-                                        <span class="font-mono text-indigo-600 font-bold shrink-0" id="studio-card-preview-dims">90×130 mm</span>
-                                    </div>
-                                    <div class="p-3 bg-white flex items-center justify-center select-none" id="studio-canvas-stage">
-                                        <!-- teamIdSvg renders inline here with id="team-id-card-svg" -->
-                                    </div>
-                                </div>
-                            </div>
-                        </main>
-
-                        <!-- RIGHT COLUMN: PROPERTIES INSPECTOR & LAYER STACK -->
-                        <aside class="w-full lg:w-80 xl:w-96 shrink-0 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col space-y-3 shadow-xs">
-                            <!-- Inspector Subtabs -->
+                        <!-- LEFT COLUMN: CREATIVE TOOLS, PROPERTIES & CARD SETUP -->
+                        <aside class="w-full lg:w-80 xl:w-84 shrink-0 bg-white border border-slate-200 rounded-2xl p-3.5 flex flex-col space-y-3 shadow-xs">
+                            <!-- Left Subtabs Switcher -->
                             <div class="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200">
-                                <button type="button" data-admin-action="switch-inspector-tab" data-tab="props" id="btn-inspect-props" class="flex-1 rounded-lg bg-white text-indigo-700 shadow-xs py-1.5 text-xs font-black transition active:scale-95 text-center">Properties</button>
-                                <button type="button" data-admin-action="switch-inspector-tab" data-tab="layers" id="btn-inspect-layers" class="flex-1 rounded-lg text-slate-600 hover:text-slate-900 py-1.5 text-xs font-bold transition active:scale-95 text-center">Layers</button>
+                                <button type="button" data-admin-action="switch-inspector-tab" data-tab="tools" id="btn-inspect-tools" class="flex-1 rounded-lg bg-white text-indigo-700 shadow-xs py-1.5 text-xs font-black transition active:scale-95 text-center">Tools</button>
+                                <button type="button" data-admin-action="switch-inspector-tab" data-tab="props" id="btn-inspect-props" class="flex-1 rounded-lg text-slate-600 hover:text-slate-900 py-1.5 text-xs font-bold transition active:scale-95 text-center">Properties</button>
                                 <button type="button" data-admin-action="switch-inspector-tab" data-tab="setup" id="btn-inspect-setup" class="flex-1 rounded-lg text-slate-600 hover:text-slate-900 py-1.5 text-xs font-bold transition active:scale-95 text-center">Card Setup</button>
                             </div>
 
-                            <!-- SUBPANEL 1: DYNAMIC PROPERTIES INSPECTOR -->
-                            <div id="inspector-panel-props" class="space-y-3 overflow-y-auto max-h-[600px] pr-1">
+                            <!-- SUBPANEL 1: TOOLS PALETTE -->
+                            <div id="inspector-panel-tools" class="space-y-4 overflow-y-auto max-h-[620px] pr-1">
+                                <!-- Tools Group -->
+                                <div>
+                                    <span class="text-[10px] font-black uppercase text-slate-400 block mb-2 tracking-wider">Canvas Tools</span>
+                                    <div class="grid grid-cols-2 gap-1.5">
+                                        <button type="button" data-admin-action="studio-set-tool" data-tool="select" id="btn-tool-select" class="flex items-center gap-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-2 text-xs font-black transition active:scale-95">
+                                            <i data-lucide="mouse-pointer" class="h-4 w-4"></i>
+                                            <span>Select</span>
+                                        </button>
+                                        <button type="button" data-admin-action="studio-add-text" id="btn-tool-add-text" class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3 py-2 text-xs font-bold transition active:scale-95 shadow-2xs">
+                                            <i data-lucide="type" class="h-4 w-4 text-indigo-600"></i>
+                                            <span>+ Text</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Add Shapes Group -->
+                                <div>
+                                    <span class="text-[10px] font-black uppercase text-slate-400 block mb-2 tracking-wider">Add Vector Shapes</span>
+                                    <div class="grid grid-cols-3 gap-1.5">
+                                        <button type="button" data-admin-action="studio-add-shape" data-shape="rect" class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[10px] font-bold transition active:scale-95" title="Rectangle Box">
+                                            <i data-lucide="square" class="h-4 w-4 text-indigo-600 mb-1"></i>
+                                            <span>Box</span>
+                                        </button>
+                                        <button type="button" data-admin-action="studio-add-shape" data-shape="circle" class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[10px] font-bold transition active:scale-95" title="Circle">
+                                            <i data-lucide="circle" class="h-4 w-4 text-indigo-600 mb-1"></i>
+                                            <span>Circle</span>
+                                        </button>
+                                        <button type="button" data-admin-action="studio-add-shape" data-shape="triangle" class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[10px] font-bold transition active:scale-95" title="Triangle">
+                                            <i data-lucide="triangle" class="h-4 w-4 text-indigo-600 mb-1"></i>
+                                            <span>Triangle</span>
+                                        </button>
+                                        <button type="button" data-admin-action="studio-add-shape" data-shape="star" class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[10px] font-bold transition active:scale-95" title="5-Point Star">
+                                            <i data-lucide="star" class="h-4 w-4 text-amber-500 mb-1"></i>
+                                            <span>Star</span>
+                                        </button>
+                                        <button type="button" data-admin-action="studio-add-shape" data-shape="polygon" class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[10px] font-bold transition active:scale-95" title="Hexagon Polygon">
+                                            <i data-lucide="hexagon" class="h-4 w-4 text-indigo-600 mb-1"></i>
+                                            <span>Polygon</span>
+                                        </button>
+                                        <button type="button" data-admin-action="studio-add-image-click" class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[10px] font-bold transition active:scale-95" title="Upload Logo / Seal / Badge">
+                                            <i data-lucide="image-plus" class="h-4 w-4 text-emerald-600 mb-1"></i>
+                                            <span>+ Image</span>
+                                        </button>
+                                    </div>
+                                    <input type="file" id="studio-custom-image-file" accept="image/*" class="hidden">
+                                </div>
+
+                                <!-- Team ID Header Banner Direct Upload -->
+                                <div class="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 space-y-2">
+                                    <span class="text-[10px] font-black uppercase text-indigo-900 block tracking-wider">Team ID Header Banner</span>
+                                    <div class="space-y-1.5">
+                                        <select id="studio-header-team-select" class="w-full rounded-lg border border-indigo-200 bg-white p-1 text-xs font-bold text-slate-800">
+                                            <!-- populated dynamically -->
+                                        </select>
+                                        <div id="studio-header-thumbnail-container" class="w-full h-14 rounded-lg bg-slate-900 overflow-hidden relative border border-slate-200 flex items-center justify-center">
+                                            <img id="studio-header-thumbnail" src="" class="w-full h-full object-cover hidden" alt="Header">
+                                            <span id="studio-header-empty-notice" class="text-[10px] text-slate-400 font-bold">No custom header</span>
+                                        </div>
+                                        <div class="flex items-center gap-1.5">
+                                            <button type="button" data-admin-action="studio-trigger-header-upload" class="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white p-1.5 text-[11px] font-black transition active:scale-95 flex items-center justify-center gap-1">
+                                                <i data-lucide="upload" class="h-3 w-3"></i>
+                                                <span>Upload</span>
+                                            </button>
+                                            <button type="button" data-admin-action="studio-remove-header" id="btn-studio-remove-header" class="rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 p-1.5 text-[11px] font-black transition active:scale-95" title="Remove custom header">
+                                                <i data-lucide="trash-2" class="h-3 w-3"></i>
+                                            </button>
+                                        </div>
+                                        <input type="file" id="studio-header-file-input" accept="image/*" class="hidden">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SUBPANEL 2: DYNAMIC PROPERTIES INSPECTOR -->
+                            <div id="inspector-panel-props" class="space-y-3 overflow-y-auto max-h-[620px] pr-1 hidden">
                                 <!-- Populated dynamically based on selected layer -->
                             </div>
 
-                            <!-- SUBPANEL 2: REORDERABLE LAYERS STACK -->
-                            <div id="inspector-panel-layers" class="space-y-1.5 overflow-y-auto max-h-[600px] pr-1 hidden">
-                                <!-- Populated dynamically with all layers, eye toggles, and delete buttons -->
-                            </div>
-
                             <!-- SUBPANEL 3: CARD SETUP & EVENTS ENGINE -->
-                            <div id="inspector-panel-setup" class="space-y-3 overflow-y-auto max-h-[600px] pr-1 hidden">
+                            <div id="inspector-panel-setup" class="space-y-3 overflow-y-auto max-h-[620px] pr-1 hidden">
                                 <!-- Card Dimensions & Geometry -->
                                 <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-3 space-y-2">
                                     <span class="text-[10px] font-black uppercase text-slate-500 block">Card Dimensions</span>
@@ -1129,6 +1040,83 @@
                                         </label>
                                     </div>
                                 </div>
+                            </div>
+                        </aside>
+
+                        <!-- CENTER COLUMN: CANVAS STAGE -->
+                        <main class="flex-1 bg-slate-100/90 rounded-2xl border border-slate-200 p-3 sm:p-4 flex flex-col items-center justify-start overflow-hidden relative shadow-inner min-h-[660px]">
+                            <!-- Top Floating Stage Controls -->
+                            <div class="w-full flex flex-wrap items-center justify-between gap-2.5 pb-3 border-b border-slate-200 mb-4 bg-white/70 backdrop-blur rounded-xl px-3 py-2">
+                                <div class="flex items-center gap-2">
+                                    <label class="flex items-center gap-1 text-[11px] font-black uppercase text-slate-500">
+                                        <span>Zoom</span>
+                                        <select id="studio-zoom-select" class="rounded-lg border border-slate-300 bg-white p-1 text-xs font-bold text-slate-800">
+                                            <option value="fit" selected>Fit</option>
+                                            <option value="75">75%</option>
+                                            <option value="100">100%</option>
+                                            <option value="125">125%</option>
+                                            <option value="150">150%</option>
+                                        </select>
+                                    </label>
+                                    <span class="text-[11px] font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5" id="studio-dimension-badge">90 × 130 mm</span>
+                                </div>
+
+                                <!-- Active Selection Info & Deselect -->
+                                <div class="flex items-center gap-1.5">
+                                    <span id="studio-active-layer-indicator" class="rounded-lg bg-slate-100 border border-slate-200 px-2.5 py-1 text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                                        <i data-lucide="mouse-pointer" class="h-3 w-3 text-slate-400"></i>
+                                        <span id="studio-selected-layer-name">Click canvas element to edit</span>
+                                    </span>
+                                    <button type="button" data-admin-action="studio-deselect" id="btn-studio-deselect" class="hidden rounded-lg p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Deselect element">
+                                        <i data-lucide="x" class="h-3.5 w-3.5"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Member Navigator (when real member is previewed) -->
+                                <div id="studio-member-nav" class="flex items-center gap-1.5">
+                                    <button type="button" data-admin-action="studio-prev-member" id="btn-studio-prev-member" class="rounded-lg border border-slate-200 bg-white hover:bg-slate-50 p-1 text-slate-600 transition" title="Previous member">
+                                        <i data-lucide="chevron-left" class="h-4 w-4"></i>
+                                    </button>
+                                    <select id="studio-member-picker" class="max-w-[180px] rounded-lg border border-slate-300 bg-white p-1 text-xs font-bold text-slate-800 truncate">
+                                        <!-- populated dynamically -->
+                                    </select>
+                                    <button type="button" data-admin-action="studio-next-member" id="btn-studio-next-member" class="rounded-lg border border-slate-200 bg-white hover:bg-slate-50 p-1 text-slate-600 transition" title="Next member">
+                                        <i data-lucide="chevron-right" class="h-4 w-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Canvas Stage Container -->
+                            <div class="w-full flex-1 flex items-center justify-center overflow-auto p-4 select-none studio-canvas-pattern rounded-2xl" id="studio-canvas-viewport">
+                                <div id="studio-canvas-card-wrapper" class="w-full max-w-[440px] rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10 overflow-hidden transition-all duration-200">
+                                    <div class="border-b border-slate-100 bg-slate-50/90 backdrop-blur px-4 py-2 flex items-center justify-between text-xs font-black text-slate-600">
+                                        <span id="studio-card-preview-name" class="truncate max-w-[240px] font-black">Member ID</span>
+                                        <span class="font-mono text-indigo-600 font-bold shrink-0" id="studio-card-preview-dims">90×130 mm</span>
+                                    </div>
+                                    <div class="p-3 bg-white flex items-center justify-center select-none" id="studio-canvas-stage">
+                                        <!-- teamIdSvg renders inline here with id="team-id-card-svg" -->
+                                    </div>
+                                </div>
+                            </div>
+                        </main>
+
+                        <!-- RIGHT COLUMN: DEDICATED LAYERS STACK -->
+                        <aside class="w-full lg:w-72 xl:w-80 shrink-0 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col space-y-3 shadow-xs">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="layers" class="h-4 w-4 text-indigo-600"></i>
+                                    <span class="text-xs font-black uppercase tracking-wider text-slate-800">Layers Stack</span>
+                                    <span id="studio-layers-count-badge" class="rounded-md bg-indigo-50 text-indigo-700 px-1.5 py-0.5 text-[10px] font-black">10</span>
+                                </div>
+                                <button type="button" data-admin-action="studio-add-text" class="rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-700 transition active:scale-95 flex items-center gap-1" title="Add new text layer">
+                                    <i data-lucide="type" class="h-3 w-3 text-indigo-600"></i>
+                                    <span>+ Text</span>
+                                </button>
+                            </div>
+
+                            <!-- Full-Height Reorderable Layers List -->
+                            <div id="inspector-panel-layers" class="space-y-1.5 overflow-y-auto max-h-[640px] pr-1 flex-1">
+                                <!-- Populated dynamically with all layers, eye toggles, and delete buttons -->
                             </div>
                         </aside>
                         </div>
