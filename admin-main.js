@@ -235,8 +235,14 @@ async function startAdminSession() {
             if (!masterDirtySections.size) {
                 festSetup = window.structuredClone ? structuredClone(savedFestSetup) : JSON.parse(JSON.stringify(savedFestSetup));
             }
+            if (data.idCardTemplates && typeof data.idCardTemplates === 'object') {
+                studioTemplatesMap = { ...data.idCardTemplates };
+            }
             if (data.teamIdCardTemplate && typeof data.teamIdCardTemplate === 'object') {
                 window.applyRemoteTeamIdTemplate?.(data.teamIdCardTemplate);
+                if (!studioTemplatesMap['student']) {
+                    studioTemplatesMap['student'] = { ...data.teamIdCardTemplate };
+                }
             }
             window.adminSharedState.update({ generalSettings: data, categories, teams, teamDisplayNames, categoryDisplayNames, teamColors, teamLogos, teamIdCardHeaders, chestConfig, festSetup });
             window.renderDropdowns();
@@ -736,6 +742,8 @@ document.addEventListener('click', (event) => {
         'toggle-demo-field': () => window.toggleDemographicField(d.field || btn?.dataset?.field),
         'set-studio-view-mode': () => window.setStudioViewMode(d.mode || btn?.dataset?.mode),
         'toggle-studio-stresstest': () => window.toggleStudioStressTest(),
+        'reset-studio-role-template': () => window.resetStudioRoleTemplate(),
+        'toggle-studio-fullscreen': () => window.toggleStudioFullscreen(),
         'save-studio-template': () => window.saveStudioTemplate(),
         'download-studio-batch-pdf': () => window.downloadStudioBatchPdf(),
         'studio-set-tool': () => window.setStudioTool(d.tool || btn?.dataset?.tool),
@@ -4818,6 +4826,147 @@ let studioSingleMemberIndex = 0;
 let studioTemplateTarget = 'student';
 let studioTemplatesMap = {};
 let studioPrintCurrentPage = 1;
+let studioFullscreenMode = false;
+
+window.getRoleDefaultTemplate = (roleKey) => {
+    const key = String(roleKey || 'student').toLowerCase();
+    const base = { ...TEAM_ID_TEMPLATE_DEFAULTS };
+
+    if (key === 'student') {
+        return {
+            ...base,
+            showEvents: true,
+            eventsLayout: 'auto_compact',
+            showChest: true,
+            chestStyle: 'number_only',
+            demographics: {
+                team: { show: true, x: 0, y: 0, angle: 0 },
+                category: { show: true, x: 0, y: 0, angle: 0 },
+                class: { show: true, x: 0, y: 0, angle: 0 },
+                gender: { show: true, x: 0, y: 0, angle: 0 },
+                status: { show: true, x: 0, y: 0, angle: 0 }
+            }
+        };
+    }
+
+    // Clean Default Layout for Non-Students (Parent, Staff, Alumni, Public, Volunteer, Guest, etc.)
+    const roleTitle = key.toUpperCase();
+    return {
+        ...base,
+        showEvents: false,
+        showChest: false,
+        nameSize: 34,
+        photoRadius: 100,
+        demographics: {
+            team: { show: key === 'parent' || key === 'volunteer' || key === 'alumni', x: 0, y: 0, angle: 0 },
+            category: { show: false, x: 0, y: 0, angle: 0 },
+            class: { show: false, x: 0, y: 0, angle: 0 },
+            gender: { show: true, x: 0, y: 0, angle: 0 },
+            status: { show: true, x: 0, y: 0, angle: 0 }
+        },
+        customElements: [
+            {
+                id: `role_badge_${key}`,
+                type: 'text',
+                text: `${roleTitle} ID`,
+                x: 300,
+                y: 520,
+                fontSize: 22,
+                color: '#4f46e5',
+                fontWeight: '900',
+                angle: 0,
+                opacity: 1,
+                show: true
+            }
+        ]
+    };
+};
+
+window.enterStudioFullscreen = () => {
+    const studioEl = document.getElementById('view-id-studio');
+    if (!studioEl) return;
+    studioFullscreenMode = true;
+    studioEl.classList.add('studio-fullscreen-active');
+    document.body.classList.add('overflow-hidden');
+    const label = document.getElementById('label-studio-fullscreen');
+    const icon = document.getElementById('icon-studio-fullscreen');
+    if (label) label.textContent = 'Exit Fullscreen';
+    if (icon) icon.setAttribute('data-lucide', 'minimize-2');
+    window.lucide?.createIcons?.();
+};
+
+window.exitStudioFullscreen = () => {
+    const studioEl = document.getElementById('view-id-studio');
+    if (!studioEl) return;
+    studioFullscreenMode = false;
+    studioEl.classList.remove('studio-fullscreen-active');
+    document.body.classList.remove('overflow-hidden');
+    const label = document.getElementById('label-studio-fullscreen');
+    const icon = document.getElementById('icon-studio-fullscreen');
+    if (label) label.textContent = 'Fullscreen';
+    if (icon) icon.setAttribute('data-lucide', 'maximize-2');
+    window.lucide?.createIcons?.();
+};
+
+window.toggleStudioFullscreen = () => {
+    if (studioFullscreenMode) {
+        window.exitStudioFullscreen();
+    } else {
+        window.enterStudioFullscreen();
+    }
+};
+
+if (!window._studioEscWired) {
+    window._studioEscWired = true;
+    window.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && studioFullscreenMode) {
+            window.exitStudioFullscreen();
+        }
+    });
+}
+
+window.resetStudioRoleTemplate = async () => {
+    const target = studioTemplateTarget || 'student';
+    currentTeamIdTemplate = getRoleDefaultTemplate(target);
+    studioTemplatesMap[target] = { ...currentTeamIdTemplate };
+    saveTeamIdTemplate(currentTeamIdTemplate);
+    window.syncStudioInspectorUI();
+    window.renderStudioCanvas();
+    try {
+        await setDoc(doc(db, 'settings', 'general'), {
+            teamIdCardTemplate: currentTeamIdTemplate,
+            idCardTemplates: studioTemplatesMap
+        }, { merge: true });
+        window.showToast(`Reset ${target.toUpperCase()} template to clean default`);
+    } catch (e) {
+        window.showToast(`Reset ${target.toUpperCase()} template locally`, 'warning');
+    }
+};
+
+window.updateStudioFilterTeamOptions = () => {
+    const typeFilter = document.getElementById('studio-filter-type')?.value || 'all';
+    const teamSelect = document.getElementById('studio-filter-team');
+    if (!teamSelect) return;
+
+    const pTypesList = Array.isArray(festSetup?.participantTypesList) ? festSetup.participantTypesList : [];
+    const chosenDef = pTypesList.find(pt => (pt.id || pt.name || pt.key || '').toLowerCase() === typeFilter.toLowerCase());
+
+    const isNonTeam = chosenDef && chosenDef.teamAffiliated === false;
+    if (isNonTeam) {
+        teamSelect.innerHTML = '<option value="all" selected>All (Open / No Team)</option>';
+        teamSelect.disabled = true;
+        teamSelect.classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+    } else {
+        teamSelect.disabled = false;
+        teamSelect.classList.remove('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+        const curVal = teamSelect.value || 'all';
+        teamSelect.innerHTML = '<option value="all">All Teams</option>' +
+            teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(teamLabel(t))}</option>`).join('') +
+            '<option value="__none__">Without Team (Open)</option>';
+        if (teams.includes(curVal) || curVal === '__none__') teamSelect.value = curVal;
+        else teamSelect.value = 'all';
+    }
+};
 
 window.getFilteredStudioMembers = () => {
     const teamFilter = document.getElementById('studio-filter-team')?.value || 'all';
@@ -4825,31 +4974,51 @@ window.getFilteredStudioMembers = () => {
     const typeFilter = document.getElementById('studio-filter-type')?.value || 'all';
     const partFilter = document.getElementById('studio-filter-participation')?.value || 'all';
 
-    let all = [];
-    if (teamFilter === 'all') {
-        teams.forEach(t => { all.push(...teamIdMembers(t)); });
-    } else {
-        all = teamIdMembers(teamFilter);
+    // 1. Build unified collection of all students and participants
+    const studentList = (students || []).map(s => ({
+        ...s,
+        source: 'student',
+        participantType: s.participantType || 'student',
+        photo: s.photoData || s.photo || ''
+    }));
+
+    const nonStudentList = (participants || []).filter(p => !p.studentId).map(p => ({
+        ...p,
+        source: p.participantType || 'participant',
+        participantType: p.participantType || 'participant',
+        chestNo: p.chestNo || p.id?.slice(0, 6) || '',
+        photo: p.photo || p.photoData || ''
+    }));
+
+    let all = [...studentList, ...nonStudentList];
+
+    // 2. Filter by Participant Type (case-insensitive comparison)
+    if (typeFilter !== 'all') {
+        all = all.filter(m => (m.participantType || m.source || 'student').toLowerCase() === typeFilter.toLowerCase());
     }
 
-    // Filter by Category
+    // 3. Filter by Team (only apply team filter if teamFilter !== 'all')
+    if (teamFilter !== 'all') {
+        if (teamFilter === '__none__') {
+            all = all.filter(m => !m.team);
+        } else {
+            all = all.filter(m => m.team === teamFilter);
+        }
+    }
+
+    // 4. Filter by Category
     if (catFilter !== 'all') {
         all = all.filter(m => (m.category || '') === catFilter);
     }
 
-    // Filter by Participant Type
-    if (typeFilter !== 'all') {
-        all = all.filter(m => (m.source || m.participantType || 'Student') === typeFilter);
-    }
-
-    // Filter by Participation
+    // 5. Filter by Participation Status
     if (partFilter === 'with_events') {
         all = all.filter(m => teamIdMemberEvents(m).length > 0);
     } else if (partFilter === 'without_events') {
         all = all.filter(m => teamIdMemberEvents(m).length === 0);
     }
 
-    return all;
+    return all.sort((a,b) => String(a.chestNo||'').localeCompare(String(b.chestNo||''),undefined,{numeric:true}) || String(a.name||'').localeCompare(String(b.name||'')));
 };
 
 window.syncStudioInspectorUI = () => {
@@ -5607,18 +5776,20 @@ window.setStudioViewMode = mode => {
 
     if (btnDesigner) {
         btnDesigner.className = isDesigner
-            ? 'rounded-lg bg-white text-indigo-700 shadow-xs px-3.5 py-1.5 text-xs font-black transition active:scale-95 flex items-center gap-1.5'
-            : 'rounded-lg text-slate-600 hover:text-slate-900 px-3.5 py-1.5 text-xs font-bold transition active:scale-95 flex items-center gap-1.5';
+            ? 'rounded-lg bg-white text-indigo-700 shadow-xs px-4 py-2 text-xs font-black transition active:scale-95 flex items-center gap-2'
+            : 'rounded-lg text-slate-600 hover:text-slate-900 px-4 py-2 text-xs font-bold transition active:scale-95 flex items-center gap-2';
     }
     if (btnPrint) {
         btnPrint.className = !isDesigner
-            ? 'rounded-lg bg-white text-indigo-700 shadow-xs px-3.5 py-1.5 text-xs font-black transition active:scale-95 flex items-center gap-1.5'
-            : 'rounded-lg text-slate-600 hover:text-slate-900 px-3.5 py-1.5 text-xs font-bold transition active:scale-95 flex items-center gap-1.5';
+            ? 'rounded-lg bg-white text-indigo-700 shadow-xs px-4 py-2 text-xs font-black transition active:scale-95 flex items-center gap-2'
+            : 'rounded-lg text-slate-600 hover:text-slate-900 px-4 py-2 text-xs font-bold transition active:scale-95 flex items-center gap-2';
     }
 
     if (isDesigner) {
+        window.enterStudioFullscreen();
         window.renderStudioCanvas();
     } else {
+        window.exitStudioFullscreen();
         window.renderStudioPrintSheets();
     }
     window.lucide?.createIcons?.();
@@ -5904,7 +6075,9 @@ window.renderStudioPrintSheets = () => {
                         const mColor = teamColors[mTeam] || '#4f46e5';
                         const mHeader = teamIdCardHeaders[mTeam] || '';
                         const mLogo = teamLogos[mTeam] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '';
-                        return `<div style="width:${cardW}mm;height:${cardH}mm;border-radius:0px;" class="overflow-hidden bg-white shadow-xs border border-slate-200">${teamIdPreviewCard(m, mTeam, mColor, mHeader, mLogo, opts, tmpl)}</div>`;
+                        const mRole = (m.participantType || m.source || 'student').toLowerCase();
+                        const mTemplate = { ...(studioTemplatesMap[mRole] || getRoleDefaultTemplate(mRole)), cardW, cardH };
+                        return `<div style="width:${cardW}mm;height:${cardH}mm;border-radius:0px;" class="overflow-hidden bg-white shadow-xs border border-slate-200">${teamIdPreviewCard(m, mTeam, mColor, mHeader, mLogo, opts, mTemplate)}</div>`;
                     }).join('')}
                 </div>
             </section>
@@ -5955,13 +6128,16 @@ window.downloadStudioBatchPdf = async () => {
         const mColor = teamColors[mTeam] || '#4f46e5';
         const mHeader = teamIdCardHeaders[mTeam] || '';
         const mLogo = teamLogos[mTeam] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '';
+        const mRole = (m.participantType || m.source || 'student').toLowerCase();
+        const mTemplate = { ...(studioTemplatesMap[mRole] || getRoleDefaultTemplate(mRole)), cardW, cardH };
 
-        const png = await svgToPng(teamIdSvg(m, mTeam, mColor, mHeader, mLogo, opts, tmpl, false));
+        const png = await svgToPng(teamIdSvg(m, mTeam, mColor, mHeader, mLogo, opts, mTemplate, false));
         docPdf.addImage(png, 'PNG', x, y, cardW, cardH, undefined, 'FAST');
     }
 
-    const target = studioTemplateTarget || 'student';
-    docPdf.save(`Fest-${target.toUpperCase()}-ID-Cards-${Date.now()}.pdf`);
+    const typeFilter = document.getElementById('studio-filter-type')?.value || 'all';
+    const targetStr = typeFilter === 'all' ? (studioTemplateTarget || 'all') : typeFilter;
+    docPdf.save(`Fest-${targetStr.toUpperCase()}-ID-Cards-${Date.now()}.pdf`);
     window.showToast(`Downloaded ${members.length} ID cards successfully!`);
 };
 
@@ -5981,21 +6157,33 @@ window.saveStudioTemplate = async () => {
 };
 
 window.initStudioView = () => {
-    // Populate Target Teams
+    const pTypesRaw = festSetup?.participantTypes || ['student'];
+    const pTypes = [...new Set(['student', ...pTypesRaw.map(p => String(p).toLowerCase())])];
+    const defs = typeof normalizeParticipantTypeDefinitions === 'function'
+        ? normalizeParticipantTypeDefinitions(festSetup?.participantTypeDefinitions, festSetup?.studentFields)
+        : [];
+
+    // 1. Populate Template Target in Designer Sub-bar
+    const targetSelect = document.getElementById('studio-template-target');
+    if (targetSelect) {
+        const curTarget = studioTemplateTarget || 'student';
+        targetSelect.innerHTML = pTypes.map(key => {
+            const def = defs.find(d => (d.key || '').toLowerCase() === key.toLowerCase());
+            const label = def?.label || (key.charAt(0).toUpperCase() + key.slice(1));
+            return `<option value="${escapeHtml(key)}" ${key === curTarget ? 'selected' : ''}>${escapeHtml(label)} Template</option>`;
+        }).join('');
+    }
+
+    // 2. Populate Target Teams in Print Filters
     const teamFilter = document.getElementById('studio-filter-team');
     const headerTeamSelect = document.getElementById('studio-header-team-select');
-    if (teamFilter) {
-        const curVal = teamFilter.value || 'all';
-        teamFilter.innerHTML = '<option value="all">All Teams</option>' + teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(teamLabel(t))}</option>`).join('');
-        if (teams.includes(curVal)) teamFilter.value = curVal;
-    }
     if (headerTeamSelect) {
         const curVal = headerTeamSelect.value || teams[0] || '';
         headerTeamSelect.innerHTML = teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(teamLabel(t))}</option>`).join('');
         if (teams.includes(curVal)) headerTeamSelect.value = curVal;
     }
 
-    // Populate Categories
+    // 3. Populate Categories in Print Filters
     const catFilter = document.getElementById('studio-filter-category');
     if (catFilter) {
         const curVal = catFilter.value || 'all';
@@ -6003,13 +6191,26 @@ window.initStudioView = () => {
         if (categories.includes(curVal)) catFilter.value = curVal;
     }
 
-    // Populate Participant Types
+    // 4. Populate Participant Types in Print Filters
     const typeFilter = document.getElementById('studio-filter-type');
     if (typeFilter) {
         const curVal = typeFilter.value || 'all';
-        const pTypes = festSetup.participantTypes || ['Student'];
-        typeFilter.innerHTML = '<option value="all">All Participant Types</option>' + pTypes.map(pt => `<option value="${escapeHtml(pt)}">${escapeHtml(pt)}</option>`).join('');
-        if (pTypes.includes(curVal)) typeFilter.value = curVal;
+        typeFilter.innerHTML = '<option value="all">All Participant Types</option>' + pTypes.map(key => {
+            const def = defs.find(d => (d.key || '').toLowerCase() === key.toLowerCase());
+            const label = def?.label || (key.charAt(0).toUpperCase() + key.slice(1));
+            return `<option value="${escapeHtml(key)}" ${key === curVal ? 'selected' : ''}>${escapeHtml(label)} Only</option>`;
+        }).join('');
+    }
+
+    // 5. Adapt Team Filter based on selected participant type
+    window.updateStudioFilterTeamOptions();
+
+    // 6. Ensure active template matches target role
+    const curTarget = studioTemplateTarget || 'student';
+    if (!currentTeamIdTemplate || currentTeamIdTemplate._loadedRole !== curTarget) {
+        const saved = studioTemplatesMap[curTarget];
+        currentTeamIdTemplate = saved ? { ...getRoleDefaultTemplate(curTarget), ...saved } : getRoleDefaultTemplate(curTarget);
+        currentTeamIdTemplate._loadedRole = curTarget;
     }
 
     // Setup input listeners on studio controls once
@@ -6026,19 +6227,27 @@ window.initStudioView = () => {
         const target = e.target.value;
         studioTemplateTarget = target;
         const saved = studioTemplatesMap[target];
-        if (saved) {
-            currentTeamIdTemplate = { ...TEAM_ID_TEMPLATE_DEFAULTS, ...saved };
-        } else {
-            currentTeamIdTemplate = { ...TEAM_ID_TEMPLATE_DEFAULTS };
-        }
+        currentTeamIdTemplate = saved ? { ...getRoleDefaultTemplate(target), ...saved } : getRoleDefaultTemplate(target);
+        currentTeamIdTemplate._loadedRole = target;
         window.syncStudioInspectorUI();
         window.renderStudioCanvas();
     });
 
-    wireChange('studio-filter-team', () => { studioSingleMemberIndex = 0; window.renderStudioCanvas(); });
-    wireChange('studio-filter-category', () => { studioSingleMemberIndex = 0; window.renderStudioCanvas(); });
-    wireChange('studio-filter-type', () => { studioSingleMemberIndex = 0; window.renderStudioCanvas(); });
-    wireChange('studio-filter-participation', () => { studioSingleMemberIndex = 0; window.renderStudioCanvas(); });
+    wireChange('studio-filter-type', () => {
+        window.updateStudioFilterTeamOptions();
+        studioSingleMemberIndex = 0;
+        if (studioViewMode === 'print') window.renderStudioPrintSheets();
+        else window.renderStudioCanvas();
+    });
+
+    ['studio-filter-team', 'studio-filter-category', 'studio-filter-participation'].forEach(id => {
+        wireChange(id, () => {
+            studioSingleMemberIndex = 0;
+            if (studioViewMode === 'print') window.renderStudioPrintSheets();
+            else window.renderStudioCanvas();
+        });
+    });
+
     wireChange('studio-zoom-select', () => window.renderStudioCanvas());
 
     wireChange('studio-member-picker', e => {
@@ -6149,6 +6358,9 @@ window.initStudioView = () => {
     window.renderStudioPropertiesPanel();
     window.renderStudioLayersList();
     window.updateStudioHeaderThumbnail();
+    if (studioViewMode === 'designer') {
+        window.enterStudioFullscreen();
+    }
     window.lucide?.createIcons?.();
 };
 

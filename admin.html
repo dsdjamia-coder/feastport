@@ -81,6 +81,37 @@
             font-size: 0.875rem;
             font-weight: 500;
         }
+        /* ID Cards Studio Fullscreen Mode */
+        #view-id-studio.studio-fullscreen-active {
+            position: fixed !important;
+            inset: 0 !important;
+            z-index: 100 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            margin: 0 !important;
+            padding: 0.75rem 1rem !important;
+            background-color: #f1f5f9 !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        #view-id-studio.studio-fullscreen-active #studio-designer-container {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        #view-id-studio.studio-fullscreen-active .studio-workbench-flex {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+        #view-id-studio.studio-fullscreen-active #studio-canvas-viewport {
+            height: 100%;
+            min-height: 0;
+        }
         .header-wrapper { position: sticky; top: 0; z-index: 40; padding: 16px 16px 0; pointer-events: none; }
         .app-header { pointer-events: auto; height: 64px; display: flex; align-items: center; padding: 0 20px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid rgba(255,255,255,0.5); width: 100%; transition: all 0.3s ease; }
         .header-title { font-size: 18px; font-weight: 800; color: #1e293b; letter-spacing: -0.025em; margin-left: 12px; }
@@ -784,7 +815,7 @@
                 <div id="view-id-studio" class="tab-view max-w-[1700px] mx-auto space-y-4 hidden">
                     <!-- Studio Top Application Header Bar -->
                     <header class="rounded-2xl border border-slate-200 bg-white p-3 md:p-4 shadow-xs space-y-3">
-                        <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div class="flex items-center gap-3">
                                 <div class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-indigo-600 text-white shadow-sm shadow-indigo-500/30">
                                     <i data-lucide="contact" class="h-6 w-6"></i>
@@ -792,86 +823,61 @@
                                 <div>
                                     <h2 class="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
                                         <span>ID Cards Studio</span>
-                                        <span class="rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 text-[10px] font-black uppercase text-indigo-700">Photoshop Free-Form Suite</span>
+                                        <span class="rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 text-[10px] font-black uppercase text-indigo-700">Multi-Role Engine</span>
                                     </h2>
-                                    <p class="text-xs font-semibold text-slate-500">Design, customize, stress-test worst-case layouts, and batch export full-resolution ID cards.</p>
+                                    <p class="text-xs font-semibold text-slate-500">Design custom templates per participant role and batch print production-ready ID card sheets.</p>
                                 </div>
                             </div>
 
-                            <!-- Mode Switcher (Designer vs Print Sheets) -->
-                            <div class="flex flex-wrap items-center gap-2">
-                                <div class="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200">
-                                    <button type="button" data-admin-action="set-studio-view-mode" data-mode="designer" id="btn-studio-mode-designer" class="rounded-lg bg-white text-indigo-700 shadow-xs px-3.5 py-1.5 text-xs font-black transition active:scale-95 flex items-center gap-1.5">
-                                        <i data-lucide="pen-tool" class="h-4 w-4"></i>
-                                        <span>Studio Designer</span>
-                                    </button>
-                                    <button type="button" data-admin-action="set-studio-view-mode" data-mode="print" id="btn-studio-mode-print" class="rounded-lg text-slate-600 hover:text-slate-900 px-3.5 py-1.5 text-xs font-bold transition active:scale-95 flex items-center gap-1.5">
-                                        <i data-lucide="printer" class="h-4 w-4"></i>
-                                        <span>Print Sheets &amp; Export</span>
-                                    </button>
-                                </div>
-
-                                <!-- Stress-Test Persona Toggle Switch -->
-                                <button type="button" data-admin-action="toggle-studio-stresstest" id="btn-studio-toggle-stresstest" class="rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-3.5 py-1.5 text-xs font-black transition active:scale-95 flex items-center gap-1.5 shadow-2xs" title="Stress test design against the longest name and maximum events in festival">
-                                    <i data-lucide="flame" class="h-4 w-4 text-amber-600"></i>
-                                    <span id="label-studio-stresstest">Stress-Test: Normal</span>
+                            <!-- Mode Subtabs Switcher -->
+                            <div class="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200 shadow-inner">
+                                <button type="button" data-admin-action="set-studio-view-mode" data-mode="designer" id="btn-studio-mode-designer" class="rounded-lg bg-white text-indigo-700 shadow-xs px-4 py-2 text-xs font-black transition active:scale-95 flex items-center gap-2">
+                                    <i data-lucide="pen-tool" class="h-4 w-4"></i>
+                                    <span>Studio Designer</span>
                                 </button>
-
-                                <!-- Cloud Save & Batch Export -->
-                                <button type="button" data-admin-action="save-studio-template" id="btn-studio-save-template" class="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-black shadow-sm shadow-emerald-500/20 transition active:scale-95 flex items-center gap-1.5">
-                                    <i data-lucide="save" class="h-4 w-4"></i>
-                                    <span>Save Template</span>
+                                <button type="button" data-admin-action="set-studio-view-mode" data-mode="print" id="btn-studio-mode-print" class="rounded-lg text-slate-600 hover:text-slate-900 px-4 py-2 text-xs font-bold transition active:scale-95 flex items-center gap-2">
+                                    <i data-lucide="printer" class="h-4 w-4"></i>
+                                    <span>Print Sheets &amp; Export</span>
                                 </button>
-                                <button type="button" data-admin-action="download-studio-batch-pdf" id="btn-studio-download-pdf" class="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-xs font-black shadow-sm shadow-indigo-500/20 transition active:scale-95 flex items-center gap-1.5">
-                                    <i data-lucide="file-down" class="h-4 w-4"></i>
-                                    <span>Download PDF</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Target Filters Bar -->
-                        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2.5 pt-2 border-t border-slate-100 items-center">
-                            <div>
-                                <label class="text-[10px] font-black uppercase text-indigo-700 block mb-0.5">Template Target</label>
-                                <select id="studio-template-target" class="w-full rounded-xl border border-indigo-200 bg-indigo-50/40 p-1.5 text-xs font-black text-indigo-950">
-                                    <option value="student" selected>Students Template</option>
-                                    <option value="parent">Parents Template</option>
-                                    <option value="volunteer">Volunteers / Staff Template</option>
-                                    <option value="general">General ID Template</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-black uppercase text-slate-500 block mb-0.5">Target Team</label>
-                                <select id="studio-filter-team" class="w-full rounded-xl border border-slate-300 bg-white p-1.5 text-xs font-bold text-slate-800">
-                                    <option value="all" selected>All Teams</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-black uppercase text-slate-500 block mb-0.5">Target Category</label>
-                                <select id="studio-filter-category" class="w-full rounded-xl border border-slate-300 bg-white p-1.5 text-xs font-bold text-slate-800">
-                                    <option value="all" selected>All Categories</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-black uppercase text-slate-500 block mb-0.5">Participant Type</label>
-                                <select id="studio-filter-type" class="w-full rounded-xl border border-slate-300 bg-white p-1.5 text-xs font-bold text-slate-800">
-                                    <option value="all" selected>All Types</option>
-                                    <option value="Student">Students Only</option>
-                                </select>
-                            </div>
-                            <div class="col-span-2 sm:col-span-4 lg:col-span-1">
-                                <label class="text-[10px] font-black uppercase text-slate-500 block mb-0.5">Participation Filter</label>
-                                <select id="studio-filter-participation" class="w-full rounded-xl border border-slate-300 bg-white p-1.5 text-xs font-bold text-slate-800">
-                                    <option value="all" selected>All Members</option>
-                                    <option value="with_events">With Registered Events</option>
-                                    <option value="without_events">Without Events (ID Only)</option>
-                                </select>
                             </div>
                         </div>
                     </header>
 
                     <!-- WORKSPACE 1: STUDIO DESIGNER MODE -->
-                    <div id="studio-designer-container" class="flex flex-col lg:flex-row gap-4 items-stretch">
+                    <div id="studio-designer-container" class="space-y-4">
+                        <!-- Designer Top Control Sub-Bar -->
+                        <div class="w-full rounded-2xl border border-slate-200 bg-white p-3 shadow-xs flex flex-wrap items-center justify-between gap-3">
+                            <div class="flex flex-wrap items-center gap-3">
+                                <div class="flex items-center gap-2">
+                                    <label class="text-xs font-black uppercase text-indigo-700 tracking-wider">Template For:</label>
+                                    <select id="studio-template-target" class="rounded-xl border border-indigo-300 bg-indigo-50/70 px-3 py-1.5 text-xs font-black text-indigo-950 focus:ring-2 focus:ring-indigo-500 min-w-[180px]">
+                                        <!-- Populated dynamically from Master Setup Participant Types -->
+                                    </select>
+                                </div>
+                                <button type="button" data-admin-action="reset-studio-role-template" id="btn-studio-reset-role-template" class="rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 px-3 py-1.5 text-xs font-bold transition active:scale-95 flex items-center gap-1.5 shadow-2xs" title="Reset this role's template back to its clean default layout">
+                                    <i data-lucide="rotate-ccw" class="h-3.5 w-3.5 text-slate-500"></i>
+                                    <span>Reset to Default</span>
+                                </button>
+                                <button type="button" data-admin-action="toggle-studio-stresstest" id="btn-studio-toggle-stresstest" class="rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-3 py-1.5 text-xs font-black transition active:scale-95 flex items-center gap-1.5 shadow-2xs" title="Stress test against longest participant name & max events in festival">
+                                    <i data-lucide="flame" class="h-3.5 w-3.5 text-amber-600"></i>
+                                    <span id="label-studio-stresstest">Stress-Test: Normal</span>
+                                </button>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <button type="button" data-admin-action="save-studio-template" id="btn-studio-save-template" class="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-black shadow-sm shadow-emerald-500/20 transition active:scale-95 flex items-center gap-1.5">
+                                    <i data-lucide="save" class="h-4 w-4"></i>
+                                    <span>Save Template</span>
+                                </button>
+                                <button type="button" data-admin-action="toggle-studio-fullscreen" id="btn-studio-toggle-fullscreen" class="rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3.5 py-2 text-xs font-black transition active:scale-95 flex items-center gap-1.5 shadow-2xs" title="Toggle Fullscreen Studio View (Esc to exit)">
+                                    <i data-lucide="maximize-2" id="icon-studio-fullscreen" class="h-4 w-4"></i>
+                                    <span id="label-studio-fullscreen">Fullscreen</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 3-Column Studio Workbench -->
+                        <div class="flex flex-col lg:flex-row gap-4 items-stretch studio-workbench-flex">
                         <!-- LEFT COLUMN: CREATIVE TOOLS PALETTE -->
                         <aside class="w-full lg:w-60 shrink-0 bg-white border border-slate-200 rounded-2xl p-3.5 space-y-4 shadow-xs">
                             <!-- Tools Group -->
@@ -1120,14 +1126,47 @@
                                 </div>
                             </div>
                         </aside>
+                        </div>
                     </div>
 
                     <!-- WORKSPACE 2: PRINT SHEETS & BATCH EXPORT MODE -->
                     <div id="studio-print-container" class="space-y-4 hidden">
-                        <!-- Print Sheet Parameters Toolbar -->
-                        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
-                            <div class="grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 items-end">
-                                <label class="text-[11px] font-black uppercase text-slate-500">
+                        <!-- Print Sheets Filter & Output Settings Toolbar -->
+                        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
+                            <!-- Row 1: Target Population Filters -->
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 items-center">
+                                <div>
+                                    <label class="text-[10px] font-black uppercase text-indigo-700 block mb-1">Participant Type</label>
+                                    <select id="studio-filter-type" class="w-full rounded-xl border border-indigo-200 bg-indigo-50/50 p-2 text-xs font-black text-indigo-950">
+                                        <option value="all" selected>All Participant Types</option>
+                                        <!-- Dynamically populated from festSetup.participantTypes -->
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-black uppercase text-slate-500 block mb-1">Target Team</label>
+                                    <select id="studio-filter-team" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                        <option value="all" selected>All Teams</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-black uppercase text-slate-500 block mb-1">Target Category</label>
+                                    <select id="studio-filter-category" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                        <option value="all" selected>All Categories</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-black uppercase text-slate-500 block mb-1">Participation Status</label>
+                                    <select id="studio-filter-participation" class="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
+                                        <option value="all" selected>All Members</option>
+                                        <option value="with_events">With Registered Events</option>
+                                        <option value="without_events">Without Events (ID Badge Only)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Row 2: Print Sheet Layout & Export Parameters -->
+                            <div class="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 pt-3 border-t border-slate-100 items-end">
+                                <label class="text-[10px] font-black uppercase text-slate-500">
                                     Page size
                                     <select id="studio-print-page-size" class="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
                                         <option value="A4">A4</option>
@@ -1135,22 +1174,22 @@
                                         <option value="IN12X18">12×18 inch</option>
                                     </select>
                                 </label>
-                                <label class="text-[11px] font-black uppercase text-slate-500">
+                                <label class="text-[10px] font-black uppercase text-slate-500">
                                     Orientation
                                     <select id="studio-print-orientation" class="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
                                         <option value="portrait">Portrait</option>
                                         <option value="landscape">Landscape</option>
                                     </select>
                                 </label>
-                                <label class="text-[11px] font-black uppercase text-slate-500">
+                                <label class="text-[10px] font-black uppercase text-slate-500">
                                     Gap mm
                                     <input id="studio-print-gap" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
                                 </label>
-                                <label class="text-[11px] font-black uppercase text-slate-500">
+                                <label class="text-[10px] font-black uppercase text-slate-500">
                                     Margin mm
                                     <input id="studio-print-margin" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
                                 </label>
-                                <label class="text-[11px] font-black uppercase text-slate-500">
+                                <label class="text-[10px] font-black uppercase text-slate-500">
                                     Cards / View
                                     <select id="studio-print-limit" class="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800">
                                         <option value="5" selected>5 Cards</option>
@@ -1159,10 +1198,10 @@
                                         <option value="all">All Cards</option>
                                     </select>
                                 </label>
-                                <div class="col-span-2 flex items-center gap-2 justify-end">
-                                    <button type="button" data-admin-action="download-studio-batch-pdf" class="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 text-xs font-black shadow-sm shadow-emerald-500/20 transition active:scale-95 flex items-center gap-2">
+                                <div class="flex items-center">
+                                    <button type="button" data-admin-action="download-studio-batch-pdf" id="btn-studio-download-print-pdf" class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 text-xs font-black shadow-sm shadow-emerald-500/20 transition active:scale-95 flex items-center justify-center gap-2">
                                         <i data-lucide="printer" class="h-4 w-4"></i>
-                                        <span>Download Print PDF</span>
+                                        <span>Download PDF</span>
                                     </button>
                                 </div>
                             </div>
