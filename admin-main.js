@@ -734,6 +734,22 @@ document.addEventListener('click', (event) => {
         'deselect-card-layer': () => window.deselectCardLayer(),
         'move-demo-field': () => window.moveDemographicField(d.field || btn?.dataset?.field, d.dir || btn?.dataset?.dir),
         'toggle-demo-field': () => window.toggleDemographicField(d.field || btn?.dataset?.field),
+        'set-studio-view-mode': () => window.setStudioViewMode(d.mode || btn?.dataset?.mode),
+        'toggle-studio-stresstest': () => window.toggleStudioStressTest(),
+        'save-studio-template': () => window.saveStudioTemplate(),
+        'download-studio-batch-pdf': () => window.downloadStudioBatchPdf(),
+        'studio-set-tool': () => window.setStudioTool(d.tool || btn?.dataset?.tool),
+        'studio-add-text': () => window.addStudioText(),
+        'studio-add-shape': () => window.addStudioShape(d.shape || btn?.dataset?.shape),
+        'studio-add-image-click': () => document.getElementById('studio-custom-image-file')?.click(),
+        'studio-trigger-header-upload': () => document.getElementById('studio-header-file-input')?.click(),
+        'studio-remove-header': () => window.removeStudioHeader(),
+        'studio-toggle-demo': () => window.toggleStudioDemo(d.field || btn?.dataset?.field),
+        'studio-deselect': () => window.deselectStudioElement(),
+        'studio-prev-member': () => window.studioPrevMember(),
+        'studio-next-member': () => window.studioNextMember(),
+        'switch-inspector-tab': () => window.switchInspectorTab(d.tab || btn?.dataset?.tab),
+        'studio-delete-custom-element': () => window.deleteStudioCustomElement(d.id || btn?.dataset?.id),
         'add-custom-landing-link': () => window.addCustomLandingLink(),
         'remove-custom-landing-link': () => window.removeCustomLandingLink(d.index),
         'save-access-user': () => window.saveAccessUser(),
@@ -938,9 +954,9 @@ window.switchTab = (tab) => {
     if(tab==='master-setup')window.switchMasterSection(new URL(location.href).searchParams.get('section')||activeMasterSection,{scroll:false});
     if(window.innerWidth < 768) window.closeSidebar();
 
-    const titles = { 'dashboard': 'Dashboard', 'registrations': 'Registrations', 'students': 'Participants', 'events': 'Events Management', 'schedule': 'Time Schedule', 'config': 'Team Setup', 'master-setup': 'Master Setup', 'access': 'Access Management', 'scoring': 'Scoring Settings', 'judge': 'Judgement Desk', 'public-content': 'Public Page Control & Contents', 'poster-certificate':'Poster & Certificate', 'tv-display': 'TV Display Settings', 'danger': 'Data Reset', 'downloads': 'Downloads', 'guide': 'User Guide' };
+    const titles = { 'dashboard': 'Dashboard', 'registrations': 'Registrations', 'students': 'Participants', 'events': 'Events Management', 'schedule': 'Time Schedule', 'config': 'Team Setup', 'id-studio': 'ID Cards Studio', 'master-setup': 'Master Setup', 'access': 'Access Management', 'scoring': 'Scoring Settings', 'judge': 'Judgement Desk', 'public-content': 'Public Page Control & Contents', 'poster-certificate':'Poster & Certificate', 'tv-display': 'TV Display Settings', 'danger': 'Data Reset', 'downloads': 'Downloads', 'guide': 'User Guide' };
     document.getElementById('page-title').innerText = titles[tab] || 'Admin Panel';const masterActive=tab==='master-setup';document.getElementById('master-header-actions')?.classList.toggle('hidden',!masterActive);document.getElementById('master-header-actions')?.classList.toggle('flex',masterActive);if(!masterActive){document.getElementById('page-context')?.classList.add('hidden');document.getElementById('page-status')?.classList.add('hidden');}
-    if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].border-indigo-600')?.dataset?.downloadTab || document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') { window.populateParticipantTypes?.(); window.switchStudentsSubtab?.(activeStudentsSubtab); window.renderDropdowns?.(); renderStudentTable(); } if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.(); window.switchEventsSubtab?.(activeEventsSubtab); renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') { window.switchScheduleSubtab?.(activeScheduleSubtab); window.renderSchedule(); } if(tab === 'schedule-review') window.renderScheduleReview?.(); if(tab === 'registrations') renderRegList(); if(tab === 'config') { window.switchTeamConfigSubtab?.(activeTeamConfigSubtab); window.renderSetupLists?.(); window.renderChestGrid?.(); } if(tab === 'access') { window.switchAccessSubtab?.(activeAccessSubtab); window.renderAccessManagement?.(); } if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
+    if(tab === 'id-studio') { window.initStudioView?.(); } if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].border-indigo-600')?.dataset?.downloadTab || document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') { window.populateParticipantTypes?.(); window.switchStudentsSubtab?.(activeStudentsSubtab); window.renderDropdowns?.(); renderStudentTable(); } if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.(); window.switchEventsSubtab?.(activeEventsSubtab); renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') { window.switchScheduleSubtab?.(activeScheduleSubtab); window.renderSchedule(); } if(tab === 'schedule-review') window.renderScheduleReview?.(); if(tab === 'registrations') renderRegList(); if(tab === 'config') { window.switchTeamConfigSubtab?.(activeTeamConfigSubtab); window.renderSetupLists?.(); window.renderChestGrid?.(); } if(tab === 'access') { window.switchAccessSubtab?.(activeAccessSubtab); window.renderAccessManagement?.(); } if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
     resetAdminContentScroll();
 };
 
@@ -3545,9 +3561,14 @@ const teamIdMemberEvents = member => {
 
 const TEAM_ID_TEMPLATE_KEY = 'fest_team_id_template_config';
 const TEAM_ID_TEMPLATE_DEFAULTS = {
+    cardW: 90,
+    cardH: 130,
+    cardBg: '#ffffff',
     showHeader: true,
     headerHeight: 180,
+    headerX: 0,
     headerY: 0,
+    headerAngle: 0,
     showWatermark: true,
     watermarkOpacity: 10,
     watermarkSize: 160,
@@ -3559,16 +3580,19 @@ const TEAM_ID_TEMPLATE_DEFAULTS = {
     photoShape: 'circle',
     photoX: 0,
     photoY: 0,
+    photoAngle: 0,
     nameSize: 30,
     nameColor: '#0f172a',
     nameX: 0,
     nameY: 0,
+    nameAngle: 0,
     showChest: true,
     chestStyle: 'number_only',
     chestSize: 44,
     chestColor: '',
     chestX: 0,
     chestY: 0,
+    chestAngle: 0,
     showTeam: true,
     showCategory: true,
     showClass: true,
@@ -3579,13 +3603,26 @@ const TEAM_ID_TEMPLATE_DEFAULTS = {
     valueSize: 17,
     detailsX: 0,
     detailsY: 0,
+    demographics: {
+        team: { show: true, x: 0, y: 0, angle: 0, labelSize: 11, valSize: 17, color: '', style: 'label_value' },
+        category: { show: true, x: 0, y: 0, angle: 0, labelSize: 11, valSize: 17, color: '', style: 'label_value' },
+        class: { show: true, x: 0, y: 0, angle: 0, labelSize: 11, valSize: 17, color: '', style: 'label_value' },
+        gender: { show: true, x: 0, y: 0, angle: 0, labelSize: 11, valSize: 17, color: '', style: 'label_value' },
+        status: { show: true, x: 0, y: 0, angle: 0, labelSize: 11, valSize: 17, color: '#059669', style: 'label_value' }
+    },
     showEvents: true,
+    eventsLayout: 'auto_compact',
     eventsTitle: 'REGISTERED EVENTS',
     eventsTitleSize: 11,
     eventNameSize: 12,
     eventMetaSize: 10,
-    showTime: true,
+    eventsShowCategory: true,
+    eventsShowStage: true,
+    eventsShowDate: false,
+    eventsShowTime: true,
+    eventsX: 0,
     eventsY: 0,
+    eventsAngle: 0,
     showFooter: true,
     footerHeight: 58,
     footerBg: '#000703',
@@ -3595,8 +3632,10 @@ const TEAM_ID_TEMPLATE_DEFAULTS = {
     festBg: '#ffffff',
     festColor: '#0f172a',
     festSize: 12,
+    footerX: 0,
     footerY: 0,
-    cardBg: '#ffffff'
+    footerAngle: 0,
+    customElements: []
 };
 
 const LAYER_TITLES = {
@@ -3611,6 +3650,23 @@ const LAYER_TITLES = {
     base: '9. Card Base Canvas'
 };
 
+const STUDIO_LAYER_TITLES = {
+    header: 'Header Banner',
+    watermark: 'Watermark Background',
+    photo: 'Member Photo',
+    name: 'Student Name',
+    chest: 'Chest Number',
+    demo_team: 'Team Demographic',
+    demo_category: 'Category Demographic',
+    demo_class: 'Class Demographic',
+    demo_gender: 'Gender Demographic',
+    demo_status: 'Status Demographic',
+    details: 'Demographics Block',
+    events: 'Registered Events',
+    footer: 'Bottom Bar & Pill',
+    base: 'Card Canvas Base'
+};
+
 const DEMOGRAPHIC_FIELD_LABELS = {
     team: 'Team Name',
     category: 'Category',
@@ -3618,6 +3674,58 @@ const DEMOGRAPHIC_FIELD_LABELS = {
     gender: 'Gender',
     status: 'Status (Verified)'
 };
+
+function getStressTestPersona() {
+    let longestName = 'Sayyid Muhammad Abdurrahman Al-Bukhari Al-Hasani';
+    let maxLen = 0;
+    const allPeople = [...(students || []), ...(participants || [])];
+    allPeople.forEach(p => {
+        const n = (p.name || '').trim();
+        if (n.length > maxLen) {
+            maxLen = n.length;
+            longestName = n;
+        }
+    });
+
+    let maxEvents = [];
+    let maxCount = 0;
+    allPeople.forEach(p => {
+        const evs = teamIdMemberEvents(p);
+        if (evs.length > maxCount) {
+            maxCount = evs.length;
+            maxEvents = evs;
+        }
+    });
+
+    if (maxEvents.length < 7) {
+        const fallbackEvents = [
+            { name: 'Elocution English (Secondary & Senior)', category: 'General', stage: 'Stage 1 - Main Auditorium', time: '10:30 AM' },
+            { name: 'Classical Vocal Music Solo Competition', category: 'Music', stage: 'Stage 2 - Harmony Hall', time: '11:45 AM' },
+            { name: 'Qur\'an Recitation with Tajweed', category: 'Islamic', stage: 'Stage 3 - Heritage Hall', time: '02:00 PM' },
+            { name: 'Duff Muttu Group Performance', category: 'Traditional', stage: 'Open Ground Stage', time: '03:30 PM' },
+            { name: 'Malayalam Essay Writing', category: 'Literary', stage: 'Exam Hall B', time: '04:15 PM' },
+            { name: 'Water Color Painting Landscape', category: 'Fine Arts', stage: 'Art Gallery', time: '05:00 PM' },
+            { name: 'Pencil Drawing Still Life', category: 'Fine Arts', stage: 'Art Gallery', time: '05:45 PM' },
+            { name: 'Extempore Speech Malayalam', category: 'Literary', stage: 'Stage 1 - Main Auditorium', time: '06:30 PM' }
+        ];
+        maxEvents = [...maxEvents, ...fallbackEvents.slice(maxEvents.length)];
+    }
+
+    const firstTeam = teams[0] || 'Team A';
+    const firstCat = categories[0] || 'Senior Secondary';
+
+    return {
+        id: 'stress_test_worst_case',
+        name: longestName,
+        chestNo: '999',
+        team: firstTeam,
+        category: firstCat,
+        class: 'Grade 12 / Division A',
+        gender: 'Boys',
+        photo: '',
+        stressEvents: maxEvents
+    };
+}
 
 const loadTeamIdTemplate = () => {
     try {
@@ -4126,6 +4234,12 @@ const splitSvgName = name => {
 const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = false) => {
     opts = opts || teamIdOptions();
     tmpl = tmpl || currentTeamIdTemplate || TEAM_ID_TEMPLATE_DEFAULTS;
+
+    // Use Stress-Test Worst-Case Persona if stress test mode is active or member is stress test
+    if (!member || member.id === 'stress_test_worst_case' || (interactive && typeof studioStressTestMode !== 'undefined' && studioStressTestMode)) {
+        member = getStressTestPersona();
+    }
+
     const details = teamIdDetails(member),
           nameLines = splitSvgName(member.name || 'Member'),
           chest = xmlEscape(member.chestNo || ''),
@@ -4135,23 +4249,30 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
           category = xmlEscape(details[1][1]),
           classText = xmlEscape(details[2][1]),
           gender = xmlEscape(details[3][1]),
-          eventsList = teamIdMemberEvents(member);
+          eventsList = member.stressEvents || teamIdMemberEvents(member);
 
     // Calculate aspect ratio and proportional scaling
+    const cardW = Number(tmpl.cardW || opts.cardW || 90);
+    const cardH = Number(tmpl.cardH || opts.cardH || 130);
     const svgW = 600;
-    const svgH = Math.max(760, Math.round(svgW * (opts.cardH / opts.cardW)));
-    const dimScale = Math.min(opts.cardW / 90, opts.cardH / 130);
+    const svgH = Math.max(760, Math.round(svgW * (cardH / cardW)));
+    const dimScale = Math.min(cardW / 90, cardH / 130);
 
     // 1. Header Banner
     const rawHeaderH = tmpl.headerHeight || 180;
     const headerH = tmpl.showHeader !== false ? Math.max(60, Math.round(rawHeaderH * dimScale)) : 0;
+    const headerX = Math.round((tmpl.headerX || 0) * dimScale);
     const headerY = Math.round((tmpl.headerY || 0) * dimScale);
+    const headerAngle = tmpl.headerAngle || 0;
+    const headerTransform = headerAngle !== 0 ? `transform="rotate(${headerAngle} ${300 + headerX} ${headerY + Math.round(headerH / 2)})"` : '';
 
     // 2. Photo
     const photoR = Math.max(38, Math.round((tmpl.photoRadius || 90) * dimScale));
     const photoCenterX = 300 + Math.round((tmpl.photoX || 0) * dimScale);
     const photoCenterY = (headerH > 0 ? headerH - Math.round(photoR * 0.18) : Math.round(photoR * 1.2)) + Math.round((tmpl.photoY || 0) * dimScale);
     const photoShape = tmpl.photoShape || 'circle';
+    const photoAngle = tmpl.photoAngle || 0;
+    const photoTransform = photoAngle !== 0 ? `transform="rotate(${photoAngle} ${photoCenterX} ${photoCenterY})"` : '';
 
     const safeUid = String(member.id || member.chestNo || 'm').replace(/[^a-zA-Z0-9]/g, '_');
     const pw = photoR * 2;
@@ -4190,7 +4311,7 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
     let photoGroupSvg = '';
     if (tmpl.showPhoto !== false) {
         photoGroupSvg = `
-            <g data-card-layer="photo" class="card-layer-group cursor-pointer">
+            <g data-card-layer="photo" class="card-layer-group cursor-pointer" ${photoTransform}>
                 ${photoBorderSvg}
                 ${photoBgSvg}
                 ${photoImgSvg}
@@ -4204,10 +4325,12 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
     const nameX = 300 + Math.round((tmpl.nameX || 0) * dimScale);
     const nameY1 = (tmpl.showPhoto !== false ? photoCenterY + photoR : headerH + 40) + Math.round(nameSize * 1.15) + Math.round((tmpl.nameY || 0) * dimScale);
     const nameY2 = nameY1 + Math.round(nameSize * 0.95);
+    const nameAngle = tmpl.nameAngle || 0;
+    const nameTransform = nameAngle !== 0 ? `transform="rotate(${nameAngle} ${nameX} ${nameY1})"` : '';
     let curY = nameLines.length > 1 ? nameY2 : nameY1;
 
     const nameSvg = `
-        <g data-card-layer="name" class="card-layer-group cursor-pointer" text-anchor="middle" font-family="Arial, sans-serif">
+        <g data-card-layer="name" class="card-layer-group cursor-pointer" text-anchor="middle" font-family="Arial, sans-serif" ${nameTransform}>
             <text x="${nameX}" y="${nameY1}" font-size="${nameSize}" font-weight="900" fill="${xmlEscape(nameColor)}">${xmlEscape(nameLines[0])}</text>
             ${nameLines[1] ? `<text x="${nameX}" y="${nameY2}" font-size="${Math.max(12, Math.round(nameSize * 0.85))}" font-weight="900" fill="${xmlEscape(nameColor)}">${xmlEscape(nameLines[1])}</text>` : ''}
         </g>
@@ -4223,36 +4346,40 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
         chestY = curY + Math.round(chestSize * 0.95) + Math.round((tmpl.chestY || 0) * dimScale);
         const chestStr = tmpl.chestStyle === 'prefix' ? `CHEST: ${chest || '—'}` : (chest || '—');
         const chestFill = tmpl.chestColor || color;
+        const chestAngle = tmpl.chestAngle || 0;
+        const chestTransform = chestAngle !== 0 ? `transform="rotate(${chestAngle} ${chestX} ${chestY})"` : '';
         chestSvg = `
-            <g data-card-layer="chest" class="card-layer-group cursor-pointer" text-anchor="middle">
+            <g data-card-layer="chest" class="card-layer-group cursor-pointer" text-anchor="middle" ${chestTransform}>
                 <text x="${chestX}" y="${chestY}" font-family="Arial, sans-serif" font-size="${chestSize}" font-weight="900" fill="${xmlEscape(chestFill)}" letter-spacing="1">${xmlEscape(chestStr)}</text>
             </g>
         `;
         curY = chestY;
     }
 
-    // 5. Demographics Details
-    const order = Array.isArray(tmpl.detailsOrder) && tmpl.detailsOrder.length
+    // 5. Independent Demographics Badges
+    const demoConfig = tmpl.demographics || {};
+    const defaultOrder = Array.isArray(tmpl.detailsOrder) && tmpl.detailsOrder.length
         ? tmpl.detailsOrder
         : ['team', 'category', 'class', 'gender', 'status'];
 
-    const fieldMap = {
-        team: { show: tmpl.showTeam !== false, label: 'TEAM', val: teamText, color: color },
-        category: { show: tmpl.showCategory !== false, label: 'CATEGORY', val: category },
-        class: { show: tmpl.showClass !== false, label: 'CLASS', val: classText },
-        gender: { show: tmpl.showGender !== false, label: 'GENDER', val: gender },
-        status: { show: tmpl.showStatus !== false, label: 'STATUS', val: 'Verified', color: '#059669' }
+    const fieldDefinitions = {
+        team: { label: 'TEAM', val: teamText, color: color },
+        category: { label: 'CATEGORY', val: category, color: '' },
+        class: { label: 'CLASS', val: classText, color: '' },
+        gender: { label: 'GENDER', val: gender, color: '' },
+        status: { label: 'STATUS', val: 'Verified', color: '#059669' }
     };
 
-    const visibleFields = [];
-    order.forEach(key => {
-        const item = fieldMap[key];
-        if (item && item.show) visibleFields.push(item);
+    const visibleDemoKeys = defaultOrder.filter(key => {
+        if (demoConfig[key] && demoConfig[key].show === false) return false;
+        const legacyShow = tmpl[`show${key.charAt(0).toUpperCase() + key.slice(1)}`];
+        if (legacyShow === false) return false;
+        return true;
     });
 
     let detailsSvg = '';
     let detailsStartCurY = curY;
-    if (visibleFields.length > 0) {
+    if (visibleDemoKeys.length > 0) {
         const lblSize = Math.max(7, Math.round((tmpl.labelSize || 11) * dimScale));
         const valSize = Math.max(10, Math.round((tmpl.valueSize || 17) * dimScale));
         const detailsXShift = Math.round((tmpl.detailsX || 0) * dimScale);
@@ -4261,110 +4388,175 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
         curY += Math.round(lblSize * 1.6) + 10 + detailsYShift;
         detailsStartCurY = curY - Math.round(lblSize * 1.6);
 
-        const row1Count = Math.min(visibleFields.length <= 3 ? visibleFields.length : 3, visibleFields.length);
-        const row1 = visibleFields.slice(0, row1Count);
+        const row1Count = Math.min(visibleDemoKeys.length <= 3 ? visibleDemoKeys.length : 3, visibleDemoKeys.length);
+        const row1Keys = visibleDemoKeys.slice(0, row1Count);
         const baseXs1 = row1Count === 1 ? [300] : (row1Count === 2 ? [190, 410] : [125, 300, 475]);
-        const xs1 = baseXs1.map(x => x + detailsXShift);
 
-        let row1Svg = row1.map((f, i) => `
-            <text x="${xs1[i]}" y="${curY}" font-family="Arial, sans-serif" font-size="${lblSize}" font-weight="900" fill="#94a3b8" letter-spacing="2">${xmlEscape(f.label)}</text>
-            <text x="${xs1[i]}" y="${curY + valSize + 2}" font-family="Arial, sans-serif" font-size="${valSize}" font-weight="900" fill="${f.color ? xmlEscape(f.color) : '#1f2937'}">${xmlEscape(f.val)}</text>
-        `).join('');
+        const renderedBadges = [];
+
+        row1Keys.forEach((key, i) => {
+            const itemDef = fieldDefinitions[key];
+            const itemCfg = demoConfig[key] || {};
+            const posX = (baseXs1[i] + detailsXShift) + Math.round((itemCfg.x || 0) * dimScale);
+            const posY = curY + Math.round((itemCfg.y || 0) * dimScale);
+            const angle = itemCfg.angle || 0;
+            const itemLblSize = itemCfg.labelSize ? Math.max(7, Math.round(itemCfg.labelSize * dimScale)) : lblSize;
+            const itemValSize = itemCfg.valSize ? Math.max(9, Math.round(itemCfg.valSize * dimScale)) : valSize;
+            const valColor = itemCfg.color || itemDef.color || '#1f2937';
+            const transform = angle ? `transform="rotate(${angle} ${posX} ${posY})"` : '';
+
+            renderedBadges.push(`
+                <g data-card-layer="demo_${key}" class="card-layer-group cursor-pointer" text-anchor="middle" ${transform}>
+                    <text x="${posX}" y="${posY}" font-family="Arial, sans-serif" font-size="${itemLblSize}" font-weight="900" fill="#94a3b8" letter-spacing="2">${xmlEscape(itemDef.label)}</text>
+                    <text x="${posX}" y="${posY + itemValSize + 2}" font-family="Arial, sans-serif" font-size="${itemValSize}" font-weight="900" fill="${xmlEscape(valColor)}">${xmlEscape(itemDef.val)}</text>
+                </g>
+            `);
+        });
 
         curY += valSize + 2;
 
-        let row2Svg = '';
-        if (visibleFields.length > 3) {
-            const row2 = visibleFields.slice(3);
-            const baseXs2 = row2.length === 1 ? [300] : [214, 386];
-            const xs2 = baseXs2.map(x => x + detailsXShift);
+        if (visibleDemoKeys.length > 3) {
+            const row2Keys = visibleDemoKeys.slice(3);
+            const baseXs2 = row2Keys.length === 1 ? [300] : [214, 386];
             const row2LblY = curY + Math.round(lblSize * 1.5) + 6;
-            const row2ValY = row2LblY + valSize + 2;
-            row2Svg = row2.map((f, i) => `
-                <text x="${xs2[i]}" y="${row2LblY}" font-family="Arial, sans-serif" font-size="${lblSize}" font-weight="900" fill="#94a3b8" letter-spacing="2">${xmlEscape(f.label)}</text>
-                <text x="${xs2[i]}" y="${row2ValY}" font-family="Arial, sans-serif" font-size="${valSize}" font-weight="900" fill="${f.color ? xmlEscape(f.color) : '#1f2937'}">${xmlEscape(f.val)}</text>
-            `).join('');
-            curY = row2ValY;
+            row2Keys.forEach((key, i) => {
+                const itemDef = fieldDefinitions[key];
+                const itemCfg = demoConfig[key] || {};
+                const posX = (baseXs2[i] + detailsXShift) + Math.round((itemCfg.x || 0) * dimScale);
+                const posY = row2LblY + Math.round((itemCfg.y || 0) * dimScale);
+                const angle = itemCfg.angle || 0;
+                const itemLblSize = itemCfg.labelSize ? Math.max(7, Math.round(itemCfg.labelSize * dimScale)) : lblSize;
+                const itemValSize = itemCfg.valSize ? Math.max(9, Math.round(itemCfg.valSize * dimScale)) : valSize;
+                const valColor = itemCfg.color || itemDef.color || '#1f2937';
+                const transform = angle ? `transform="rotate(${angle} ${posX} ${posY})"` : '';
+
+                renderedBadges.push(`
+                    <g data-card-layer="demo_${key}" class="card-layer-group cursor-pointer" text-anchor="middle" ${transform}>
+                        <text x="${posX}" y="${posY}" font-family="Arial, sans-serif" font-size="${itemLblSize}" font-weight="900" fill="#94a3b8" letter-spacing="2">${xmlEscape(itemDef.label)}</text>
+                        <text x="${posX}" y="${posY + itemValSize + 2}" font-family="Arial, sans-serif" font-size="${itemValSize}" font-weight="900" fill="${xmlEscape(valColor)}">${xmlEscape(itemDef.val)}</text>
+                    </g>
+                `);
+                curY = Math.max(curY, posY + itemValSize + 2);
+            });
         }
 
         detailsSvg = `
-            <g data-card-layer="details" class="card-layer-group cursor-pointer" text-anchor="middle">
-                ${row1Svg}
-                ${row2Svg}
+            <g data-card-layer="details" class="card-layer-group cursor-pointer">
+                ${renderedBadges.join('\n')}
             </g>
         `;
     }
 
     // 6. Footer & Fest Pill Badge
     const footerH = tmpl.showFooter ? (tmpl.footerHeight || 58) : 0;
+    const footerXShift = Math.round((tmpl.footerX || 0) * dimScale);
     const footerYShift = Math.round((tmpl.footerY || 0) * dimScale);
     const footerY = svgH - footerH + footerYShift;
     const footerBg = tmpl.footerBg || '#000703';
     const pillW = Math.min(540, Math.round((tmpl.pillWidth || 320) * dimScale));
     const pillH = Math.min(Math.max(20, footerH - 8), Math.round((tmpl.pillHeight || 34) * dimScale));
     const pillRadius = Math.min(pillH / 2, Math.round((tmpl.pillRadius ?? 17) * dimScale));
-    const pillX = Math.round((600 - pillW) / 2);
+    const pillX = Math.round((600 - pillW) / 2) + footerXShift;
     const pillY = footerY + Math.round((footerH - pillH) / 2);
     const festBg = tmpl.festBg || '#ffffff';
     const festColor = tmpl.festColor || '#0f172a';
     const festSize = Math.max(8, Math.round((tmpl.festSize || 12) * dimScale));
+    const footerAngle = tmpl.footerAngle || 0;
+    const footerTransform = footerAngle !== 0 ? `transform="rotate(${footerAngle} ${300 + footerXShift} ${footerY + Math.round(footerH / 2)})"` : '';
 
     let footerSvg = '';
     if (tmpl.showFooter && footerH > 0) {
         footerSvg = `
-            <g data-card-layer="footer" class="card-layer-group cursor-pointer">
-                <rect y="${footerY}" width="600" height="${footerH}" fill="${xmlEscape(footerBg)}"/>
-                <rect x="420" y="${footerY + 18}" width="180" height="${Math.max(1, footerH - 18)}" fill="${xmlEscape(color)}"/>
-                <path d="M520 ${footerY}h52l28 ${footerH}H548z" fill="#ffffff"/>
+            <g data-card-layer="footer" class="card-layer-group cursor-pointer" ${footerTransform}>
+                <rect x="${footerXShift}" y="${footerY}" width="600" height="${footerH}" fill="${xmlEscape(footerBg)}"/>
+                <rect x="${420 + footerXShift}" y="${footerY + 18}" width="180" height="${Math.max(1, footerH - 18)}" fill="${xmlEscape(color)}"/>
+                <path d="M${520 + footerXShift} ${footerY}h52l28 ${footerH}h-52z" fill="#ffffff"/>
                 <rect x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="${pillRadius}" fill="${xmlEscape(festBg)}" opacity=".96"/>
-                <text x="300" y="${pillY + Math.round(pillH / 2) + Math.round(festSize * 0.35)}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${festSize}" font-weight="900" fill="${xmlEscape(festColor)}" letter-spacing="2">${fest.toUpperCase()}</text>
+                <text x="${300 + footerXShift}" y="${pillY + Math.round(pillH / 2) + Math.round(festSize * 0.35)}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${festSize}" font-weight="900" fill="${xmlEscape(festColor)}" letter-spacing="2">${fest.toUpperCase()}</text>
             </g>
         `;
     }
 
-    // 7. Registered Events
+    // 7. Registered Events (Zero Truncation - Full Comprehensive Listing)
     let eventsSvg = '';
     let evBoxY = curY + 16;
     let evBoxH = 70;
-    if (tmpl.showEvents) {
+    if (tmpl.showEvents !== false) {
+        const eventsXShift = Math.round((tmpl.eventsX || 0) * dimScale);
         const eventsYShift = Math.round((tmpl.eventsY || 0) * dimScale);
+        const eventsAngle = tmpl.eventsAngle || 0;
         evBoxY = curY + 16 + eventsYShift;
         evBoxH = Math.max(70, (footerY - 12) - evBoxY);
         const titleSize = Math.max(8, Math.round((tmpl.eventsTitleSize || 11) * dimScale));
-        const evNameSize = Math.max(9, Math.round((tmpl.eventNameSize || 12) * dimScale));
-        const evMetaSize = Math.max(8, Math.round((tmpl.eventMetaSize || 10) * dimScale));
-        const rowH = Math.max(26, tmpl.showTime ? (evNameSize + evMetaSize + 12) : (evNameSize + 12));
-        const maxRows = Math.max(1, Math.floor((evBoxH - titleSize - 20) / rowH));
-        const showMore = eventsList.length > maxRows;
-        const displayCount = showMore ? maxRows - 1 : Math.min(eventsList.length, maxRows);
-        const displayList = eventsList.slice(0, displayCount);
-        const remaining = eventsList.length - displayCount;
+        const evNameSize = Math.max(8, Math.round((tmpl.eventNameSize || 12) * dimScale));
+        const evMetaSize = Math.max(7, Math.round((tmpl.eventMetaSize || 10) * dimScale));
         const cleanTitle = (tmpl.eventsTitle || 'REGISTERED EVENTS').trim().toUpperCase();
 
+        const showCat = tmpl.eventsShowCategory !== false;
+        const showStage = tmpl.eventsShowStage !== false;
+        const showDate = !!tmpl.eventsShowDate;
+        const showTime = tmpl.eventsShowTime !== false;
+
+        const layoutMode = tmpl.eventsLayout || 'auto_compact';
+        const isTwoCol = layoutMode === 'two_column' || (layoutMode === 'auto_compact' && eventsList.length >= 4);
+        const eventsTransform = eventsAngle !== 0 ? `transform="rotate(${eventsAngle} ${300 + eventsXShift} ${evBoxY + Math.round(evBoxH / 2)})"` : '';
+
         eventsSvg = `
-            <g data-card-layer="events" class="card-layer-group cursor-pointer">
-                <text x="52" y="${evBoxY + titleSize}" font-family="Arial, sans-serif" font-size="${titleSize}" font-weight="900" fill="#475569" letter-spacing="1.5">${xmlEscape(cleanTitle)}</text>
-                <line x1="50" y1="${evBoxY + titleSize + 8}" x2="550" y2="${evBoxY + titleSize + 8}" stroke="#e2e8f0" stroke-width="1.2"/>
+            <g data-card-layer="events" class="card-layer-group cursor-pointer" ${eventsTransform}>
+                <text x="${52 + eventsXShift}" y="${evBoxY + titleSize}" font-family="Arial, sans-serif" font-size="${titleSize}" font-weight="900" fill="#475569" letter-spacing="1.5">${xmlEscape(cleanTitle)}</text>
+                <line x1="${50 + eventsXShift}" y1="${evBoxY + titleSize + 8}" x2="${550 + eventsXShift}" y2="${evBoxY + titleSize + 8}" stroke="#e2e8f0" stroke-width="1.2"/>
         `;
 
         if (!eventsList.length) {
-            eventsSvg += `<text x="300" y="${evBoxY + titleSize + 36}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${Math.max(10, Math.round(12 * dimScale))}" font-weight="600" fill="#94a3b8">No registered events</text>`;
-        } else {
-            eventsSvg += displayList.map((ev, i) => {
-                const itemY = evBoxY + titleSize + 26 + (i * rowH);
-                const truncName = ev.name.length > 25 ? ev.name.slice(0, 24) + '…' : ev.name;
+            eventsSvg += `<text x="${300 + eventsXShift}" y="${evBoxY + titleSize + 36}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${Math.max(10, Math.round(12 * dimScale))}" font-weight="600" fill="#94a3b8">No registered events</text>`;
+        } else if (isTwoCol) {
+            // High capacity 2-column grid layout (left col: 52 to 292, right col: 308 to 548)
+            const half = Math.ceil(eventsList.length / 2);
+            const col1 = eventsList.slice(0, half);
+            const col2 = eventsList.slice(half);
+            const rowH = Math.max(18, Math.min(34, Math.floor((evBoxH - titleSize - 16) / Math.max(col1.length, 1))));
+
+            const dividerBottom = evBoxY + titleSize + 16 + (Math.max(col1.length, col2.length) * rowH);
+            eventsSvg += `<line x1="${300 + eventsXShift}" y1="${evBoxY + titleSize + 12}" x2="${300 + eventsXShift}" y2="${dividerBottom}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3"/>`;
+
+            const renderCol = (list, startX, endX) => list.map((ev, i) => {
+                const itemY = evBoxY + titleSize + 18 + (i * rowH);
+                const truncName = ev.name.length > 20 ? ev.name.slice(0, 19) + '…' : ev.name;
+                const metaParts = [];
+                if (showCat && ev.category) metaParts.push(ev.category);
+                if (showStage && ev.stage) metaParts.push(ev.stage);
+                if (showDate && ev.date) metaParts.push(ev.date);
+                if (showTime && ev.time) metaParts.push(ev.time);
+                const metaStr = metaParts.join(' • ');
+
                 return `
-                    <circle cx="56" cy="${itemY - Math.round(evNameSize * 0.3)}" r="${Math.max(2.5, Math.round(3.5 * dimScale))}" fill="${xmlEscape(color)}"/>
-                    <text x="68" y="${itemY}" font-family="Arial, sans-serif" font-size="${evNameSize}" font-weight="700" fill="#0f172a">${xmlEscape(truncName)}</text>
-                    <text x="548" y="${itemY - (tmpl.showTime && ev.time ? 2 : 0)}" text-anchor="end" font-family="Arial, sans-serif" font-size="${evMetaSize}" font-weight="700" fill="#475569">${xmlEscape(ev.category)} • ${xmlEscape(ev.stage)}</text>
-                    ${tmpl.showTime && ev.time ? `<text x="548" y="${itemY + evMetaSize + 2}" text-anchor="end" font-family="Arial, sans-serif" font-size="${Math.max(7, evMetaSize - 1)}" font-weight="600" fill="#64748b">${xmlEscape(ev.time)}</text>` : ''}
+                    <circle cx="${startX + 4}" cy="${itemY - Math.round(evNameSize * 0.3)}" r="${Math.max(2, Math.round(2.8 * dimScale))}" fill="${xmlEscape(color)}"/>
+                    <text x="${startX + 12}" y="${itemY}" font-family="Arial, sans-serif" font-size="${evNameSize}" font-weight="700" fill="#0f172a">${xmlEscape(truncName)}</text>
+                    ${metaStr ? `<text x="${endX}" y="${itemY}" text-anchor="end" font-family="Arial, sans-serif" font-size="${evMetaSize}" font-weight="600" fill="#64748b">${xmlEscape(metaStr.length > 22 ? metaStr.slice(0, 21) + '…' : metaStr)}</text>` : ''}
                 `;
             }).join('');
 
-            if (showMore) {
-                const moreY = evBoxY + titleSize + 26 + (displayCount * rowH);
-                eventsSvg += `<text x="300" y="${moreY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${Math.max(9, Math.round(10.5 * dimScale))}" font-weight="800" fill="${xmlEscape(color)}">+ ${remaining} MORE EVENT${remaining > 1 ? 'S' : ''}</text>`;
-            }
+            eventsSvg += renderCol(col1, 52 + eventsXShift, 292 + eventsXShift);
+            eventsSvg += renderCol(col2, 308 + eventsXShift, 548 + eventsXShift);
+        } else {
+            // Single column layout with row height scaled to fit all events without truncation
+            const rowH = Math.max(20, Math.min(38, Math.floor((evBoxH - titleSize - 16) / Math.max(eventsList.length, 1))));
+            eventsSvg += eventsList.map((ev, i) => {
+                const itemY = evBoxY + titleSize + 22 + (i * rowH);
+                const truncName = ev.name.length > 28 ? ev.name.slice(0, 27) + '…' : ev.name;
+                const metaParts = [];
+                if (showCat && ev.category) metaParts.push(ev.category);
+                if (showStage && ev.stage) metaParts.push(ev.stage);
+                if (showDate && ev.date) metaParts.push(ev.date);
+                if (showTime && ev.time) metaParts.push(ev.time);
+                const metaStr = metaParts.join(' • ');
+
+                return `
+                    <circle cx="${56 + eventsXShift}" cy="${itemY - Math.round(evNameSize * 0.3)}" r="${Math.max(2.5, Math.round(3.5 * dimScale))}" fill="${xmlEscape(color)}"/>
+                    <text x="${68 + eventsXShift}" y="${itemY}" font-family="Arial, sans-serif" font-size="${evNameSize}" font-weight="700" fill="#0f172a">${xmlEscape(truncName)}</text>
+                    ${metaStr ? `<text x="${548 + eventsXShift}" y="${itemY}" text-anchor="end" font-family="Arial, sans-serif" font-size="${evMetaSize}" font-weight="700" fill="#475569">${xmlEscape(metaStr)}</text>` : ''}
+                `;
+            }).join('');
         }
 
         eventsSvg += `</g>`;
@@ -4393,15 +4585,109 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
     let headerGroupSvg = '';
     if (tmpl.showHeader !== false && headerH > 0) {
         headerGroupSvg = `
-            <g data-card-layer="header" class="card-layer-group cursor-pointer">
-                <rect y="${headerY}" width="600" height="${headerH}" fill="#000703"/>
-                ${header ? `<image href="${xmlEscape(header)}" x="0" y="${headerY}" width="600" height="${headerH}" preserveAspectRatio="xMidYMid slice"/>` : ''}
+            <g data-card-layer="header" class="card-layer-group cursor-pointer" ${headerTransform}>
+                <rect x="${headerX}" y="${headerY}" width="600" height="${headerH}" fill="#000703"/>
+                ${header ? `<image href="${xmlEscape(header)}" x="${headerX}" y="${headerY}" width="600" height="${headerH}" preserveAspectRatio="xMidYMid slice"/>` : ''}
                 ${!header && logo ? `
-                    <rect x="36" y="${headerY + 32}" width="76" height="76" rx="0" fill="#ffffff" opacity=".96"/>
-                    <image href="${xmlEscape(logo)}" x="44" y="${headerY + 40}" width="60" height="60" preserveAspectRatio="xMidYMid meet"/>
+                    <rect x="${36 + headerX}" y="${headerY + 32}" width="76" height="76" rx="0" fill="#ffffff" opacity=".96"/>
+                    <image href="${xmlEscape(logo)}" x="${44 + headerX}" y="${headerY + 40}" width="60" height="60" preserveAspectRatio="xMidYMid meet"/>
                 ` : ''}
             </g>
         `;
+    }
+
+    // 10. Custom Elements (Shapes, Extra Texts, Logos, Badges)
+    let customElementsSvg = '';
+    if (Array.isArray(tmpl.customElements) && tmpl.customElements.length) {
+        customElementsSvg = tmpl.customElements.map(el => {
+            if (!el || el.show === false) return '';
+            const x = Math.round((el.x || 0) * dimScale);
+            const y = Math.round((el.y || 0) * dimScale);
+            const angle = el.angle || 0;
+            const op = el.opacity !== undefined ? el.opacity : 1;
+
+            if (el.type === 'text') {
+                const fSize = Math.max(8, Math.round((el.fontSize || 16) * dimScale));
+                const transform = angle ? `transform="rotate(${angle} ${x} ${y})"` : '';
+                return `
+                    <g data-card-layer="${el.id}" class="card-layer-group cursor-pointer" ${transform}>
+                        <text x="${x}" y="${y}" font-family="Arial, sans-serif" font-size="${fSize}" font-weight="${el.fontWeight || 'bold'}" fill="${xmlEscape(el.color || '#0f172a')}" opacity="${op}">${xmlEscape(el.text || 'Text')}</text>
+                    </g>
+                `;
+            }
+            if (el.type === 'rect') {
+                const w = Math.round((el.width || 100) * dimScale);
+                const h = Math.round((el.height || 60) * dimScale);
+                const rx = Math.round((el.rx || 0) * dimScale);
+                const transform = angle ? `transform="rotate(${angle} ${x + w/2} ${y + h/2})"` : '';
+                return `
+                    <g data-card-layer="${el.id}" class="card-layer-group cursor-pointer" ${transform}>
+                        <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${xmlEscape(el.fill || '#4f46e5')}" stroke="${xmlEscape(el.stroke || '#312e81')}" stroke-width="${el.strokeWidth || 0}" opacity="${op}"/>
+                    </g>
+                `;
+            }
+            if (el.type === 'circle') {
+                const r = Math.round((el.r || 30) * dimScale);
+                const transform = angle ? `transform="rotate(${angle} ${x} ${y})"` : '';
+                return `
+                    <g data-card-layer="${el.id}" class="card-layer-group cursor-pointer" ${transform}>
+                        <circle cx="${x}" cy="${y}" r="${r}" fill="${xmlEscape(el.fill || '#4f46e5')}" stroke="${xmlEscape(el.stroke || '#312e81')}" stroke-width="${el.strokeWidth || 0}" opacity="${op}"/>
+                    </g>
+                `;
+            }
+            if (el.type === 'triangle') {
+                const s = Math.round((el.size || 40) * dimScale);
+                const pts = `${x},${y - s} ${x - s},${y + s} ${x + s},${y + s}`;
+                const transform = angle ? `transform="rotate(${angle} ${x} ${y})"` : '';
+                return `
+                    <g data-card-layer="${el.id}" class="card-layer-group cursor-pointer" ${transform}>
+                        <polygon points="${pts}" fill="${xmlEscape(el.fill || '#f59e0b')}" stroke="${xmlEscape(el.stroke || '#b45309')}" stroke-width="${el.strokeWidth || 0}" opacity="${op}"/>
+                    </g>
+                `;
+            }
+            if (el.type === 'star') {
+                const rOuter = Math.round((el.size || 35) * dimScale);
+                const rInner = Math.round(rOuter * 0.45);
+                const pts = [];
+                for (let i = 0; i < 10; i++) {
+                    const r = i % 2 === 0 ? rOuter : rInner;
+                    const a = (i * Math.PI / 5) - (Math.PI / 2);
+                    pts.push(`${x + r * Math.cos(a)},${y + r * Math.sin(a)}`);
+                }
+                const transform = angle ? `transform="rotate(${angle} ${x} ${y})"` : '';
+                return `
+                    <g data-card-layer="${el.id}" class="card-layer-group cursor-pointer" ${transform}>
+                        <polygon points="${pts.join(' ')}" fill="${xmlEscape(el.fill || '#f59e0b')}" stroke="${xmlEscape(el.stroke || '#b45309')}" stroke-width="${el.strokeWidth || 0}" opacity="${op}"/>
+                    </g>
+                `;
+            }
+            if (el.type === 'polygon') {
+                const r = Math.round((el.size || 40) * dimScale);
+                const pts = [];
+                const sides = el.sides || 6;
+                for (let i = 0; i < sides; i++) {
+                    const a = (i * 2 * Math.PI / sides) - (Math.PI / 2);
+                    pts.push(`${x + r * Math.cos(a)},${y + r * Math.sin(a)}`);
+                }
+                const transform = angle ? `transform="rotate(${angle} ${x} ${y})"` : '';
+                return `
+                    <g data-card-layer="${el.id}" class="card-layer-group cursor-pointer" ${transform}>
+                        <polygon points="${pts.join(' ')}" fill="${xmlEscape(el.fill || '#6366f1')}" stroke="${xmlEscape(el.stroke || '#4338ca')}" stroke-width="${el.strokeWidth || 0}" opacity="${op}"/>
+                    </g>
+                `;
+            }
+            if (el.type === 'image') {
+                const w = Math.round((el.width || 80) * dimScale);
+                const h = Math.round((el.height || 80) * dimScale);
+                const transform = angle ? `transform="rotate(${angle} ${x + w/2} ${y + h/2})"` : '';
+                return `
+                    <g data-card-layer="${el.id}" class="card-layer-group cursor-pointer" ${transform}>
+                        <image href="${xmlEscape(el.src)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet" opacity="${op}"/>
+                    </g>
+                `;
+            }
+            return '';
+        }).filter(Boolean).join('\n');
     }
 
     // Card Base Canvas
@@ -4410,20 +4696,49 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
     // Interactive Selection Box
     let selectionOverlay = '';
     if (interactive && activeCardLayer) {
-        const bboxes = {
-            header: { x: 0, y: headerY, w: 600, h: Math.max(20, headerH) },
-            watermark: { x: Math.max(6, baseWmX - 80), y: Math.max(60, baseWmY - wmSize), w: 200, h: wmSize + 20 },
-            photo: { x: photoCenterX - photoR - 8, y: photoCenterY - photoR - 8, w: (photoR + 8) * 2, h: (photoR + 8) * 2 },
-            name: { x: 40, y: nameY1 - nameSize - 6, w: 520, h: nameLines.length > 1 ? (nameY2 - nameY1 + nameSize + 14) : (nameSize + 16) },
-            chest: { x: 80, y: chestY - chestSize - 4, w: 440, h: chestSize + 16 },
-            details: { x: 30, y: detailsStartCurY, w: 540, h: Math.max(40, curY - detailsStartCurY + 12) },
-            events: { x: 36, y: evBoxY, w: 528, h: Math.max(60, evBoxH) },
-            footer: { x: 0, y: footerY, w: 600, h: Math.max(20, footerH) },
-            base: { x: 4, y: 4, w: 592, h: svgH - 8 }
-        };
-        const b = bboxes[activeCardLayer];
+        let b = null;
+        let layerTitle = STUDIO_LAYER_TITLES[activeCardLayer] || LAYER_TITLES[activeCardLayer] || activeCardLayer;
+
+        const customEl = (tmpl.customElements || []).find(el => el.id === activeCardLayer);
+        if (customEl) {
+            layerTitle = `Custom: ${(customEl.type || 'layer').toUpperCase()}`;
+            const x = Math.round((customEl.x || 0) * dimScale);
+            const y = Math.round((customEl.y || 0) * dimScale);
+            if (customEl.type === 'rect') b = { x, y, w: Math.round((customEl.width || 100) * dimScale), h: Math.round((customEl.height || 60) * dimScale) };
+            else if (customEl.type === 'circle') { const r = Math.round((customEl.r || 30) * dimScale); b = { x: x - r, y: y - r, w: r * 2, h: r * 2 }; }
+            else if (customEl.type === 'triangle' || customEl.type === 'star' || customEl.type === 'polygon') {
+                const s = Math.round((customEl.size || 40) * dimScale);
+                b = { x: x - s, y: y - s, w: s * 2, h: s * 2 };
+            }
+            else if (customEl.type === 'text') {
+                const fs = Math.round((customEl.fontSize || 16) * dimScale);
+                const tw = Math.max(60, (customEl.text || '').length * fs * 0.6);
+                b = { x, y: y - fs, w: tw, h: fs * 1.3 };
+            }
+            else if (customEl.type === 'image') {
+                b = { x, y, w: Math.round((customEl.width || 80) * dimScale), h: Math.round((customEl.height || 80) * dimScale) };
+            }
+        } else if (activeCardLayer.startsWith('demo_')) {
+            const demoKey = activeCardLayer.replace('demo_', '');
+            layerTitle = `Demo: ${demoKey.toUpperCase()}`;
+            const cfg = (tmpl.demographics || {})[demoKey] || {};
+            b = { x: Math.max(20, 200 + Math.round((cfg.x || 0) * dimScale)), y: Math.max(100, curY - 40 + Math.round((cfg.y || 0) * dimScale)), w: 180, h: 42 };
+        } else {
+            const bboxes = {
+                header: { x: headerX, y: headerY, w: 600, h: Math.max(20, headerH) },
+                watermark: { x: Math.max(6, baseWmX - 80), y: Math.max(60, baseWmY - wmSize), w: 200, h: wmSize + 20 },
+                photo: { x: photoCenterX - photoR - 8, y: photoCenterY - photoR - 8, w: (photoR + 8) * 2, h: (photoR + 8) * 2 },
+                name: { x: 40, y: nameY1 - nameSize - 6, w: 520, h: nameLines.length > 1 ? (nameY2 - nameY1 + nameSize + 14) : (nameSize + 16) },
+                chest: { x: 80, y: chestY - chestSize - 4, w: 440, h: chestSize + 16 },
+                details: { x: 30, y: detailsStartCurY, w: 540, h: Math.max(40, curY - detailsStartCurY + 12) },
+                events: { x: 36, y: evBoxY, w: 528, h: Math.max(60, evBoxH) },
+                footer: { x: footerXShift, y: footerY, w: 600, h: Math.max(20, footerH) },
+                base: { x: 4, y: 4, w: 592, h: svgH - 8 }
+            };
+            b = bboxes[activeCardLayer];
+        }
+
         if (b) {
-            const layerTitle = LAYER_TITLES[activeCardLayer] || activeCardLayer;
             selectionOverlay = `
                 <g id="canvas-selection-box" pointer-events="none">
                     <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="rgba(99, 102, 241, 0.08)" stroke="#4f46e5" stroke-width="2.5" stroke-dasharray="6,4" rx="4"/>
@@ -4431,7 +4746,9 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
                     <rect x="${b.x + b.w - 5}" y="${b.y - 5}" width="10" height="10" fill="#ffffff" stroke="#4f46e5" stroke-width="2.5"/>
                     <rect x="${b.x - 5}" y="${b.y + b.h - 5}" width="10" height="10" fill="#ffffff" stroke="#4f46e5" stroke-width="2.5"/>
                     <rect x="${b.x + b.w - 5}" y="${b.y + b.h - 5}" width="10" height="10" fill="#ffffff" stroke="#4f46e5" stroke-width="2.5"/>
-                    <rect x="${b.x}" y="${Math.max(6, b.y - 24)}" width="${Math.min(240, Math.max(110, layerTitle.length * 8.5))}" height="22" rx="5" fill="#4f46e5"/>
+                    <circle cx="${b.x + b.w/2}" cy="${b.y - 18}" r="5" fill="#4f46e5" stroke="#ffffff" stroke-width="2"/>
+                    <line x1="${b.x + b.w/2}" y1="${b.y}" x2="${b.x + b.w/2}" y2="${b.y - 13}" stroke="#4f46e5" stroke-width="1.5"/>
+                    <rect x="${b.x}" y="${Math.max(6, b.y - 24)}" width="${Math.min(260, Math.max(110, layerTitle.length * 8.5))}" height="22" rx="5" fill="#4f46e5"/>
                     <text x="${b.x + 8}" y="${Math.max(6, b.y - 24) + 15}" font-family="Arial, sans-serif" font-size="11" font-weight="900" fill="#ffffff">${xmlEscape(layerTitle)}</text>
                 </g>
             `;
@@ -4463,6 +4780,7 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
   ${detailsSvg}
   ${eventsSvg}
   ${footerSvg}
+  ${customElementsSvg}
   ${selectionOverlay}
 </g>
 </svg>`;
@@ -4490,7 +4808,161 @@ const svgToPng = svg => new Promise((resolve, reject) => {
     image.src = dataUrlForSvg(svg);
 });
 
-function bindCardCanvasInteraction(svgEl) {
+// ============================================================================
+// ID CARDS STUDIO: PHOTOSHOP ENGINE & BATCH EXPORT CONTROLLER
+// ============================================================================
+let studioViewMode = 'designer';
+let studioStressTestMode = false;
+let studioActiveTool = 'select';
+let studioSingleMemberIndex = 0;
+let studioTemplateTarget = 'student';
+let studioTemplatesMap = {};
+let studioPrintCurrentPage = 1;
+
+window.getFilteredStudioMembers = () => {
+    const teamFilter = document.getElementById('studio-filter-team')?.value || 'all';
+    const catFilter = document.getElementById('studio-filter-category')?.value || 'all';
+    const typeFilter = document.getElementById('studio-filter-type')?.value || 'all';
+    const partFilter = document.getElementById('studio-filter-participation')?.value || 'all';
+
+    let all = [];
+    if (teamFilter === 'all') {
+        teams.forEach(t => { all.push(...teamIdMembers(t)); });
+    } else {
+        all = teamIdMembers(teamFilter);
+    }
+
+    // Filter by Category
+    if (catFilter !== 'all') {
+        all = all.filter(m => (m.category || '') === catFilter);
+    }
+
+    // Filter by Participant Type
+    if (typeFilter !== 'all') {
+        all = all.filter(m => (m.source || m.participantType || 'Student') === typeFilter);
+    }
+
+    // Filter by Participation
+    if (partFilter === 'with_events') {
+        all = all.filter(m => teamIdMemberEvents(m).length > 0);
+    } else if (partFilter === 'without_events') {
+        all = all.filter(m => teamIdMemberEvents(m).length === 0);
+    }
+
+    return all;
+};
+
+window.syncStudioInspectorUI = () => {
+    const tmpl = currentTeamIdTemplate;
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    const setChecked = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
+
+    setVal('studio-card-width', tmpl.cardW || 90);
+    setVal('studio-card-height', tmpl.cardH || 130);
+    setVal('studio-card-bg', tmpl.cardBg || '#ffffff');
+
+    setVal('studio-events-layout', tmpl.eventsLayout || 'auto_compact');
+    setVal('studio-events-title', tmpl.eventsTitle || 'REGISTERED EVENTS');
+    setVal('studio-events-title-size', tmpl.eventsTitleSize ?? 11);
+    setVal('studio-events-name-size', tmpl.eventNameSize ?? 12);
+    setVal('studio-events-meta-size', tmpl.eventMetaSize ?? 10);
+    setChecked('studio-events-show-cat', tmpl.eventsShowCategory !== false);
+    setChecked('studio-events-show-stage', tmpl.eventsShowStage !== false);
+    setChecked('studio-events-show-date', !!tmpl.eventsShowDate);
+    setChecked('studio-events-show-time', tmpl.eventsShowTime !== false);
+
+    const demo = tmpl.demographics || {};
+    setChecked('chk-demo-team', demo.team ? demo.team.show !== false : tmpl.showTeam !== false);
+    setChecked('chk-demo-category', demo.category ? demo.category.show !== false : tmpl.showCategory !== false);
+    setChecked('chk-demo-class', demo.class ? demo.class.show !== false : tmpl.showClass !== false);
+    setChecked('chk-demo-gender', demo.gender ? demo.gender.show !== false : tmpl.showGender !== false);
+    setChecked('chk-demo-status', demo.status ? demo.status.show !== false : tmpl.showStatus !== false);
+
+    const badge = document.getElementById('studio-dimension-badge');
+    const previewDims = document.getElementById('studio-card-preview-dims');
+    const dimText = `${tmpl.cardW || 90} × ${tmpl.cardH || 130} mm`;
+    if (badge) badge.textContent = dimText;
+    if (previewDims) previewDims.textContent = dimText;
+};
+
+window.renderStudioCanvas = () => {
+    const stage = document.getElementById('studio-canvas-stage');
+    if (!stage) return;
+
+    const filtered = window.getFilteredStudioMembers();
+    let previewMember = null;
+
+    if (studioStressTestMode) {
+        previewMember = getStressTestPersona();
+    } else if (filtered.length > 0) {
+        if (studioSingleMemberIndex >= filtered.length) studioSingleMemberIndex = 0;
+        if (studioSingleMemberIndex < 0) studioSingleMemberIndex = 0;
+        previewMember = filtered[studioSingleMemberIndex];
+    }
+
+    const previewNameEl = document.getElementById('studio-card-preview-name');
+    if (previewNameEl) {
+        previewNameEl.textContent = studioStressTestMode
+            ? 'Worst-Case Persona (Stress-Test Active)'
+            : (previewMember ? `${previewMember.name || 'Member'} (#${previewMember.chestNo || '—'})` : 'No Members Match Filters');
+    }
+
+    const picker = document.getElementById('studio-member-picker');
+    if (picker) {
+        if (studioStressTestMode) {
+            picker.innerHTML = '<option value="-1">Stress-Test: Worst-Case Data</option>';
+            picker.disabled = true;
+        } else {
+            picker.disabled = filtered.length <= 1;
+            picker.innerHTML = filtered.length ? filtered.map((m, idx) => `
+                <option value="${idx}" ${idx === studioSingleMemberIndex ? 'selected' : ''}>
+                    ${idx + 1}. ${escapeHtml(m.name || 'Member')} ${m.chestNo ? `(#${m.chestNo})` : ''}
+                </option>
+            `).join('') : '<option value="">No members</option>';
+        }
+    }
+
+    const prevBtn = document.getElementById('btn-studio-prev-member');
+    const nextBtn = document.getElementById('btn-studio-next-member');
+    if (prevBtn) prevBtn.disabled = studioStressTestMode || filtered.length <= 1;
+    if (nextBtn) nextBtn.disabled = studioStressTestMode || filtered.length <= 1;
+
+    if (!previewMember && !studioStressTestMode) {
+        stage.innerHTML = `<div class="rounded-xl border border-dashed border-slate-300 p-8 text-center text-xs font-bold text-slate-400">No members match the selected filters. Change team, category or type filters above.</div>`;
+        return;
+    }
+
+    const team = previewMember.team || teams[0] || 'Team A';
+    const color = teamColors[team] || '#4f46e5';
+    const header = teamIdCardHeaders[team] || '';
+    const logo = teamLogos[team] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '';
+    const opts = {
+        cardW: Number(currentTeamIdTemplate.cardW || 90),
+        cardH: Number(currentTeamIdTemplate.cardH || 130)
+    };
+
+    const cardWrapper = document.getElementById('studio-canvas-card-wrapper');
+    if (cardWrapper) {
+        const zoomVal = document.getElementById('studio-zoom-select')?.value || 'fit';
+        let zoomClass = 'w-full max-w-[440px]';
+        if (zoomVal === '75') zoomClass = 'w-[320px] shrink-0';
+        else if (zoomVal === '100') zoomClass = 'w-[420px] shrink-0';
+        else if (zoomVal === '125') zoomClass = 'w-[520px] shrink-0';
+        else if (zoomVal === '150') zoomClass = 'w-[620px] shrink-0';
+        cardWrapper.className = `${zoomClass} rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden transition-all duration-200`;
+    }
+
+    stage.innerHTML = `
+        <div style="width: 100%; aspect-ratio: ${opts.cardW} / ${opts.cardH};" class="shadow-lg overflow-hidden bg-white select-none relative">
+            ${teamIdSvg(previewMember, team, color, header, logo, opts, currentTeamIdTemplate, true)}
+        </div>
+    `;
+
+    bindStudioCanvasInteraction(document.getElementById('team-id-card-svg'));
+    window.updateStudioHeaderThumbnail();
+};
+
+function bindStudioCanvasInteraction(svgEl) {
     if (!svgEl) return;
     let isDragging = false;
     let startClientX = 0;
@@ -4500,67 +4972,68 @@ function bindCardCanvasInteraction(svgEl) {
 
     const getLayerOffset = key => {
         const tmpl = currentTeamIdTemplate;
+        if (key.startsWith('demo_')) {
+            const field = key.replace('demo_', '');
+            const cfg = tmpl.demographics?.[field] || {};
+            return { x: cfg.x || 0, y: cfg.y || 0 };
+        }
+        const customEl = (tmpl.customElements || []).find(el => el.id === key);
+        if (customEl) {
+            return { x: customEl.x || 0, y: customEl.y || 0 };
+        }
         switch (key) {
-            case 'header': return { x: 0, y: tmpl.headerY || 0 };
+            case 'header': return { x: tmpl.headerX || 0, y: tmpl.headerY || 0 };
             case 'watermark': return { x: tmpl.watermarkX || 0, y: tmpl.watermarkY || 0 };
             case 'photo': return { x: tmpl.photoX || 0, y: tmpl.photoY || 0 };
             case 'name': return { x: tmpl.nameX || 0, y: tmpl.nameY || 0 };
             case 'chest': return { x: tmpl.chestX || 0, y: tmpl.chestY || 0 };
             case 'details': return { x: tmpl.detailsX || 0, y: tmpl.detailsY || 0 };
-            case 'events': return { x: 0, y: tmpl.eventsY || 0 };
-            case 'footer': return { x: 0, y: tmpl.footerY || 0 };
+            case 'events': return { x: tmpl.eventsX || 0, y: tmpl.eventsY || 0 };
+            case 'footer': return { x: tmpl.footerX || 0, y: tmpl.footerY || 0 };
             default: return { x: 0, y: 0 };
         }
     };
 
     const setLayerOffset = (key, x, y) => {
         const tmpl = currentTeamIdTemplate;
-        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-        switch (key) {
-            case 'header':
-                tmpl.headerY = y;
-                setVal('team-id-tmpl-header-y', y);
-                break;
-            case 'watermark':
-                tmpl.watermarkX = x; tmpl.watermarkY = y;
-                setVal('team-id-tmpl-watermark-x', x); setVal('team-id-tmpl-watermark-y', y);
-                break;
-            case 'photo':
-                tmpl.photoX = x; tmpl.photoY = y;
-                setVal('team-id-tmpl-photo-x', x); setVal('team-id-tmpl-photo-y', y);
-                break;
-            case 'name':
-                tmpl.nameX = x; tmpl.nameY = y;
-                setVal('team-id-tmpl-name-x', x); setVal('team-id-tmpl-name-y', y);
-                break;
-            case 'chest':
-                tmpl.chestX = x; tmpl.chestY = y;
-                setVal('team-id-tmpl-chest-x', x); setVal('team-id-tmpl-chest-y', y);
-                break;
-            case 'details':
-                tmpl.detailsX = x; tmpl.detailsY = y;
-                setVal('team-id-tmpl-details-x', x); setVal('team-id-tmpl-details-y', y);
-                break;
-            case 'events':
-                tmpl.eventsY = y;
-                setVal('team-id-tmpl-events-y', y);
-                break;
-            case 'footer':
-                tmpl.footerY = y;
-                setVal('team-id-tmpl-footer-y', y);
-                break;
+        if (key.startsWith('demo_')) {
+            const field = key.replace('demo_', '');
+            if (!tmpl.demographics) tmpl.demographics = {};
+            if (!tmpl.demographics[field]) tmpl.demographics[field] = { show: true, x: 0, y: 0, angle: 0 };
+            tmpl.demographics[field].x = x;
+            tmpl.demographics[field].y = y;
+        } else {
+            const customEl = (tmpl.customElements || []).find(el => el.id === key);
+            if (customEl) {
+                customEl.x = x;
+                customEl.y = y;
+            } else {
+                switch (key) {
+                    case 'header': tmpl.headerX = x; tmpl.headerY = y; break;
+                    case 'watermark': tmpl.watermarkX = x; tmpl.watermarkY = y; break;
+                    case 'photo': tmpl.photoX = x; tmpl.photoY = y; break;
+                    case 'name': tmpl.nameX = x; tmpl.nameY = y; break;
+                    case 'chest': tmpl.chestX = x; tmpl.chestY = y; break;
+                    case 'details': tmpl.detailsX = x; tmpl.detailsY = y; break;
+                    case 'events': tmpl.eventsX = x; tmpl.eventsY = y; break;
+                    case 'footer': tmpl.footerX = x; tmpl.footerY = y; break;
+                }
+            }
         }
-        updateCoordBadges(tmpl);
+        const posXInput = document.getElementById('inspector-prop-x');
+        const posYInput = document.getElementById('inspector-prop-y');
+        if (posXInput && activeCardLayer === key) posXInput.value = x;
+        if (posYInput && activeCardLayer === key) posYInput.value = y;
     };
 
     svgEl.addEventListener('pointerdown', e => {
         const targetLayerEl = e.target.closest('[data-card-layer]');
         if (!targetLayerEl) {
-            window.setActiveCardLayer(null);
+            window.setStudioActiveLayer(null);
             return;
         }
         draggedLayer = targetLayerEl.getAttribute('data-card-layer');
-        window.setActiveCardLayer(draggedLayer, true);
+        window.setStudioActiveLayer(draggedLayer);
         isDragging = true;
         startClientX = e.clientX;
         startClientY = e.clientY;
@@ -4595,7 +5068,7 @@ function bindCardCanvasInteraction(svgEl) {
             isDragging = false;
             draggedLayer = null;
             saveTeamIdTemplate(currentTeamIdTemplate);
-            window.renderTeamIdPreview();
+            window.renderStudioCanvas();
         }
     };
 
@@ -4603,21 +5076,1092 @@ function bindCardCanvasInteraction(svgEl) {
     svgEl.addEventListener('pointercancel', finishDrag);
 }
 
+window.bindCardCanvasInteraction = bindStudioCanvasInteraction;
+
+window.setStudioActiveLayer = layerKey => {
+    activeCardLayer = layerKey;
+    const indicator = document.getElementById('studio-selected-layer-name');
+    const deselectBtn = document.getElementById('btn-studio-deselect');
+    const title = layerKey
+        ? (STUDIO_LAYER_TITLES[layerKey] || ((currentTeamIdTemplate.customElements || []).find(el => el.id === layerKey)?.type?.toUpperCase() || layerKey))
+        : 'Click canvas element to edit';
+
+    if (indicator) indicator.textContent = title;
+    if (deselectBtn) deselectBtn.classList.toggle('hidden', !layerKey);
+
+    window.renderStudioPropertiesPanel();
+    window.renderStudioLayersList();
+    window.renderStudioCanvas();
+};
+
+window.renderStudioPropertiesPanel = () => {
+    const container = document.getElementById('inspector-panel-props');
+    if (!container) return;
+
+    if (!activeCardLayer) {
+        container.innerHTML = `
+            <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center text-xs font-semibold text-slate-500 space-y-2">
+                <i data-lucide="mouse-pointer-click" class="mx-auto h-8 w-8 text-slate-300"></i>
+                <p class="font-bold text-slate-700">No element selected</p>
+                <p>Click on any text, photo, banner, shape, or demographic badge on the card canvas to customize its position, rotation, font, and colors.</p>
+            </div>
+        `;
+        window.lucide?.createIcons?.();
+        return;
+    }
+
+    const key = activeCardLayer;
+    const tmpl = currentTeamIdTemplate;
+    const title = STUDIO_LAYER_TITLES[key] || ((tmpl.customElements || []).find(el => el.id === key)?.type?.toUpperCase() || key);
+    const customEl = (tmpl.customElements || []).find(el => el.id === key);
+    const isDemo = key.startsWith('demo_');
+    const demoKey = isDemo ? key.replace('demo_', '') : '';
+    const demoCfg = isDemo ? (tmpl.demographics?.[demoKey] || {}) : null;
+
+    let posX = 0, posY = 0, angle = 0;
+    if (customEl) {
+        posX = customEl.x || 0;
+        posY = customEl.y || 0;
+        angle = customEl.angle || 0;
+    } else if (isDemo) {
+        posX = demoCfg.x || 0;
+        posY = demoCfg.y || 0;
+        angle = demoCfg.angle || 0;
+    } else {
+        posX = tmpl[key + 'X'] || 0;
+        posY = tmpl[key + 'Y'] || 0;
+        angle = tmpl[key + 'Angle'] || (key === 'watermark' ? (tmpl.watermarkAngle ?? -90) : 0);
+    }
+
+    let extraFields = '';
+
+    if (customEl) {
+        if (customEl.type === 'text') {
+            extraFields = `
+                <div>
+                    <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Text Content</label>
+                    <input id="inspector-text-val" type="text" value="${escapeHtml(customEl.text || '')}" class="w-full rounded-lg border border-slate-300 p-1.5 text-xs font-bold text-slate-800">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Font Size</label>
+                        <input id="inspector-prop-size" type="number" min="8" max="72" value="${customEl.fontSize || 16}" class="w-full rounded-lg border border-slate-300 p-1.5 text-xs font-bold text-slate-800">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Text Color</label>
+                        <input id="inspector-prop-color" type="color" value="${customEl.color || '#0f172a'}" class="h-8 w-full rounded-lg border border-slate-300 p-0.5 cursor-pointer">
+                    </div>
+                </div>
+            `;
+        } else if (customEl.type === 'rect') {
+            extraFields = `
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="text-[9px] font-bold uppercase text-slate-400 block mb-1">Width</label>
+                        <input id="inspector-rect-w" type="number" min="10" max="600" value="${customEl.width || 100}" class="w-full rounded-lg border border-slate-300 p-1 text-xs font-bold text-slate-800">
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-bold uppercase text-slate-400 block mb-1">Height</label>
+                        <input id="inspector-rect-h" type="number" min="10" max="800" value="${customEl.height || 60}" class="w-full rounded-lg border border-slate-300 p-1 text-xs font-bold text-slate-800">
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-bold uppercase text-slate-400 block mb-1">Radius</label>
+                        <input id="inspector-rect-rx" type="number" min="0" max="100" value="${customEl.rx || 0}" class="w-full rounded-lg border border-slate-300 p-1 text-xs font-bold text-slate-800">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Fill Color</label>
+                        <input id="inspector-prop-fill" type="color" value="${customEl.fill || '#4f46e5'}" class="h-8 w-full rounded-lg border border-slate-300 p-0.5 cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Stroke Color</label>
+                        <input id="inspector-prop-stroke" type="color" value="${customEl.stroke || '#312e81'}" class="h-8 w-full rounded-lg border border-slate-300 p-0.5 cursor-pointer">
+                    </div>
+                </div>
+            `;
+        } else if (customEl.type === 'circle' || customEl.type === 'triangle' || customEl.type === 'star' || customEl.type === 'polygon') {
+            extraFields = `
+                <div>
+                    <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Radius / Size</label>
+                    <input id="inspector-shape-size" type="number" min="5" max="300" value="${customEl.r || customEl.size || 35}" class="w-full rounded-lg border border-slate-300 p-1.5 text-xs font-bold text-slate-800">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Fill Color</label>
+                        <input id="inspector-prop-fill" type="color" value="${customEl.fill || '#4f46e5'}" class="h-8 w-full rounded-lg border border-slate-300 p-0.5 cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Stroke Color</label>
+                        <input id="inspector-prop-stroke" type="color" value="${customEl.stroke || '#312e81'}" class="h-8 w-full rounded-lg border border-slate-300 p-0.5 cursor-pointer">
+                    </div>
+                </div>
+            `;
+        } else if (customEl.type === 'image') {
+            extraFields = `
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Width</label>
+                        <input id="inspector-img-w" type="number" min="20" max="600" value="${customEl.width || 80}" class="w-full rounded-lg border border-slate-300 p-1.5 text-xs font-bold text-slate-800">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Height</label>
+                        <input id="inspector-img-h" type="number" min="20" max="600" value="${customEl.height || 80}" class="w-full rounded-lg border border-slate-300 p-1.5 text-xs font-bold text-slate-800">
+                    </div>
+                </div>
+            `;
+        }
+    } else if (key === 'photo') {
+        extraFields = `
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Radius (Size)</label>
+                    <input id="inspector-photo-radius" type="number" min="30" max="180" value="${tmpl.photoRadius ?? 90}" class="w-full rounded-lg border border-slate-300 p-1.5 text-xs font-bold text-slate-800">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Shape</label>
+                    <select id="inspector-photo-shape" class="w-full rounded-lg border border-slate-300 p-1.5 text-xs font-bold text-slate-800">
+                        <option value="circle" ${tmpl.photoShape === 'circle' ? 'selected' : ''}>Circle</option>
+                        <option value="square" ${tmpl.photoShape === 'square' ? 'selected' : ''}>Square</option>
+                        <option value="rounded" ${tmpl.photoShape === 'rounded' ? 'selected' : ''}>Rounded</option>
+                    </select>
+                </div>
+            </div>
+        `;
+    } else if (key === 'name') {
+        extraFields = `
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Font Size</label>
+                    <input id="inspector-name-size" type="number" min="14" max="60" value="${tmpl.nameSize ?? 30}" class="w-full rounded-lg border border-slate-300 p-1.5 text-xs font-bold text-slate-800">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Color</label>
+                    <input id="inspector-name-color" type="color" value="${tmpl.nameColor || '#0f172a'}" class="h-8 w-full rounded-lg border border-slate-300 p-0.5 cursor-pointer">
+                </div>
+            </div>
+        `;
+    } else if (key === 'chest') {
+        extraFields = `
+            <div class="grid grid-cols-3 gap-2">
+                <div>
+                    <label class="text-[9px] font-bold uppercase text-slate-400 block mb-1">Font Size</label>
+                    <input id="inspector-chest-size" type="number" min="18" max="90" value="${tmpl.chestSize ?? 44}" class="w-full rounded-lg border border-slate-300 p-1 text-xs font-bold text-slate-800">
+                </div>
+                <div>
+                    <label class="text-[9px] font-bold uppercase text-slate-400 block mb-1">Style</label>
+                    <select id="inspector-chest-style" class="w-full rounded-lg border border-slate-300 p-1 text-xs font-bold text-slate-800">
+                        <option value="number_only" ${tmpl.chestStyle === 'number_only' ? 'selected' : ''}>Number</option>
+                        <option value="prefix" ${tmpl.chestStyle === 'prefix' ? 'selected' : ''}>Prefix</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[9px] font-bold uppercase text-slate-400 block mb-1">Color</label>
+                    <input id="inspector-chest-color" type="color" value="${tmpl.chestColor || '#4f46e5'}" class="h-7 w-full rounded-lg border border-slate-300 p-0.5 cursor-pointer">
+                </div>
+            </div>
+        `;
+    } else if (key === 'header') {
+        extraFields = `
+            <div>
+                <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Banner Height (px)</label>
+                <input id="inspector-header-h" type="number" min="60" max="350" value="${tmpl.headerHeight ?? 180}" class="w-full rounded-lg border border-slate-300 p-1.5 text-xs font-bold text-slate-800">
+            </div>
+        `;
+    } else if (key === 'watermark') {
+        extraFields = `
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Watermark Size</label>
+                    <input id="inspector-watermark-size" type="number" min="50" max="350" value="${tmpl.watermarkSize ?? 160}" class="w-full rounded-lg border border-slate-300 p-1.5 text-xs font-bold text-slate-800">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Opacity (%)</label>
+                    <input id="inspector-watermark-opacity" type="number" min="1" max="100" value="${tmpl.watermarkOpacity ?? 10}" class="w-full rounded-lg border border-slate-300 p-1.5 text-xs font-bold text-slate-800">
+                </div>
+            </div>
+        `;
+    } else if (isDemo) {
+        extraFields = `
+            <div class="grid grid-cols-3 gap-2">
+                <div>
+                    <label class="text-[9px] font-bold uppercase text-slate-400 block mb-1">Label Size</label>
+                    <input id="inspector-demo-lbl-size" type="number" min="7" max="24" value="${demoCfg.labelSize || tmpl.labelSize || 11}" class="w-full rounded-lg border border-slate-300 p-1 text-xs font-bold text-slate-800">
+                </div>
+                <div>
+                    <label class="text-[9px] font-bold uppercase text-slate-400 block mb-1">Value Size</label>
+                    <input id="inspector-demo-val-size" type="number" min="9" max="32" value="${demoCfg.valSize || tmpl.valueSize || 17}" class="w-full rounded-lg border border-slate-300 p-1 text-xs font-bold text-slate-800">
+                </div>
+                <div>
+                    <label class="text-[9px] font-bold uppercase text-slate-400 block mb-1">Color</label>
+                    <input id="inspector-demo-color" type="color" value="${demoCfg.color || '#1f2937'}" class="h-7 w-full rounded-lg border border-slate-300 p-0.5 cursor-pointer">
+                </div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = `
+        <div class="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3 space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-indigo-950 uppercase tracking-wider">${escapeHtml(title)}</span>
+                ${customEl ? `<button type="button" data-admin-action="studio-delete-custom-element" data-id="${customEl.id}" class="text-rose-600 hover:text-rose-800 text-xs font-bold flex items-center gap-1"><i data-lucide="trash-2" class="h-3.5 w-3.5"></i><span>Delete</span></button>` : ''}
+            </div>
+
+            <!-- Position & Geometry -->
+            <div class="space-y-2 pt-1 border-t border-indigo-100">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">X Position</label>
+                        <input id="inspector-prop-x" type="number" value="${posX}" class="w-full rounded-lg border border-slate-300 bg-white p-1.5 text-xs font-bold text-slate-800">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Y Position</label>
+                        <input id="inspector-prop-y" type="number" value="${posY}" class="w-full rounded-lg border border-slate-300 bg-white p-1.5 text-xs font-bold text-slate-800">
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-[10px] font-bold uppercase text-slate-500">Rotation Angle</label>
+                        <span id="inspector-angle-display" class="font-mono text-[10px] font-bold text-indigo-700">${angle}°</span>
+                    </div>
+                    <input id="inspector-prop-angle" type="range" min="-180" max="180" value="${angle}" class="w-full accent-indigo-600 cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Custom Type Fields -->
+            ${extraFields ? `<div class="space-y-2 pt-2 border-t border-indigo-100">${extraFields}</div>` : ''}
+        </div>
+    `;
+
+    // Bind event listeners for real-time updates
+    const propX = document.getElementById('inspector-prop-x');
+    const propY = document.getElementById('inspector-prop-y');
+    const propAngle = document.getElementById('inspector-prop-angle');
+
+    const updateCoords = () => {
+        const nx = Number(propX?.value) || 0;
+        const ny = Number(propY?.value) || 0;
+        const na = Number(propAngle?.value) || 0;
+        const angleDisp = document.getElementById('inspector-angle-display');
+        if (angleDisp) angleDisp.textContent = `${na}°`;
+
+        if (customEl) {
+            customEl.x = nx; customEl.y = ny; customEl.angle = na;
+        } else if (isDemo) {
+            if (!tmpl.demographics) tmpl.demographics = {};
+            if (!tmpl.demographics[demoKey]) tmpl.demographics[demoKey] = { show: true };
+            tmpl.demographics[demoKey].x = nx;
+            tmpl.demographics[demoKey].y = ny;
+            tmpl.demographics[demoKey].angle = na;
+        } else {
+            tmpl[key + 'X'] = nx;
+            tmpl[key + 'Y'] = ny;
+            tmpl[key + 'Angle'] = na;
+            if (key === 'watermark') tmpl.watermarkAngle = na;
+        }
+        saveTeamIdTemplate(tmpl);
+        window.renderStudioCanvas();
+    };
+
+    [propX, propY, propAngle].forEach(el => {
+        if (el) {
+            el.addEventListener('input', updateCoords);
+            el.addEventListener('change', updateCoords);
+        }
+    });
+
+    // Custom text value
+    const textVal = document.getElementById('inspector-text-val');
+    if (textVal && customEl) {
+        textVal.addEventListener('input', () => {
+            customEl.text = textVal.value;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+
+    // Custom size / radius
+    const shapeSize = document.getElementById('inspector-shape-size');
+    if (shapeSize && customEl) {
+        shapeSize.addEventListener('input', () => {
+            const v = Number(shapeSize.value) || 30;
+            if (customEl.type === 'circle') customEl.r = v;
+            else customEl.size = v;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+
+    // Photo radius & shape
+    const pRadius = document.getElementById('inspector-photo-radius');
+    const pShape = document.getElementById('inspector-photo-shape');
+    if (pRadius) {
+        pRadius.addEventListener('input', () => {
+            tmpl.photoRadius = Number(pRadius.value) || 90;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+    if (pShape) {
+        pShape.addEventListener('change', () => {
+            tmpl.photoShape = pShape.value;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+
+    // Name size & color
+    const nSize = document.getElementById('inspector-name-size');
+    const nColor = document.getElementById('inspector-name-color');
+    if (nSize) {
+        nSize.addEventListener('input', () => {
+            tmpl.nameSize = Number(nSize.value) || 30;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+    if (nColor) {
+        nColor.addEventListener('input', () => {
+            tmpl.nameColor = nColor.value;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+
+    // Chest size, style, color
+    const cSize = document.getElementById('inspector-chest-size');
+    const cStyle = document.getElementById('inspector-chest-style');
+    const cColor = document.getElementById('inspector-chest-color');
+    if (cSize) {
+        cSize.addEventListener('input', () => {
+            tmpl.chestSize = Number(cSize.value) || 44;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+    if (cStyle) {
+        cStyle.addEventListener('change', () => {
+            tmpl.chestStyle = cStyle.value;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+    if (cColor) {
+        cColor.addEventListener('input', () => {
+            tmpl.chestColor = cColor.value;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+
+    // Header height
+    const hHeight = document.getElementById('inspector-header-h');
+    if (hHeight) {
+        hHeight.addEventListener('input', () => {
+            tmpl.headerHeight = Number(hHeight.value) || 180;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+
+    // Watermark size & opacity
+    const wmSize = document.getElementById('inspector-watermark-size');
+    const wmOp = document.getElementById('inspector-watermark-opacity');
+    if (wmSize) {
+        wmSize.addEventListener('input', () => {
+            tmpl.watermarkSize = Number(wmSize.value) || 160;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+    if (wmOp) {
+        wmOp.addEventListener('input', () => {
+            tmpl.watermarkOpacity = Number(wmOp.value) || 10;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+
+    // Demographic font sizes & color
+    const dLbl = document.getElementById('inspector-demo-lbl-size');
+    const dVal = document.getElementById('inspector-demo-val-size');
+    const dCol = document.getElementById('inspector-demo-color');
+    if (dLbl && isDemo) {
+        dLbl.addEventListener('input', () => {
+            if (!tmpl.demographics[demoKey]) tmpl.demographics[demoKey] = {};
+            tmpl.demographics[demoKey].labelSize = Number(dLbl.value) || 11;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+    if (dVal && isDemo) {
+        dVal.addEventListener('input', () => {
+            if (!tmpl.demographics[demoKey]) tmpl.demographics[demoKey] = {};
+            tmpl.demographics[demoKey].valSize = Number(dVal.value) || 17;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+    if (dCol && isDemo) {
+        dCol.addEventListener('input', () => {
+            if (!tmpl.demographics[demoKey]) tmpl.demographics[demoKey] = {};
+            tmpl.demographics[demoKey].color = dCol.value;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+        });
+    }
+
+    window.lucide?.createIcons?.();
+};
+
+window.renderStudioLayersList = () => {
+    const container = document.getElementById('inspector-panel-layers');
+    if (!container) return;
+
+    const tmpl = currentTeamIdTemplate;
+    const baseLayers = [
+        { key: 'header', title: 'Header Banner', icon: 'image', show: tmpl.showHeader !== false },
+        { key: 'watermark', title: 'Watermark Chest', icon: 'sparkles', show: tmpl.showWatermark !== false },
+        { key: 'photo', title: 'Member Photo', icon: 'camera', show: tmpl.showPhoto !== false },
+        { key: 'name', title: 'Student Name', icon: 'type', show: true },
+        { key: 'chest', title: 'Chest Number', icon: 'hash', show: tmpl.showChest !== false },
+        { key: 'demo_team', title: 'Demographic: Team', icon: 'flag', show: tmpl.demographics?.team ? tmpl.demographics.team.show !== false : tmpl.showTeam !== false },
+        { key: 'demo_category', title: 'Demographic: Category', icon: 'tag', show: tmpl.demographics?.category ? tmpl.demographics.category.show !== false : tmpl.showCategory !== false },
+        { key: 'demo_class', title: 'Demographic: Class', icon: 'book', show: tmpl.demographics?.class ? tmpl.demographics.class.show !== false : tmpl.showClass !== false },
+        { key: 'demo_gender', title: 'Demographic: Gender', icon: 'users', show: tmpl.demographics?.gender ? tmpl.demographics.gender.show !== false : tmpl.showGender !== false },
+        { key: 'demo_status', title: 'Demographic: Status', icon: 'check-circle-2', show: tmpl.demographics?.status ? tmpl.demographics.status.show !== false : tmpl.showStatus !== false },
+        { key: 'events', title: 'Registered Events', icon: 'calendar', show: tmpl.showEvents !== false },
+        { key: 'footer', title: 'Bottom Bar & Pill', icon: 'layers', show: tmpl.showFooter !== false }
+    ];
+
+    const customLayers = (tmpl.customElements || []).map(el => ({
+        key: el.id,
+        title: `Custom: ${el.type.toUpperCase()}`,
+        icon: el.type === 'text' ? 'type' : (el.type === 'image' ? 'image' : 'square'),
+        show: el.show !== false,
+        isCustom: true
+    }));
+
+    const allLayers = [...baseLayers, ...customLayers];
+
+    container.innerHTML = allLayers.map(layer => {
+        const isSelected = activeCardLayer === layer.key;
+        return `
+            <div class="flex items-center justify-between p-2 rounded-xl border transition ${isSelected ? 'border-indigo-500 bg-indigo-50/70 shadow-xs' : 'border-slate-200 bg-white hover:bg-slate-50'}">
+                <button type="button" onclick="window.setStudioActiveLayer('${layer.key}')" class="flex items-center gap-2 flex-1 text-left select-none">
+                    <i data-lucide="${layer.icon}" class="h-4 w-4 ${isSelected ? 'text-indigo-600' : 'text-slate-400'}"></i>
+                    <span class="text-xs font-bold ${isSelected ? 'text-indigo-950 font-black' : 'text-slate-700'}">${escapeHtml(layer.title)}</span>
+                </button>
+                <div class="flex items-center gap-1">
+                    <button type="button" onclick="window.toggleStudioLayerVisibility('${layer.key}')" class="rounded-lg p-1 text-slate-400 hover:text-indigo-600 transition" title="Toggle visibility">
+                        <i data-lucide="${layer.show ? 'eye' : 'eye-off'}" class="h-3.5 w-3.5"></i>
+                    </button>
+                    ${layer.isCustom ? `
+                        <button type="button" data-admin-action="studio-delete-custom-element" data-id="${layer.key}" class="rounded-lg p-1 text-slate-400 hover:text-rose-600 transition" title="Delete custom layer">
+                            <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    window.lucide?.createIcons?.();
+};
+
+window.toggleStudioLayerVisibility = layerKey => {
+    const tmpl = currentTeamIdTemplate;
+    if (layerKey.startsWith('demo_')) {
+        const field = layerKey.replace('demo_', '');
+        if (!tmpl.demographics) tmpl.demographics = {};
+        if (!tmpl.demographics[field]) tmpl.demographics[field] = { show: true };
+        tmpl.demographics[field].show = tmpl.demographics[field].show === false;
+    } else {
+        const customEl = (tmpl.customElements || []).find(el => el.id === layerKey);
+        if (customEl) {
+            customEl.show = customEl.show === false;
+        } else {
+            const map = {
+                header: 'showHeader', watermark: 'showWatermark', photo: 'showPhoto',
+                chest: 'showChest', events: 'showEvents', footer: 'showFooter'
+            };
+            if (map[layerKey]) tmpl[map[layerKey]] = tmpl[map[layerKey]] === false;
+        }
+    }
+    saveTeamIdTemplate(tmpl);
+    window.renderStudioLayersList();
+    window.renderStudioCanvas();
+};
+
+window.setStudioViewMode = mode => {
+    studioViewMode = mode === 'print' ? 'print' : 'designer';
+    const designerCont = document.getElementById('studio-designer-container');
+    const printCont = document.getElementById('studio-print-container');
+    const btnDesigner = document.getElementById('btn-studio-mode-designer');
+    const btnPrint = document.getElementById('btn-studio-mode-print');
+
+    const isDesigner = studioViewMode === 'designer';
+    if (designerCont) designerCont.classList.toggle('hidden', !isDesigner);
+    if (printCont) printCont.classList.toggle('hidden', isDesigner);
+
+    if (btnDesigner) {
+        btnDesigner.className = isDesigner
+            ? 'rounded-lg bg-white text-indigo-700 shadow-xs px-3.5 py-1.5 text-xs font-black transition active:scale-95 flex items-center gap-1.5'
+            : 'rounded-lg text-slate-600 hover:text-slate-900 px-3.5 py-1.5 text-xs font-bold transition active:scale-95 flex items-center gap-1.5';
+    }
+    if (btnPrint) {
+        btnPrint.className = !isDesigner
+            ? 'rounded-lg bg-white text-indigo-700 shadow-xs px-3.5 py-1.5 text-xs font-black transition active:scale-95 flex items-center gap-1.5'
+            : 'rounded-lg text-slate-600 hover:text-slate-900 px-3.5 py-1.5 text-xs font-bold transition active:scale-95 flex items-center gap-1.5';
+    }
+
+    if (isDesigner) {
+        window.renderStudioCanvas();
+    } else {
+        window.renderStudioPrintSheets();
+    }
+    window.lucide?.createIcons?.();
+};
+
+window.toggleStudioStressTest = () => {
+    studioStressTestMode = !studioStressTestMode;
+    const btn = document.getElementById('btn-studio-toggle-stresstest');
+    const label = document.getElementById('label-studio-stresstest');
+
+    if (btn && label) {
+        if (studioStressTestMode) {
+            btn.className = 'rounded-xl border border-amber-600 bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-1.5 text-xs font-black transition active:scale-95 flex items-center gap-1.5 shadow-md';
+            label.textContent = 'Stress-Test: ACTIVE (Worst-Case)';
+        } else {
+            btn.className = 'rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-3.5 py-1.5 text-xs font-black transition active:scale-95 flex items-center gap-1.5 shadow-2xs';
+            label.textContent = 'Stress-Test: Normal';
+        }
+    }
+
+    window.renderStudioCanvas();
+    window.showToast(`Stress-Test Mode: ${studioStressTestMode ? 'Worst-case persona active' : 'Normal preview'}`);
+};
+
+window.setStudioTool = tool => {
+    studioActiveTool = tool || 'select';
+    const btnSelect = document.getElementById('btn-tool-select');
+    if (btnSelect) {
+        btnSelect.className = studioActiveTool === 'select'
+            ? 'flex items-center gap-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-2 text-xs font-black transition active:scale-95'
+            : 'flex items-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3 py-2 text-xs font-bold transition active:scale-95 shadow-2xs';
+    }
+};
+
+window.addStudioText = () => {
+    const id = `el_txt_${Date.now()}`;
+    const newEl = {
+        id,
+        type: 'text',
+        text: 'Custom Label',
+        x: 250,
+        y: 400,
+        fontSize: 16,
+        color: '#0f172a',
+        fontWeight: 'bold',
+        angle: 0,
+        opacity: 1,
+        show: true
+    };
+    if (!currentTeamIdTemplate.customElements) currentTeamIdTemplate.customElements = [];
+    currentTeamIdTemplate.customElements.push(newEl);
+    saveTeamIdTemplate(currentTeamIdTemplate);
+    window.setStudioActiveLayer(id);
+    window.showToast('Text element added to canvas');
+};
+
+window.addStudioShape = shape => {
+    const id = `el_shp_${Date.now()}`;
+    let newEl = null;
+
+    if (shape === 'rect') {
+        newEl = { id, type: 'rect', x: 230, y: 350, width: 140, height: 60, rx: 8, fill: '#4f46e5', stroke: '#312e81', strokeWidth: 1, angle: 0, opacity: 1, show: true };
+    } else if (shape === 'circle') {
+        newEl = { id, type: 'circle', x: 300, y: 380, r: 40, fill: '#e0e7ff', stroke: '#4f46e5', strokeWidth: 1.5, angle: 0, opacity: 1, show: true };
+    } else if (shape === 'triangle') {
+        newEl = { id, type: 'triangle', x: 300, y: 380, size: 45, fill: '#f59e0b', stroke: '#b45309', strokeWidth: 1.5, angle: 0, opacity: 1, show: true };
+    } else if (shape === 'star') {
+        newEl = { id, type: 'star', x: 300, y: 380, size: 40, fill: '#f59e0b', stroke: '#b45309', strokeWidth: 1, angle: 0, opacity: 1, show: true };
+    } else if (shape === 'polygon') {
+        newEl = { id, type: 'polygon', x: 300, y: 380, sides: 6, size: 45, fill: '#6366f1', stroke: '#4338ca', strokeWidth: 1.5, angle: 0, opacity: 1, show: true };
+    }
+
+    if (newEl) {
+        if (!currentTeamIdTemplate.customElements) currentTeamIdTemplate.customElements = [];
+        currentTeamIdTemplate.customElements.push(newEl);
+        saveTeamIdTemplate(currentTeamIdTemplate);
+        window.setStudioActiveLayer(id);
+        window.showToast(`Added ${shape} shape to canvas`);
+    }
+};
+
+window.addStudioImage = file => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const id = `el_img_${Date.now()}`;
+        const newEl = {
+            id,
+            type: 'image',
+            src: e.target.result,
+            x: 250,
+            y: 350,
+            width: 100,
+            height: 100,
+            angle: 0,
+            opacity: 1,
+            show: true
+        };
+        if (!currentTeamIdTemplate.customElements) currentTeamIdTemplate.customElements = [];
+        currentTeamIdTemplate.customElements.push(newEl);
+        saveTeamIdTemplate(currentTeamIdTemplate);
+        window.setStudioActiveLayer(id);
+        window.showToast('Image added to canvas');
+    };
+    reader.readAsDataURL(file);
+};
+
+window.deleteStudioCustomElement = id => {
+    if (!currentTeamIdTemplate.customElements) return;
+    currentTeamIdTemplate.customElements = currentTeamIdTemplate.customElements.filter(el => el.id !== id);
+    if (activeCardLayer === id) activeCardLayer = null;
+    saveTeamIdTemplate(currentTeamIdTemplate);
+    window.renderStudioPropertiesPanel();
+    window.renderStudioLayersList();
+    window.renderStudioCanvas();
+    window.showToast('Element deleted');
+};
+
+window.toggleStudioDemo = field => {
+    if (!currentTeamIdTemplate.demographics) currentTeamIdTemplate.demographics = {};
+    if (!currentTeamIdTemplate.demographics[field]) currentTeamIdTemplate.demographics[field] = { show: true };
+    const chk = document.getElementById(`chk-demo-${field}`);
+    const isShow = chk ? chk.checked : true;
+    currentTeamIdTemplate.demographics[field].show = isShow;
+    currentTeamIdTemplate[`show${field.charAt(0).toUpperCase() + field.slice(1)}`] = isShow;
+    saveTeamIdTemplate(currentTeamIdTemplate);
+    window.renderStudioCanvas();
+};
+
+window.deselectStudioElement = () => {
+    window.setStudioActiveLayer(null);
+};
+
+window.studioPrevMember = () => {
+    const filtered = window.getFilteredStudioMembers();
+    if (filtered.length <= 1) return;
+    studioSingleMemberIndex = (studioSingleMemberIndex - 1 + filtered.length) % filtered.length;
+    window.renderStudioCanvas();
+};
+
+window.studioNextMember = () => {
+    const filtered = window.getFilteredStudioMembers();
+    if (filtered.length <= 1) return;
+    studioSingleMemberIndex = (studioSingleMemberIndex + 1) % filtered.length;
+    window.renderStudioCanvas();
+};
+
+window.switchInspectorTab = tab => {
+    const tabs = ['props', 'layers', 'setup'];
+    tabs.forEach(t => {
+        const btn = document.getElementById(`btn-inspect-${t}`);
+        const panel = document.getElementById(`inspector-panel-${t}`);
+        const active = t === tab;
+        if (btn) {
+            btn.className = active
+                ? 'flex-1 rounded-lg bg-white text-indigo-700 shadow-xs py-1.5 text-xs font-black transition active:scale-95 text-center'
+                : 'flex-1 rounded-lg text-slate-600 hover:text-slate-900 py-1.5 text-xs font-bold transition active:scale-95 text-center';
+        }
+        if (panel) panel.classList.toggle('hidden', !active);
+    });
+    if (tab === 'props') window.renderStudioPropertiesPanel();
+    if (tab === 'layers') window.renderStudioLayersList();
+    window.lucide?.createIcons?.();
+};
+
+window.updateStudioHeaderThumbnail = () => {
+    const teamSelect = document.getElementById('studio-header-team-select');
+    const team = teamSelect?.value || teams[0];
+    const thumb = document.getElementById('studio-header-thumbnail');
+    const emptyNotice = document.getElementById('studio-header-empty-notice');
+    const header = team ? teamIdCardHeaders[team] : '';
+    if (thumb && emptyNotice) {
+        if (header) {
+            thumb.src = header;
+            thumb.classList.remove('hidden');
+            emptyNotice.classList.add('hidden');
+        } else {
+            thumb.src = '';
+            thumb.classList.add('hidden');
+            emptyNotice.classList.remove('hidden');
+        }
+    }
+};
+
+window.triggerStudioHeaderUpload = () => {
+    document.getElementById('studio-header-file-input')?.click();
+};
+
+window.uploadStudioHeader = async file => {
+    if (!file) return;
+    const teamSelect = document.getElementById('studio-header-team-select');
+    const team = teamSelect?.value || teams[0];
+    if (!team) return window.showToast('Please select a team for header banner', 'error');
+
+    window.showToast(`Uploading banner for ${teamLabel(team)}...`);
+    const reader = new FileReader();
+    reader.onload = async e => {
+        const dataUrl = e.target.result;
+        teamIdCardHeaders = { ...teamIdCardHeaders, [team]: dataUrl };
+        try {
+            await setDoc(doc(db, 'settings', 'general'), { teamIdCardHeaders }, { merge: true });
+            window.showToast(`Banner saved for ${teamLabel(team)}!`);
+        } catch (err) {
+            window.showToast(`Saved locally for ${teamLabel(team)}`);
+        }
+        window.updateStudioHeaderThumbnail();
+        window.renderStudioCanvas();
+    };
+    reader.readAsDataURL(file);
+};
+
+window.removeStudioHeader = async () => {
+    const teamSelect = document.getElementById('studio-header-team-select');
+    const team = teamSelect?.value || teams[0];
+    if (!team) return;
+    if (await window.confirmAction?.(`Remove custom header banner for ${teamLabel(team)}?`)) {
+        const nextHeaders = { ...teamIdCardHeaders };
+        delete nextHeaders[team];
+        teamIdCardHeaders = nextHeaders;
+        try {
+            await setDoc(doc(db, 'settings', 'general'), { teamIdCardHeaders }, { merge: true });
+            window.showToast(`Header removed for ${teamLabel(team)}`);
+        } catch (err) {
+            window.showToast('Updated locally');
+        }
+        window.updateStudioHeaderThumbnail();
+        window.renderStudioCanvas();
+    }
+};
+
+window.renderStudioPrintSheets = () => {
+    const grid = document.getElementById('studio-print-sheets-grid');
+    const summaryEl = document.getElementById('studio-print-summary');
+    if (!grid) return;
+
+    const size = document.getElementById('studio-print-page-size')?.value || 'A4';
+    const orientation = document.getElementById('studio-print-orientation')?.value || 'portrait';
+    const gap = Number(document.getElementById('studio-print-gap')?.value || 0);
+    const margin = Number(document.getElementById('studio-print-margin')?.value || 0);
+    const limitVal = document.getElementById('studio-print-limit')?.value || '5';
+    const limit = limitVal === 'all' ? Infinity : Number(limitVal);
+
+    const base = teamIdPageSizes[size] || teamIdPageSizes.A4;
+    const page = orientation === 'landscape' ? { w: base.h, h: base.w } : { ...base };
+    const tmpl = currentTeamIdTemplate;
+    const cardW = Number(tmpl.cardW || 90);
+    const cardH = Number(tmpl.cardH || 130);
+
+    const opts = { size, orientation, page, cardW, cardH, gap, margin };
+    const layout = teamIdLayout(opts);
+    const members = window.getFilteredStudioMembers();
+
+    if (summaryEl) {
+        summaryEl.innerHTML = `
+            ${size.toUpperCase()} ${orientation.toUpperCase()} • Card: ${cardW}×${cardH} mm • Margin: ${margin} mm • Gap: ${gap} mm • ${layout.cols}×${layout.rows} = ${layout.perPage} cards/sheet • ${members.length} Total Matching Members
+        `;
+    }
+
+    if (!layout.valid) {
+        grid.innerHTML = `<div class="p-8 text-center text-xs font-black text-red-600 bg-red-50 rounded-2xl border border-red-200">Selected card dimensions (${cardW}×${cardH}mm) do not fit inside ${page.w}×${page.h}mm page. Reduce card size, gap, or margins.</div>`;
+        return;
+    }
+
+    if (!members.length) {
+        grid.innerHTML = `<div class="p-8 text-center text-xs font-bold text-slate-400 bg-white rounded-2xl border border-slate-200">No members match the current target filters.</div>`;
+        return;
+    }
+
+    const previewMembers = limit === Infinity ? members : members.slice(0, limit);
+    const totalSheets = layout.perPage > 0 ? Math.max(1, Math.ceil(previewMembers.length / layout.perPage)) : 1;
+
+    grid.innerHTML = Array.from({ length: totalSheets }, (_, sheetIdx) => {
+        const sheetMembers = previewMembers.slice(sheetIdx * layout.perPage, (sheetIdx + 1) * layout.perPage);
+        return `
+            <section class="inline-block align-top">
+                <div class="mb-2 flex items-center justify-between px-1 text-xs font-black text-slate-600">
+                    <span>Sheet ${sheetIdx + 1} of ${totalSheets} (${sheetMembers.length} cards)</span>
+                    <span class="text-[11px] text-slate-400 font-bold">${cardW}×${cardH} mm</span>
+                </div>
+                <div class="relative bg-white shadow-xl transition-all" style="width:${page.w}mm;height:${page.h}mm;padding:${margin}mm;box-sizing:border-box;border-radius:0px;display:grid;grid-template-columns:repeat(${layout.cols},${cardW}mm);grid-auto-rows:${cardH}mm;gap:${gap}mm;align-content:start;justify-content:start">
+                    ${sheetMembers.map(m => {
+                        const mTeam = m.team || teams[0] || 'Team A';
+                        const mColor = teamColors[mTeam] || '#4f46e5';
+                        const mHeader = teamIdCardHeaders[mTeam] || '';
+                        const mLogo = teamLogos[mTeam] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '';
+                        return `<div style="width:${cardW}mm;height:${cardH}mm;border-radius:0px;" class="overflow-hidden bg-white shadow-xs border border-slate-200">${teamIdPreviewCard(m, mTeam, mColor, mHeader, mLogo, opts, tmpl)}</div>`;
+                    }).join('')}
+                </div>
+            </section>
+        `;
+    }).join('');
+};
+
+window.downloadStudioBatchPdf = async () => {
+    await window.ensureDep?.('jsPDF');
+    const { jsPDF } = window.jspdf || {};
+    if (!jsPDF) return window.showToast('PDF library not ready', 'error');
+
+    const size = document.getElementById('studio-print-page-size')?.value || 'A4';
+    const orientation = document.getElementById('studio-print-orientation')?.value || 'portrait';
+    const gap = Number(document.getElementById('studio-print-gap')?.value || 0);
+    const margin = Number(document.getElementById('studio-print-margin')?.value || 0);
+
+    const base = teamIdPageSizes[size] || teamIdPageSizes.A4;
+    const page = orientation === 'landscape' ? { w: base.h, h: base.w } : { ...base };
+    const tmpl = currentTeamIdTemplate;
+    const cardW = Number(tmpl.cardW || 90);
+    const cardH = Number(tmpl.cardH || 130);
+
+    const opts = { size, orientation, page, cardW, cardH, gap, margin, pdfFormat: [base.w, base.h] };
+    const layout = teamIdLayout(opts);
+    if (!layout.valid) return window.showToast('Card size or margin does not fit page area', 'error');
+
+    let members = window.getFilteredStudioMembers();
+    if (studioStressTestMode) {
+        members = [getStressTestPersona()];
+    }
+
+    if (!members.length) return window.showToast('No members found to export', 'error');
+
+    window.showToast(`Compiling batch PDF for ${members.length} members...`);
+    const docPdf = new jsPDF({ unit: 'mm', format: opts.pdfFormat, orientation });
+
+    for (let i = 0; i < members.length; i++) {
+        if (i && i % layout.perPage === 0) docPdf.addPage();
+        const pageIndex = i % layout.perPage;
+        const col = pageIndex % layout.cols;
+        const row = Math.floor(pageIndex / layout.cols);
+        const x = margin + col * (cardW + gap);
+        const y = margin + row * (cardH + gap);
+
+        const m = members[i];
+        const mTeam = m.team || teams[0] || 'Team A';
+        const mColor = teamColors[mTeam] || '#4f46e5';
+        const mHeader = teamIdCardHeaders[mTeam] || '';
+        const mLogo = teamLogos[mTeam] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '';
+
+        const png = await svgToPng(teamIdSvg(m, mTeam, mColor, mHeader, mLogo, opts, tmpl, false));
+        docPdf.addImage(png, 'PNG', x, y, cardW, cardH, undefined, 'FAST');
+    }
+
+    const target = studioTemplateTarget || 'student';
+    docPdf.save(`Fest-${target.toUpperCase()}-ID-Cards-${Date.now()}.pdf`);
+    window.showToast(`Downloaded ${members.length} ID cards successfully!`);
+};
+
+window.saveStudioTemplate = async () => {
+    saveTeamIdTemplate(currentTeamIdTemplate);
+    const target = studioTemplateTarget || 'student';
+    studioTemplatesMap[target] = { ...currentTeamIdTemplate };
+    try {
+        await setDoc(doc(db, 'settings', 'general'), {
+            teamIdCardTemplate: currentTeamIdTemplate,
+            idCardTemplates: studioTemplatesMap
+        }, { merge: true });
+        window.showToast(`Template saved permanently for target: ${target.toUpperCase()}!`);
+    } catch (e) {
+        window.showToast('Template saved locally (offline)', 'warning');
+    }
+};
+
+window.initStudioView = () => {
+    // Populate Target Teams
+    const teamFilter = document.getElementById('studio-filter-team');
+    const headerTeamSelect = document.getElementById('studio-header-team-select');
+    if (teamFilter) {
+        const curVal = teamFilter.value || 'all';
+        teamFilter.innerHTML = '<option value="all">All Teams</option>' + teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(teamLabel(t))}</option>`).join('');
+        if (teams.includes(curVal)) teamFilter.value = curVal;
+    }
+    if (headerTeamSelect) {
+        const curVal = headerTeamSelect.value || teams[0] || '';
+        headerTeamSelect.innerHTML = teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(teamLabel(t))}</option>`).join('');
+        if (teams.includes(curVal)) headerTeamSelect.value = curVal;
+    }
+
+    // Populate Categories
+    const catFilter = document.getElementById('studio-filter-category');
+    if (catFilter) {
+        const curVal = catFilter.value || 'all';
+        catFilter.innerHTML = '<option value="all">All Categories</option>' + categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+        if (categories.includes(curVal)) catFilter.value = curVal;
+    }
+
+    // Populate Participant Types
+    const typeFilter = document.getElementById('studio-filter-type');
+    if (typeFilter) {
+        const curVal = typeFilter.value || 'all';
+        const pTypes = festSetup.participantTypes || ['Student'];
+        typeFilter.innerHTML = '<option value="all">All Participant Types</option>' + pTypes.map(pt => `<option value="${escapeHtml(pt)}">${escapeHtml(pt)}</option>`).join('');
+        if (pTypes.includes(curVal)) typeFilter.value = curVal;
+    }
+
+    // Setup input listeners on studio controls once
+    const wireChange = (id, fn) => {
+        const el = document.getElementById(id);
+        if (el && !el._studioWired) {
+            el._studioWired = true;
+            el.addEventListener('change', fn);
+            el.addEventListener('input', fn);
+        }
+    };
+
+    wireChange('studio-template-target', e => {
+        const target = e.target.value;
+        studioTemplateTarget = target;
+        const saved = studioTemplatesMap[target];
+        if (saved) {
+            currentTeamIdTemplate = { ...TEAM_ID_TEMPLATE_DEFAULTS, ...saved };
+        } else {
+            currentTeamIdTemplate = { ...TEAM_ID_TEMPLATE_DEFAULTS };
+        }
+        window.syncStudioInspectorUI();
+        window.renderStudioCanvas();
+    });
+
+    wireChange('studio-filter-team', () => { studioSingleMemberIndex = 0; window.renderStudioCanvas(); });
+    wireChange('studio-filter-category', () => { studioSingleMemberIndex = 0; window.renderStudioCanvas(); });
+    wireChange('studio-filter-type', () => { studioSingleMemberIndex = 0; window.renderStudioCanvas(); });
+    wireChange('studio-filter-participation', () => { studioSingleMemberIndex = 0; window.renderStudioCanvas(); });
+    wireChange('studio-zoom-select', () => window.renderStudioCanvas());
+
+    wireChange('studio-member-picker', e => {
+        const idx = Number(e.target.value);
+        if (!isNaN(idx) && idx >= 0) {
+            studioSingleMemberIndex = idx;
+            window.renderStudioCanvas();
+        }
+    });
+
+    wireChange('studio-header-team-select', () => {
+        window.updateStudioHeaderThumbnail();
+        window.renderStudioCanvas();
+    });
+
+    // File input handlers
+    const headerFileInput = document.getElementById('studio-header-file-input');
+    if (headerFileInput && !headerFileInput._studioWired) {
+        headerFileInput._studioWired = true;
+        headerFileInput.addEventListener('change', e => {
+            const f = e.target.files?.[0];
+            if (f) window.uploadStudioHeader(f);
+        });
+    }
+
+    const customImgInput = document.getElementById('studio-custom-image-file');
+    if (customImgInput && !customImgInput._studioWired) {
+        customImgInput._studioWired = true;
+        customImgInput.addEventListener('change', e => {
+            const f = e.target.files?.[0];
+            if (f) window.addStudioImage(f);
+        });
+    }
+
+    // Card Setup controls
+    wireChange('studio-card-width', e => {
+        currentTeamIdTemplate.cardW = Number(e.target.value) || 90;
+        saveTeamIdTemplate(currentTeamIdTemplate);
+        window.syncStudioInspectorUI();
+        window.renderStudioCanvas();
+    });
+    wireChange('studio-card-height', e => {
+        currentTeamIdTemplate.cardH = Number(e.target.value) || 130;
+        saveTeamIdTemplate(currentTeamIdTemplate);
+        window.syncStudioInspectorUI();
+        window.renderStudioCanvas();
+    });
+    wireChange('studio-card-bg', e => {
+        currentTeamIdTemplate.cardBg = e.target.value;
+        saveTeamIdTemplate(currentTeamIdTemplate);
+        window.renderStudioCanvas();
+    });
+    wireChange('studio-events-layout', e => {
+        currentTeamIdTemplate.eventsLayout = e.target.value;
+        saveTeamIdTemplate(currentTeamIdTemplate);
+        window.renderStudioCanvas();
+    });
+    wireChange('studio-events-title', e => {
+        currentTeamIdTemplate.eventsTitle = e.target.value;
+        saveTeamIdTemplate(currentTeamIdTemplate);
+        window.renderStudioCanvas();
+    });
+    wireChange('studio-events-title-size', e => {
+        currentTeamIdTemplate.eventsTitleSize = Number(e.target.value) || 11;
+        saveTeamIdTemplate(currentTeamIdTemplate);
+        window.renderStudioCanvas();
+    });
+    wireChange('studio-events-name-size', e => {
+        currentTeamIdTemplate.eventNameSize = Number(e.target.value) || 12;
+        saveTeamIdTemplate(currentTeamIdTemplate);
+        window.renderStudioCanvas();
+    });
+    wireChange('studio-events-meta-size', e => {
+        currentTeamIdTemplate.eventMetaSize = Number(e.target.value) || 10;
+        saveTeamIdTemplate(currentTeamIdTemplate);
+        window.renderStudioCanvas();
+    });
+    wireChange('studio-events-show-cat', e => {
+        currentTeamIdTemplate.eventsShowCategory = e.target.checked;
+        saveTeamIdTemplate(currentTeamIdTemplate);
+        window.renderStudioCanvas();
+    });
+    wireChange('studio-events-show-stage', e => {
+        currentTeamIdTemplate.eventsShowStage = e.target.checked;
+        saveTeamIdTemplate(currentTeamIdTemplate);
+        window.renderStudioCanvas();
+    });
+    wireChange('studio-events-show-date', e => {
+        currentTeamIdTemplate.eventsShowDate = e.target.checked;
+        saveTeamIdTemplate(currentTeamIdTemplate);
+        window.renderStudioCanvas();
+    });
+    wireChange('studio-events-show-time', e => {
+        currentTeamIdTemplate.eventsShowTime = e.target.checked;
+        saveTeamIdTemplate(currentTeamIdTemplate);
+        window.renderStudioCanvas();
+    });
+
+    // Print setup controls
+    ['studio-print-page-size', 'studio-print-orientation', 'studio-print-gap', 'studio-print-margin', 'studio-print-limit'].forEach(id => {
+        wireChange(id, () => {
+            if (studioViewMode === 'print') window.renderStudioPrintSheets();
+        });
+    });
+
+    window.syncStudioInspectorUI();
+    window.renderStudioCanvas();
+    window.renderStudioPropertiesPanel();
+    window.renderStudioLayersList();
+    window.updateStudioHeaderThumbnail();
+    window.lucide?.createIcons?.();
+};
+
 window.openTeamIdCards = team => {
     teamIdCardTeam = team;
     teamIdSingleMemberIndex = 0;
-    resetTeamIdControls();
-    syncTeamIdCustomizerUI(currentTeamIdTemplate);
-    const title = document.getElementById('team-id-card-title');
-    if (title) title.textContent = `${teamLabel(team)} ID Cards Studio`;
-    const modal = document.getElementById('team-id-card-modal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
-    window.setTeamIdViewMode?.(teamIdViewMode || 'single');
-    window.lucide?.createIcons?.();
-    renderTeamIdPreview();
+    studioSingleMemberIndex = 0;
+    window.switchTab?.('id-studio');
+    const teamFilter = document.getElementById('studio-filter-team');
+    if (teamFilter && team) teamFilter.value = team;
+    const headerTeam = document.getElementById('studio-header-team-select');
+    if (headerTeam && team) headerTeam.value = team;
+    window.initStudioView?.();
 };
 
 window.closeTeamIdCards = () => {
