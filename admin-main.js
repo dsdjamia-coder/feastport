@@ -152,19 +152,10 @@ const hasArrayValue = value => Array.isArray(value) && value.filter(item => hasT
 const EVENT_OPTIONAL_FILTERS = [
     { key: 'rules', label: 'Rules', has: event => hasTextValue(event.rules || event.description || event.notes) },
     { key: 'code', label: 'Code', has: event => hasTextValue(event.code) },
-    { key: 'section', label: 'Section', has: event => hasTextValue(event.section) },
-    { key: 'eligibleClasses', label: 'Classes', has: event => hasArrayValue(event.eligibleClasses) },
-    { key: 'participantTypes', label: 'Participants', has: event => hasArrayValue(event.allowedParticipantTypes) },
-    { key: 'channels', label: 'Channels', has: event => hasArrayValue(event.allowedRegistrationChannels) },
     { key: 'criteria', label: 'Criteria', has: event => hasArrayValue(event.criteria) },
-    { key: 'maximumMark', label: 'Max Mark', has: event => hasPositiveNumber(event.maximumMark) },
     { key: 'duration', label: 'Duration', has: event => hasPositiveNumber(event.duration) },
-    { key: 'preparation', label: 'Prep', has: event => hasPositiveNumber(event.preparationTime) },
-    { key: 'resultWorkflow', label: 'Workflow', has: event => hasTextValue(event.resultWorkflow) && event.resultWorkflow !== 'default' },
-    { key: 'schedule', label: 'Schedule', has: event => hasTextValue(event.scheduleRequirement) && event.scheduleRequirement !== 'default' },
-    { key: 'teamPolicy', label: 'Team Policy', has: event => hasTextValue(event.teamPolicy) && event.teamPolicy !== 'default' },
-    { key: 'scoreContribution', label: 'Score', has: event => hasTextValue(event.scoreContribution) && event.scoreContribution !== 'default' },
-    { key: 'scoringPolicy', label: 'Scoring', has: event => hasTextValue(event.scoringPolicy) && event.scoringPolicy !== 'default' }
+    { key: 'eligibleClasses', label: 'Classes', has: event => hasArrayValue(event.eligibleClasses) },
+    { key: 'maximumMark', label: 'Max Mark', has: event => hasPositiveNumber(event.maximumMark) }
 ];
 
 const eventOptionalFilterValue = key => document.getElementById(`filter-ev-optional-${key}`)?.value || '';
@@ -8520,20 +8511,57 @@ window.populateParticipantTypes = () => {
 };
 window.applyEventProfile=profile=>{const profiles={basic:{scheduleMode:'basic',judgingMode:'disabled',resultWorkflow:'direct',teamScoringMode:'disabled',features:{excelImport:false,customCriteria:false,objectiveScoring:false,timeResults:false,countResults:false,multipleJudges:false,eventOverrides:false,teamLedger:false}},standard:{scheduleMode:'full',judgingMode:'enabled',resultWorkflow:'judged',teamScoringMode:'enabled',features:{excelImport:true,customCriteria:true,objectiveScoring:false,timeResults:false,countResults:false,multipleJudges:false,eventOverrides:false,teamLedger:true}},advanced:{scheduleMode:'full',judgingMode:'optional',resultWorkflow:'hybrid',teamScoringMode:'per_event',features:{excelImport:true,customCriteria:true,objectiveScoring:true,timeResults:true,countResults:true,multipleJudges:true,eventOverrides:true,teamLedger:true}}},chosen=profiles[profile];if(!chosen)return;festSetup=normalizeFestSetup({...festSetup,preset:'custom',eventManagementMode:profile,eventFieldProfile:profile,eventFieldRules:eventFieldRulesForMode(profile),scheduleMode:chosen.scheduleMode,judgingMode:chosen.judgingMode,resultWorkflow:chosen.resultWorkflow,teamScoringMode:chosen.teamScoringMode,eventFeatures:{...festSetup.eventFeatures,...chosen.features}});window.renderMasterSetup();window.showToast(`${profile[0].toUpperCase()+profile.slice(1)} profile applied to draft`);};
 const CORE_EVENT_FIELDS=[
-    {key:'name',label:'Event Name',suffix:'ev-name'},{key:'category',label:'Category',suffix:'ev-cat'},{key:'gender',label:'Gender',suffix:'ev-gender'},{key:'type',label:'Event Type',suffix:'ev-type'},{key:'stage',label:'Stage Type',suffix:'ev-stage'},{key:'entriesPerTeam',label:'Team Entry Limit',suffix:'ev-limit'},{key:'resultMethod',label:'Result Method',suffix:'ev-result-method'}
+    {key:'name',label:'Event Name',suffix:'ev-name'},
+    {key:'category',label:'Category',suffix:'ev-cat'},
+    {key:'gender',label:'Gender',suffix:'ev-gender'},
+    {key:'type',label:'Event Type',suffix:'ev-type'},
+    {key:'stage',label:'Stage Type',suffix:'ev-stage'},
+    {key:'entriesPerTeam',label:'Team Entry Limit',suffix:'ev-limit'},
+    {key:'resultMethod',label:'Result Method',suffix:'ev-result-method'}
 ];
-const EVENT_FORM_FIELD_IDS={code:'ev-code',section:'ev-section',eligibleClasses:'ev-eligible-classes',participantTypes:'ev-participant-types',registrationChannels:'ev-registration-channels',minimumMembers:'ev-min-members',maximumMembers:'ev-max-members',maximumMark:'ev-maximum-mark',criteriaText:'ev-criteria',multipleJudgeMethod:'ev-multiple-judge',tieBreakMethod:'ev-tie-break',gradeMode:'ev-grade-mode',duration:'ev-duration',preparationTime:'ev-preparation',rules:'ev-rules',resultWorkflow:'ev-result-workflow',scheduleRequirement:'ev-schedule-required',teamPolicy:'ev-team-policy',correctMark:'ev-correct-mark',wrongPenalty:'ev-wrong-penalty',countPenalty:'ev-count-penalty',timeDirection:'ev-time-direction',scoreContribution:'ev-score-contribution',scoringPolicy:'ev-scoring-policy'};
+const EVENT_FORM_FIELD_IDS={
+    code:'ev-code',
+    eligibleClasses:'ev-eligible-classes',
+    duration:'ev-duration',
+    rules:'ev-rules',
+    criteriaText:'ev-criteria',
+    maximumMark:'ev-maximum-mark'
+};
 const EVENT_REQUIREMENT_META={required:{title:'Required Event Details',description:'These fields must be completed before the event can be saved.',classes:'border-red-200 bg-red-50/50',badge:'bg-red-100 text-red-700'},optional:{title:'Optional Event Details',description:'Complete these fields only when this event needs them.',classes:'border-blue-200 bg-blue-50/40',badge:'bg-blue-100 text-blue-700'},conditional:{title:'Applicable Event Details',description:'These fields appear automatically for the selected event type and result method.',classes:'border-amber-200 bg-amber-50/50',badge:'bg-amber-100 text-amber-700'}};
 let eventFieldStatusFilter='all';
 const eventFieldRulesFromDom=()=>eventFieldRulesForMode(masterValue('master-event-management')||festSetup.eventManagementMode).map(field=>({...field,requirement:document.querySelector(`[data-event-field-rule="${field.key}"]`)?.value||field.requirement}));
 window.setEventFieldStatusFilter=status=>{eventFieldStatusFilter=status||'all';document.querySelectorAll('[data-event-status-filter]').forEach(button=>{const active=button.dataset.eventStatusFilter===eventFieldStatusFilter;button.classList.toggle('bg-indigo-600',active);button.classList.toggle('text-white',active);button.classList.toggle('bg-slate-100',!active);});window.filterEventFieldRules();};
 window.filterEventFieldRules=()=>{const query=String(document.getElementById('master-event-field-search')?.value||'').trim().toLowerCase(),cards=[...document.querySelectorAll('[data-event-field-card]')];let visible=0;cards.forEach(card=>{const matchesText=!query||card.dataset.search.includes(query),matchesStatus=eventFieldStatusFilter==='all'||card.querySelector('[data-event-field-rule]')?.value===eventFieldStatusFilter||card.dataset.lockedStatus===eventFieldStatusFilter,show=matchesText&&matchesStatus;card.classList.toggle('hidden',!show);if(show)visible++;});const count=document.getElementById('master-event-field-count'),empty=document.getElementById('master-event-field-empty');if(count)count.textContent=`Showing ${visible} of ${cards.length} fields`;empty?.classList.toggle('hidden',visible!==0);};
 window.renderEventFieldRules=()=>{const box=document.getElementById('master-event-field-rules');if(!box)return;document.querySelectorAll('[data-profile-card]').forEach(card=>{const active=card.dataset.profileCard===festSetup.eventManagementMode;card.classList.toggle('ring-2',active);card.classList.toggle('ring-indigo-500',active);card.setAttribute('aria-pressed',String(active));});const styleEventFieldCard=(card,status)=>{if(!card)return;card.dataset.requirement=status;for(const cls of ['border-slate-200','bg-slate-50','border-blue-200','bg-blue-50/40','border-red-200','bg-red-50/40','border-amber-200','bg-amber-50/40'])card.classList.remove(cls);const classes={hidden:['border-slate-200','bg-slate-50'],optional:['border-blue-200','bg-blue-50/40'],required:['border-red-200','bg-red-50/40'],conditional:['border-amber-200','bg-amber-50/40']}[status]||[];card.classList.add(...classes);};const rules=eventFieldRulesForMode(festSetup.eventFieldProfile==='custom'?festSetup.eventManagementMode:festSetup.eventFieldProfile,festSetup.eventFieldRules),core=CORE_EVENT_FIELDS.map(field=>`<article data-event-field-card data-locked-status="required" data-search="${escapeHtml(`${field.label} ${field.key} required core`.toLowerCase())}" class="grid grid-cols-[1fr_150px] items-center gap-3 rounded-xl border border-red-100 bg-red-50/40 p-3"><span><b class="block text-xs">${escapeHtml(field.label)}</b><small class="text-[9px] font-bold uppercase text-red-500">core field</small></span><span class="rounded-lg bg-red-100 p-2 text-center text-xs font-black text-red-700">Always required · Locked</span></article>`).join('')+`<article data-event-field-card data-locked-status="conditional" data-search="group size members applicable core" class="grid grid-cols-[1fr_150px] items-center gap-3 rounded-xl border border-amber-100 bg-amber-50/40 p-3"><span><b class="block text-xs">Members per Group</b><small class="text-[9px] font-bold uppercase text-amber-600">group events</small></span><span class="rounded-lg bg-amber-100 p-2 text-center text-xs font-black text-amber-700">When applicable · Locked</span></article>`;box.innerHTML=core+rules.map(field=>`<label data-event-field-card data-search="${escapeHtml(`${field.label} ${field.key} ${field.minimumMode} ${field.requirement}`.toLowerCase())}" class="grid grid-cols-[1fr_150px] items-center gap-3 rounded-xl border bg-white p-3"><span><b class="block text-xs">${escapeHtml(field.label)}</b><small class="text-[9px] font-bold uppercase text-slate-400">${field.minimumMode}</small></span><select data-event-field-rule="${field.key}" class="rounded-lg border p-2 text-xs font-bold"><option value="hidden" ${field.requirement==='hidden'?'selected':''}>Hidden</option><option value="optional" ${field.requirement==='optional'?'selected':''}>Optional</option><option value="required" ${field.requirement==='required'?'selected':''}>Always required</option><option value="conditional" ${field.requirement==='conditional'?'selected':''}>When applicable</option></select></label>`).join('');box.querySelectorAll('[data-event-field-rule]').forEach(select=>styleEventFieldCard(select.closest('[data-event-field-card]'),select.value));box.querySelectorAll('[data-event-field-rule]').forEach(select=>select.addEventListener('change',()=>{const card=select.closest('[data-event-field-card]');styleEventFieldCard(card,select.value);card.dataset.search=`${card.textContent} ${select.value}`.toLowerCase();window.filterEventFieldRules();}));window.filterEventFieldRules();};
-const eventFieldApplicable=(key,prefix)=>{const type=masterValue(`${prefix}-ev-type`)||'Single',method=masterValue(`${prefix}-ev-result-method`)||'manual';return({minimumMembers:type==='Group',maximumMembers:type==='Group',criteriaText:method==='criteria',correctMark:method==='objective',wrongPenalty:method==='objective',countPenalty:method==='count',timeDirection:method==='time',maximumMark:['manual','criteria','objective','count'].includes(method),tieBreakMethod:['criteria','time','count','elimination'].includes(method),gradeMode:method!=='display_only',scoreContribution:method!=='display_only',scoringPolicy:method!=='display_only',multipleJudgeMethod:festSetup.eventFeatures?.multipleJudges!==false,duration:festSetup.scheduleMode==='full',preparationTime:festSetup.scheduleMode==='full',scheduleRequirement:festSetup.scheduleMode!=='disabled',teamPolicy:festSetup.organisationMode!=='open',resultWorkflow:festSetup.resultWorkflow==='hybrid'})[key]??true;};
+const eventFieldApplicable=(key,prefix)=>{
+    const method=masterValue(`${prefix}-ev-result-method`)||'manual';
+    return({
+        criteriaText:method==='criteria',
+        maximumMark:['manual','criteria','objective','count'].includes(method),
+        duration:festSetup.scheduleMode==='full'
+    })[key]??true;
+};
 const eventFieldWrapper=(input,prefix,key)=>{if(!input)return null;if(input.matches?.('[data-checkbox-group]'))return input;if(key==='stage')return input.closest('fieldset')||input.closest('.space-y-1\\.5');if(key==='name'&&prefix==='inp')return input.closest('.space-y-1\\.5')||input.parentElement;if(key==='type'||key==='entriesPerTeam'||key==='category'||key==='gender'||key==='name')return input.closest('.space-y-1')||input.closest('.space-y-1\\.5')||input.parentElement;return input.closest('label,.input-group')||input.parentElement;};
 function ensureEventRequirementLayout(prefix){const form=document.getElementById(prefix==='inp'?'form-event':'edit-event-form');if(!form)return null;let layout=document.getElementById(`${prefix}-event-requirement-layout`);if(layout)return layout;layout=document.createElement('div');layout.id=`${prefix}-event-requirement-layout`;layout.className=prefix==='edit'?'grid gap-4 md:col-span-2':'space-y-4';layout.innerHTML=Object.entries(EVENT_REQUIREMENT_META).map(([status,meta])=>`<section data-event-requirement-section="${status}" class="rounded-2xl border p-4 ${meta.classes}"><header class="mb-3 flex items-start justify-between gap-3"><div><h4 class="font-black text-slate-900">${meta.title}</h4><p class="text-[11px] font-semibold text-slate-500">${meta.description}</p></div><span data-event-requirement-count class="rounded-full px-2 py-1 text-[9px] font-black uppercase ${meta.badge}"></span></header><div data-event-requirement-grid class="grid gap-3 md:grid-cols-2 lg:grid-cols-3"></div></section>`).join('')+`<div data-event-hidden-storage class="hidden"></div>`;if(prefix==='inp'){const host=document.getElementById('event-single-fields');host?.append(layout);}else document.querySelector('#edit-event-form .overflow-y-auto .grid')?.append(layout);return layout;}
 const syncEventGroupFields=prefix=>{const type=masterValue(`${prefix}-ev-type`)||'Single',groupVisible=type==='Group',groupInput=document.getElementById(prefix==='inp'?'inp-ev-grpsize':'edit-ev-grp'),groupWrap=document.getElementById(prefix==='inp'?'event-config-panel':'edit-event-config-panel');if(!groupWrap||!groupInput)return;groupWrap.classList.toggle('hidden',!groupVisible);groupWrap.setAttribute('aria-hidden',String(!groupVisible));groupInput.disabled=!groupVisible;groupInput.required=groupVisible;if(groupVisible&&Number(groupInput.value)<2)groupInput.value=2;};
-window.renderEventFormRequirements=prefix=>{const layout=ensureEventRequirementLayout(prefix);if(!layout)return;const rules=new Map((festSetup.eventFieldRules||[]).map(field=>[field.key,field.requirement])),place=(key,input,status)=>{const wrap=eventFieldWrapper(input,prefix,key);if(!wrap)return;wrap.dataset.eventLayoutField=key;wrap.classList.remove('hidden');wrap.classList.add('min-w-0','max-w-full');if(status==='hidden'||(status==='conditional'&&!eventFieldApplicable(key,prefix))){layout.querySelector('[data-event-hidden-storage]')?.append(wrap);wrap.classList.add('hidden');input.required=false;return;}layout.querySelector(`[data-event-requirement-section="${status}"] [data-event-requirement-grid]`)?.append(wrap);input.required=status==='required'||status==='conditional';const label=wrap.querySelector('.input-label,label,legend');let mark=wrap.querySelector('[data-event-required-mark]');if(input.required&&!mark&&label){mark=document.createElement('span');mark.dataset.eventRequiredMark='true';mark.className='ml-1 text-red-500';mark.textContent='*';label.append(mark);}else if(!input.required)mark?.remove();};for(const field of CORE_EVENT_FIELDS){const input=field.key==='stage'?document.querySelector(`input[name="${prefix==='inp'?'ev-stage':'edit-ev-stage'}"]`):document.getElementById(`${prefix}-${field.suffix}`);place(field.key,input,'required');}for(const[key,suffix]of Object.entries(EVENT_FORM_FIELD_IDS))place(key,document.getElementById(`${prefix}-${suffix}`),rules.get(key)||'hidden');const groupWrap=document.getElementById(prefix==='inp'?'event-config-panel':'edit-event-config-panel');if(groupWrap){groupWrap.dataset.eventLayoutField='groupSize';layout.querySelector('[data-event-requirement-section="required"] [data-event-requirement-grid]')?.append(groupWrap);}syncEventGroupFields(prefix);layout.querySelectorAll('[data-event-requirement-section]').forEach(section=>{const visible=[...section.querySelectorAll('[data-event-layout-field]')].filter(item=>!item.classList.contains('hidden')).length;section.classList.toggle('hidden',visible===0);const count=section.querySelector('[data-event-requirement-count]');if(count)count.textContent=`${visible} field${visible===1?'':'s'}`;});if(prefix==='inp'){const bulk=document.getElementById('inp-ev-bulk-names'),single=document.getElementById('inp-ev-name'),bulkEnabled=bulk&&!bulk.classList.contains('hidden');if(single)single.required=!bulkEnabled;if(bulk)bulk.required=!!bulkEnabled;}const legacy=document.getElementById(prefix==='inp'?'create-event-legacy-layout':'edit-event-legacy-layout');legacy?.classList.add('hidden');};
+window.renderEventFormRequirements=prefix=>{
+    if(prefix==='edit')return;
+    const rules=new Map((festSetup.eventFieldRules||[]).map(field=>[field.key,field.requirement]));
+    for(const[key,suffix]of Object.entries(EVENT_FORM_FIELD_IDS)){
+        const input=document.getElementById(`${prefix}-${suffix}`);
+        if(!input)continue;
+        const req=rules.get(key)||'optional';
+        input.required=req==='required';
+        const wrap=input.closest('.space-y-1, label, .input-group');
+        if(wrap)wrap.classList.toggle('hidden',req==='hidden'||(req==='conditional'&&!eventFieldApplicable(key,prefix)));
+    }
+    syncEventGroupFields(prefix);
+    if(prefix==='inp'){
+        const bulk=document.getElementById('inp-ev-bulk-names'),single=document.getElementById('inp-ev-name'),bulkEnabled=bulk&&!bulk.classList.contains('hidden');
+        if(single)single.required=!bulkEnabled;
+        if(bulk)bulk.required=!!bulkEnabled;
+    }
+};
 const applyEventFieldRules=()=>{for(const prefix of ['inp','edit'])window.renderEventFormRequirements(prefix);};
 
 let studentImportRows=[];
@@ -8872,25 +8900,63 @@ const normalizeEventGender = (value) => {
 };
 const eventCodeFor=(event,index=0)=>{if(event.code)return event.code;const token=value=>String(value||'GEN').replace(/[^a-z0-9]/gi,'').slice(0,3).toUpperCase()||'GEN',prefix=`${token(event.section||'EVT')}-${token(event.category)}-${token(event.gender)}`,used=events.map(item=>item.code||'');let number=used.filter(code=>code.startsWith(prefix)).length+1+index,code='';do{code=`${prefix}-${String(number++).padStart(3,'0')}`;}while(used.includes(code));return code;};
 const validateEventPayload = (d) => {
-    if(!(d.allowedParticipantTypes||[]).length)return 'Select at least one participant type';if(!(d.allowedRegistrationChannels||[]).length)return 'Select at least one registration channel';const normalized={...d,entriesPerTeam:d.limit,membersPerEntry:d.groupSize,participantTypes:d.allowedParticipantTypes,registrationChannels:d.allowedRegistrationChannels};const result=validateEvent(normalized,{...festSetup,categories},events);return result.errors[0]||'';
+    const pTypes = (d.allowedParticipantTypes && d.allowedParticipantTypes.length) ? d.allowedParticipantTypes : (festSetup.participantTypes || ['student']);
+    const rChannels = (d.allowedRegistrationChannels && d.allowedRegistrationChannels.length) ? d.allowedRegistrationChannels : (festSetup.registrationChannels || ['desk']);
+    const normalized = {
+        ...d,
+        entriesPerTeam: d.limit,
+        membersPerEntry: d.groupSize,
+        participantTypes: pTypes,
+        registrationChannels: rChannels
+    };
+    const result = validateEvent(normalized, { ...festSetup, categories }, events);
+    return result.errors[0] || '';
 };
 const eventPayloadFromForm = (nameOverride = null) => {
     const type = document.getElementById('inp-ev-type').value;
-    return {
-        code:masterValue('inp-ev-code').trim()||eventCodeFor({section:masterValue('inp-ev-section')||'EVT',category:document.getElementById('inp-ev-cat').value,gender:document.getElementById('inp-ev-gender').value}),
-        name: (nameOverride ?? document.getElementById('inp-ev-name').value).trim(),
-        section:masterValue('inp-ev-section').trim()||'General',
-        category: document.getElementById('inp-ev-cat').value,
-        gender: document.getElementById('inp-ev-gender').value,
+    const name = (nameOverride ?? document.getElementById('inp-ev-name').value).trim();
+    const category = document.getElementById('inp-ev-cat').value;
+    const gender = document.getElementById('inp-ev-gender').value;
+    const stage = document.querySelector('input[name="ev-stage"]:checked')?.value || 'Off-Stage';
+    const limit = parseInt(document.getElementById('inp-ev-limit').value) || 1;
+    const groupSize = type === 'Group' ? (parseInt(document.getElementById('inp-ev-grpsize').value) || 2) : 1;
+    const resultMethod = masterValue('inp-ev-result-method') || 'manual';
+
+    const payload = {
+        name,
+        category,
+        gender,
         type,
-        limit: parseInt(document.getElementById('inp-ev-limit').value),
-        groupSize: type === 'Group' ? parseInt(document.getElementById('inp-ev-grpsize').value) : 1,
-        stage: document.querySelector('input[name="ev-stage"]:checked')?.value,
-        allowedParticipantTypes:checkboxGroupValues('inp-ev-participant-types'),
-        allowedRegistrationChannels:checkboxGroupValues('inp-ev-registration-channels'),
-        eligibleClasses:masterValue('inp-ev-eligible-classes').split(',').map(value=>value.trim()).filter(Boolean),minimumMembers:Number(masterValue('inp-ev-min-members')||1),maximumMembers:Number(masterValue('inp-ev-max-members')||1),multipleJudgeMethod:masterValue('inp-ev-multiple-judge'),tieBreakMethod:masterValue('inp-ev-tie-break'),gradeMode:masterValue('inp-ev-grade-mode'),duration:Number(masterValue('inp-ev-duration')||0),preparationTime:Number(masterValue('inp-ev-preparation')||0),rules:masterValue('inp-ev-rules').trim(),resultWorkflow:masterValue('inp-ev-result-workflow'),resultMethod:masterValue('inp-ev-result-method'),criteria:parseCriteria(masterValue('inp-ev-criteria')).criteria,objectiveRule:{correctMark:Number(masterValue('inp-ev-correct-mark')||1),wrongPenalty:Number(masterValue('inp-ev-wrong-penalty')||0)},countRule:{wrongPenalty:Number(masterValue('inp-ev-count-penalty')||0)},timeRule:{direction:masterValue('inp-ev-time-direction')||'lower'}, scheduleRequirement:masterValue('inp-ev-schedule-required'), teamPolicy:masterValue('inp-ev-team-policy'), scoreContribution:masterValue('inp-ev-score-contribution'),maximumMark:Number(masterValue('inp-ev-maximum-mark')||100),scoringPolicy:masterValue('inp-ev-scoring-policy'),scoringOverride:scoringOverrideForPack(masterValue('inp-ev-scoring-policy')),
+        stage,
+        limit,
+        groupSize,
+        resultMethod,
+        allowedParticipantTypes: festSetup.participantTypes || ['student'],
+        allowedRegistrationChannels: festSetup.registrationChannels || ['desk'],
         updatedAt: Date.now()
     };
+
+    const code = masterValue('inp-ev-code').trim();
+    if (code) payload.code = code;
+
+    const dur = Number(masterValue('inp-ev-duration') || 0);
+    if (dur > 0) payload.duration = dur;
+
+    const rules = masterValue('inp-ev-rules').trim();
+    if (rules) payload.rules = rules;
+
+    const classes = masterValue('inp-ev-eligible-classes').split(',').map(v => v.trim()).filter(Boolean);
+    if (classes.length) payload.eligibleClasses = classes;
+
+    const maxMark = Number(masterValue('inp-ev-maximum-mark') || 0);
+    if (maxMark > 0) payload.maximumMark = maxMark;
+
+    if (resultMethod === 'criteria') {
+        const crit = parseCriteria(masterValue('inp-ev-criteria')).criteria;
+        if (crit && crit.length) payload.criteria = crit;
+    }
+
+    return payload;
 };
 const collectBulkEventNames = () => (document.getElementById('inp-ev-bulk-names')?.value || '')
     .split('\n')
@@ -8952,59 +9018,147 @@ window.deleteEvent = async (id) => {
     finally { document.getElementById('app-loader')?.classList.add('hide'); }
 };
 
+let editEventShowAllOptional = false;
+
 window.openEditEvent = (id) => {
     const e = events.find(x => x.id === id); if(!e) return;
     document.getElementById('edit-ev-id').value = e.id;
-    document.getElementById('edit-ev-name').value = e.name;
-    document.getElementById('edit-ev-code').value=e.code||'';document.getElementById('edit-ev-section').value=e.section||'General';document.getElementById('edit-ev-eligible-classes').value=(e.eligibleClasses||[]).join(', ');document.getElementById('edit-ev-min-members').value=Number(e.minimumMembers||1);document.getElementById('edit-ev-max-members').value=Number(e.maximumMembers||e.groupSize||1);document.getElementById('edit-ev-multiple-judge').value=e.multipleJudgeMethod||'default';document.getElementById('edit-ev-tie-break').value=e.tieBreakMethod||'default';document.getElementById('edit-ev-grade-mode').value=e.gradeMode||'default';document.getElementById('edit-ev-duration').value=Number(e.duration||0);document.getElementById('edit-ev-preparation').value=Number(e.preparationTime||0);document.getElementById('edit-ev-rules').value=e.rules||e.description||e.notes||'';
-    document.getElementById('edit-ev-cat').value = e.category;
+    document.getElementById('edit-ev-name').value = e.name || '';
+    document.getElementById('edit-ev-cat').value = e.category || '';
     document.getElementById('edit-ev-gender').value = e.gender || 'Both';
-    document.getElementById('edit-ev-type').value = e.type;
-    document.getElementById('edit-ev-limit').value = e.limit;
-    document.getElementById('edit-ev-grp').value = e.groupSize || 1;
-    window.applyFestCapabilities();setCheckboxGroupValues('edit-ev-participant-types',e.allowedParticipantTypes||festSetup.participantTypes);setCheckboxGroupValues('edit-ev-registration-channels',e.allowedRegistrationChannels||festSetup.registrationChannels);
-    document.getElementById('edit-ev-result-workflow').value=e.resultWorkflow||(['direct','judged'].includes(e.resultMethod)?e.resultMethod:'default');document.getElementById('edit-ev-result-method').value=RESULT_METHODS.includes(e.resultMethod)?e.resultMethod:'manual';document.getElementById('edit-ev-criteria').value=(e.criteria||[]).map(item=>`${item.name} - ${item.maximumMark}`).join('\n');document.getElementById('edit-ev-correct-mark').value=Number(e.objectiveRule?.correctMark??1);document.getElementById('edit-ev-wrong-penalty').value=Number(e.objectiveRule?.wrongPenalty??0);document.getElementById('edit-ev-count-penalty').value=Number(e.countRule?.wrongPenalty??0);document.getElementById('edit-ev-time-direction').value=e.timeRule?.direction||'lower';document.getElementById('edit-ev-schedule-required').value=e.scheduleRequirement||'default';document.getElementById('edit-ev-team-policy').value=e.teamPolicy||'default';document.getElementById('edit-ev-score-contribution').value=e.scoreContribution||'default';document.getElementById('edit-ev-maximum-mark').value=Number(e.maximumMark||100);document.getElementById('edit-ev-scoring-policy').value=e.scoringPolicy||'default';
-    window.updateEventMethodFields(document.getElementById('edit-ev-result-method'));window.toggleEventConfig(document.getElementById('edit-ev-type'));
-    const stage = e.stage || 'Off-Stage'; const radio = document.querySelector(`input[name="edit-ev-stage"][value="${stage}"]`); if(radio) radio.checked = true;
+    document.getElementById('edit-ev-type').value = e.type || 'Single';
+    document.getElementById('edit-ev-limit').value = e.limit || 1;
+    document.getElementById('edit-ev-grp').value = e.groupSize || 2;
+    document.getElementById('edit-ev-result-method').value = RESULT_METHODS.includes(e.resultMethod) ? e.resultMethod : 'manual';
+
+    const stage = e.stage || 'Off-Stage';
+    const radio = document.querySelector(`input[name="edit-ev-stage"][value="${stage}"]`);
+    if(radio) radio.checked = true;
+
+    // Populate optional fields
+    document.getElementById('edit-ev-code').value = e.code || '';
+    document.getElementById('edit-ev-duration').value = Number(e.duration || 0) || '';
+    document.getElementById('edit-ev-eligible-classes').value = Array.isArray(e.eligibleClasses) ? e.eligibleClasses.join(', ') : (e.eligibleClasses || '');
+    document.getElementById('edit-ev-maximum-mark').value = Number(e.maximumMark || 0) || '';
+    document.getElementById('edit-ev-rules').value = e.rules || e.description || e.notes || '';
+    document.getElementById('edit-ev-criteria').value = (e.criteria || []).map(item => `${item.name} - ${item.maximumMark}`).join('\n');
+
+    // Update group visibility
+    window.toggleEventConfig(document.getElementById('edit-ev-type'));
+
+    // Dynamically show only the optional fields configured for this event (or all if toggled)
+    editEventShowAllOptional = false;
+    const syncEditOptionalFields = () => {
+        const hasCode = Boolean(e.code);
+        const hasDur = Number(e.duration) > 0;
+        const hasClasses = Array.isArray(e.eligibleClasses) && e.eligibleClasses.length > 0;
+        const hasMaxMark = Number(e.maximumMark) > 0;
+        const hasRules = Boolean(e.rules || e.description || e.notes);
+        const hasCrit = (e.resultMethod === 'criteria') || (Array.isArray(e.criteria) && e.criteria.length > 0);
+
+        document.querySelector('[data-edit-opt-field="code"]')?.classList.toggle('hidden', !editEventShowAllOptional && !hasCode);
+        document.querySelector('[data-edit-opt-field="duration"]')?.classList.toggle('hidden', !editEventShowAllOptional && !hasDur);
+        document.querySelector('[data-edit-opt-field="eligibleClasses"]')?.classList.toggle('hidden', !editEventShowAllOptional && !hasClasses);
+        document.querySelector('[data-edit-opt-field="maximumMark"]')?.classList.toggle('hidden', !editEventShowAllOptional && !hasMaxMark);
+        document.querySelector('[data-edit-opt-field="rules"]')?.classList.toggle('hidden', !editEventShowAllOptional && !hasRules);
+        document.querySelector('[data-edit-opt-field="criteria"]')?.classList.toggle('hidden', !editEventShowAllOptional && !hasCrit);
+
+        const btn = document.getElementById('btn-toggle-all-edit-fields');
+        if (btn) btn.textContent = editEventShowAllOptional ? 'Show configured fields only' : 'Show all optional fields';
+    };
+    syncEditOptionalFields();
+
+    const toggleBtn = document.getElementById('btn-toggle-all-edit-fields');
+    if (toggleBtn) {
+        toggleBtn.onclick = () => {
+            editEventShowAllOptional = !editEventShowAllOptional;
+            syncEditOptionalFields();
+        };
+    }
+
     document.getElementById('edit-event-modal').classList.remove('hidden');
+    window.lucide?.createIcons?.();
 };
+
 window.closeEditEventModal = () => document.getElementById('edit-event-modal').classList.add('hidden');
+
 document.getElementById('edit-event-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('edit-ev-id').value;
+    const current = events.find(ev => ev.id === id);
+    if (!current) return;
+
+    const type = document.getElementById('edit-ev-type').value;
     const d = {
-        code:masterValue('edit-ev-code').trim(),section:masterValue('edit-ev-section').trim()||'General',eligibleClasses:masterValue('edit-ev-eligible-classes').split(',').map(value=>value.trim()).filter(Boolean),minimumMembers:Number(masterValue('edit-ev-min-members')||1),maximumMembers:Number(masterValue('edit-ev-max-members')||1),multipleJudgeMethod:masterValue('edit-ev-multiple-judge'),tieBreakMethod:masterValue('edit-ev-tie-break'),gradeMode:masterValue('edit-ev-grade-mode'),duration:Number(masterValue('edit-ev-duration')||0),preparationTime:Number(masterValue('edit-ev-preparation')||0),rules:masterValue('edit-ev-rules').trim(),
+        ...current,
         name: document.getElementById('edit-ev-name').value.trim(),
         category: document.getElementById('edit-ev-cat').value,
         gender: document.getElementById('edit-ev-gender').value,
-        type: document.getElementById('edit-ev-type').value,
-        limit: parseInt(document.getElementById('edit-ev-limit').value),
-        groupSize: document.getElementById('edit-ev-type').value === 'Group' ? parseInt(document.getElementById('edit-ev-grp').value) : 1,
-        allowedParticipantTypes:checkboxGroupValues('edit-ev-participant-types'),allowedRegistrationChannels:checkboxGroupValues('edit-ev-registration-channels'),resultWorkflow:masterValue('edit-ev-result-workflow'),resultMethod:masterValue('edit-ev-result-method'),criteria:parseCriteria(masterValue('edit-ev-criteria')).criteria,objectiveRule:{correctMark:Number(masterValue('edit-ev-correct-mark')||1),wrongPenalty:Number(masterValue('edit-ev-wrong-penalty')||0)},countRule:{wrongPenalty:Number(masterValue('edit-ev-count-penalty')||0)},timeRule:{direction:masterValue('edit-ev-time-direction')||'lower'},scheduleRequirement:masterValue('edit-ev-schedule-required'),teamPolicy:masterValue('edit-ev-team-policy'),scoreContribution:masterValue('edit-ev-score-contribution'),maximumMark:Number(masterValue('edit-ev-maximum-mark')||100),scoringPolicy:masterValue('edit-ev-scoring-policy'),scoringOverride:scoringOverrideForPack(masterValue('edit-ev-scoring-policy')),
-        stage: document.querySelector('input[name="edit-ev-stage"]:checked')?.value,
+        type,
+        limit: parseInt(document.getElementById('edit-ev-limit').value) || 1,
+        groupSize: type === 'Group' ? (parseInt(document.getElementById('edit-ev-grp').value) || 2) : 1,
+        stage: document.querySelector('input[name="edit-ev-stage"]:checked')?.value || 'Off-Stage',
+        resultMethod: masterValue('edit-ev-result-method') || current.resultMethod || 'manual',
         updatedAt: Date.now()
     };
+
+    // Clean optional fields: save only what is filled, remove unused
+    const codeVal = masterValue('edit-ev-code').trim();
+    if (codeVal) d.code = codeVal; else delete d.code;
+
+    const durVal = Number(masterValue('edit-ev-duration') || 0);
+    if (durVal > 0) d.duration = durVal; else delete d.duration;
+
+    const rulesVal = masterValue('edit-ev-rules').trim();
+    if (rulesVal) d.rules = rulesVal; else delete d.rules;
+
+    const classesVal = masterValue('edit-ev-eligible-classes').split(',').map(s => s.trim()).filter(Boolean);
+    if (classesVal.length) d.eligibleClasses = classesVal; else delete d.eligibleClasses;
+
+    const maxMarkVal = Number(masterValue('edit-ev-maximum-mark') || 0);
+    if (maxMarkVal > 0) d.maximumMark = maxMarkVal; else delete d.maximumMark;
+
+    if (d.resultMethod === 'criteria') {
+        const critObj = parseCriteria(masterValue('edit-ev-criteria'));
+        if (critObj.criteria && critObj.criteria.length) d.criteria = critObj.criteria;
+        else delete d.criteria;
+    } else if (!current.criteria) {
+        delete d.criteria;
+    }
+
     const existing = events;
-    const current = events.find(ev => ev.id === id);
     const duplicate = existing.some(ev => ev.id !== id && (ev.name || '').trim().toLowerCase() === d.name.trim().toLowerCase() && ev.category === d.category && (ev.gender || 'Both') === d.gender && (ev.stage || 'Off-Stage') === d.stage);
     if(duplicate) return window.showToast(`Duplicate event: ${d.name}`, 'error');
-    const err = (() => {
-        const validCategories = ['General', ...categories.filter(c => c !== 'General')];
-        if(!d.name || !d.category || !d.gender || !d.type || !d.stage || !d.limit || d.limit < 1) return 'Fill all event fields';
-        if(!d.allowedParticipantTypes.length) return 'Select at least one participant type';
-        if(!d.allowedRegistrationChannels.length) return 'Select at least one registration channel';
-        if(!validCategories.includes(d.category)) return `Unknown category: ${d.category}`;
-        if(d.type === 'Group' && (!d.groupSize || d.groupSize < 2)) return 'Enter a valid group size';
-        return '';
-    })();
-    if(err) return window.showToast(err, 'error');
-    const fullValidation=validateEvent({...d,entriesPerTeam:d.limit,membersPerEntry:d.groupSize,participantTypes:d.allowedParticipantTypes,registrationChannels:d.allowedRegistrationChannels},{...festSetup,categories},events.filter(event=>event.id!==id));if(fullValidation.errors.length)return window.showToast(fullValidation.errors[0],'error');const protectedFields=['resultMethod','maximumMark','criteria','scoringPolicy','type'],hasJudging=judgeScores.some(score=>score.eventId===id),hasPublished=results.some(result=>(result.eventId||result.id)===id&&(result.status==='published'||!result.status));if((hasJudging||hasPublished)&&protectedFields.some(field=>JSON.stringify(current?.[field]??null)!==JSON.stringify(d[field]??null)))return window.showToast('Scoring fields are locked after judging starts. Reopen through a result revision instead.','error');
-    d.status=fullValidation.status==='ready'?(current?.status==='draft'||current?.status==='needs_review'?'validated':current?.status||'validated'):'needs_review';d.validation={errors:fullValidation.errors,warnings:fullValidation.warnings,validatedAt:fullValidation.status==='ready'?Date.now():0,validatedByUid:auth.currentUser?.uid||''};
+
+    const validCategories = ['General', ...categories.filter(c => c !== 'General')];
+    if(!d.name || !d.category || !d.gender || !d.type || !d.stage || !d.limit || d.limit < 1) return window.showToast('Fill all required event fields', 'error');
+    if(!validCategories.includes(d.category)) return window.showToast(`Unknown category: ${d.category}`, 'error');
+    if(d.type === 'Group' && (!d.groupSize || d.groupSize < 2)) return window.showToast('Enter a valid group size (minimum 2)', 'error');
+
+    const fullValidation = validateEvent({
+        ...d,
+        entriesPerTeam: d.limit,
+        membersPerEntry: d.groupSize,
+        participantTypes: d.allowedParticipantTypes || festSetup.participantTypes || ['student'],
+        registrationChannels: d.allowedRegistrationChannels || festSetup.registrationChannels || ['desk']
+    }, { ...festSetup, categories }, events.filter(event => event.id !== id));
+
+    if(fullValidation.errors.length) return window.showToast(fullValidation.errors[0], 'error');
+
+    const protectedFields = ['resultMethod', 'maximumMark', 'criteria', 'type'];
+    const hasJudging = judgeScores.some(score => score.eventId === id);
+    const hasPublished = results.some(result => (result.eventId || result.id) === id && (result.status === 'published' || !result.status));
+    if((hasJudging || hasPublished) && protectedFields.some(field => JSON.stringify(current?.[field] ?? null) !== JSON.stringify(d[field] ?? null))) {
+        return window.showToast('Scoring fields are locked after judging starts. Reopen through a result revision instead.', 'error');
+    }
+
+    d.status = fullValidation.status === 'ready' ? (current.status === 'draft' || current.status === 'needs_review' ? 'validated' : current.status || 'validated') : 'needs_review';
+    d.validation = { errors: fullValidation.errors, warnings: fullValidation.warnings, validatedAt: fullValidation.status === 'ready' ? Date.now() : 0, validatedByUid: auth.currentUser?.uid || '' };
+
     await updateDoc(doc(db, "events", id), d);
     window.closeEditEventModal();
-    window.showToast(current ? 'Updated' : 'Event updated');
+    window.showToast('Event updated');
 });
-
 window.updateEventMethodFields=target=>{const prefix=target?.id?.startsWith('edit-')?'edit':'inp';window.renderEventFormRequirements(prefix);};
 window.toggleEventConfig=target=>{const prefix=target?.id?.startsWith('edit-')?'edit':'inp',type=masterValue(`${prefix}-ev-type`)||'Single',limitLabel=document.querySelector(`[data-team-limit-label="${prefix}"]`),limitHelp=document.querySelector(`[data-team-limit-help="${prefix}"]`),groupInput=document.getElementById(prefix==='edit'?'edit-ev-grp':'inp-ev-grpsize'),groupSize=Number(groupInput?.value||2),minimum=document.getElementById(`${prefix}-ev-min-members`),maximum=document.getElementById(`${prefix}-ev-max-members`);if(limitLabel)limitLabel.textContent=type==='Group'?'Groups Allowed per Team':'Participants Allowed per Team';if(limitHelp)limitHelp.textContent=type==='Group'?'Maximum separate group entries one team may register.':'Maximum individual participants one team may register.';if(type==='Group'){if(minimum&&Number(minimum.value)<=1)minimum.value=groupSize;if(maximum&&Number(maximum.value)<=1)maximum.value=groupSize;}else{if(minimum)minimum.value=1;if(maximum)maximum.value=1;}syncEventGroupFields(prefix);window.renderEventFormRequirements(prefix);};
 const setBulkToggleState=(button,enabled)=>{if(!button)return;button.setAttribute('aria-checked',String(enabled));button.querySelector('[data-bulk-track]')?.classList.toggle('bg-indigo-600',enabled);button.querySelector('[data-bulk-track]')?.classList.toggle('bg-slate-300',!enabled);button.querySelector('[data-bulk-knob]')?.classList.toggle('translate-x-4',enabled);button.title=enabled?'Switch to single mode':'Switch to bulk mode';};

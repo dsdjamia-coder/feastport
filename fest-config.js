@@ -1,6 +1,11 @@
 export const EVENT_FIELD_DEFINITIONS = Object.freeze([
- ['code','Custom Event Code','advanced'],['section','Section Grouping','standard'],['eligibleClasses','Per-event Class Restriction','standard'],['participantTypes','Participant Type Override','advanced'],['registrationChannels','Registration Channel Override','advanced'],['minimumMembers','Flexible Group Minimum','advanced'],['maximumMembers','Flexible Group Maximum','advanced'],['maximumMark','Maximum Mark','standard'],['criteriaText','Judging Criteria','standard'],['multipleJudgeMethod','Multiple Judge Override','advanced'],['tieBreakMethod','Tie-break Override','advanced'],['gradeMode','Grade Override','standard'],['duration','Event Duration','standard'],['preparationTime','Preparation Time','advanced'],['rules','Event Rules','basic'],['resultWorkflow','Result Workflow Override','advanced'],['scheduleRequirement','Schedule Requirement Override','advanced'],['teamPolicy','Team Policy Override','advanced'],['correctMark','Correct Answer Mark','advanced'],['wrongPenalty','Wrong Answer Penalty','advanced'],['countPenalty','Wrong Count Penalty','advanced'],['timeDirection','Time Direction','advanced'],['scoreContribution','Team-score Contribution','standard'],['scoringPolicy','Scoring Policy Override','advanced']
-].map(([key,label,minimumMode])=>({key,label,minimumMode})));
+  ['code', 'Event Code', 'standard'],
+  ['eligibleClasses', 'Eligible Classes', 'standard'],
+  ['duration', 'Event Duration (Mins)', 'standard'],
+  ['rules', 'Event Rules & Guidelines', 'basic'],
+  ['criteriaText', 'Judging Criteria', 'standard'],
+  ['maximumMark', 'Maximum Mark', 'standard']
+].map(([key, label, minimumMode]) => ({ key, label, minimumMode })));
 const MODE_LEVEL={basic:0,standard:1,advanced:2};
 export function eventFieldRulesForMode(mode='advanced',saved=[]) {const custom=new Map((Array.isArray(saved)?saved:[]).map(item=>[item.key,item]));return EVENT_FIELD_DEFINITIONS.map(field=>{const fallback=MODE_LEVEL[mode]>=MODE_LEVEL[field.minimumMode]?'optional':'hidden',value=custom.get(field.key)?.requirement;return {...field,requirement:['hidden','optional','required','conditional'].includes(value)?value:fallback};});}
 
