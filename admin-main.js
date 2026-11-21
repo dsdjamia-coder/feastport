@@ -6,7 +6,7 @@ import { genderLabel } from './admin-events.js';
 import { EVENT_IMPORT_COLUMNS, RESULT_METHODS, eventDuplicateKey, eventToFirestore, isEventHeadingRow, normalizeEventRow, parseCriteria, suggestEventColumn, validateEvent } from './event-utils.js';
 import { collection, onSnapshot, doc, setDoc, addDoc, deleteDoc, deleteField, updateDoc, getDoc, getDocs, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { initAdminAuth } from './admin-auth.js';
-import { DEFAULT_FEST_SETUP, DEFAULT_CATEGORY_DEFINITIONS, DEFAULT_DOMAINS, DEFAULT_TIER_STRUCTURE, DEFAULT_GROUP_REGULATIONS, FEST_PRESET_GUIDES, normalizeFestSetup, normalizeStudentFields, normalizeParticipantTypeDefinitions, normalizeCompetitionPolicies, incompleteCompetitionPolicies, eventFieldRulesForMode, readableTextColor, scheduleEnabled, judgingEnabled, setupForPreset, teamModeEnabled } from './fest-config.js';
+import { DEFAULT_FEST_SETUP, DEFAULT_CATEGORY_DEFINITIONS, DEFAULT_PARTICIPANT_FIELDS, DEFAULT_DOMAINS, DEFAULT_TIER_STRUCTURE, DEFAULT_GROUP_REGULATIONS, FEST_PRESET_GUIDES, normalizeFestSetup, normalizeCategoryDefinitions, normalizeStudentFields, normalizeParticipantTypeDefinitions, normalizeCompetitionPolicies, incompleteCompetitionPolicies, eventFieldRulesForMode, readableTextColor, scheduleEnabled, judgingEnabled, setupForPreset, teamModeEnabled } from './fest-config.js';
 import { deleteApp, initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import { createUserWithEmailAndPassword, getAuth as getSecondaryAuth, signOut as signOutSecondary } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
@@ -8037,7 +8037,8 @@ window.openCategoryDefinitionModal = (categoryKey = null) => {
     const selectedTypes = existing?.allowedParticipantTypes?.length ? existing.allowedParticipantTypes : ['student'];
 
     if (ptContainer) {
-        const availableDefs = allDefs.filter(d => activeTypes.includes(d.key));
+        let availableDefs = allDefs.filter(d => activeTypes.includes(d.key));
+        if (!availableDefs.length) availableDefs = allDefs;
         ptContainer.innerHTML = availableDefs.map(d => {
             const isChecked = selectedTypes.includes(d.key);
             return `
@@ -8083,6 +8084,15 @@ window.closeCategoryDefinitionModal = () => {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
 };
+
+// Auto-wire backdrop click
+if (typeof document !== 'undefined') {
+    document.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'category-definition-modal') {
+            window.closeCategoryDefinitionModal();
+        }
+    });
+}
 
 window.modalSelectAllClasses = (selectAll = true) => {
     document.querySelectorAll('input[name="cat-rule-student-class"]').forEach(input => {
