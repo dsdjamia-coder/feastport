@@ -45,10 +45,46 @@ export const DEFAULT_DOMAINS = Object.freeze({
 });
 
 export const DEFAULT_CATEGORY_DEFINITIONS = Object.freeze([
-  { key: 'Sub-Junior', label: 'Sub-Junior', eligibleClasses: ['1','2','3','4'], color: '#0284c7' },
-  { key: 'Junior', label: 'Junior', eligibleClasses: ['5','6','7'], color: '#16a34a' },
-  { key: 'Senior', label: 'Senior', eligibleClasses: ['8','9','10'], color: '#9333ea' },
-  { key: 'General', label: 'General / Open', eligibleClasses: ['1','2','3','4','5','6','7','8','9','10','+1','+2'], color: '#d97706' }
+  {
+    key: 'Sub-Junior',
+    label: 'Sub-Junior',
+    eligibleClasses: ['1','2','3','4'],
+    color: '#0284c7',
+    system: true,
+    hidden: false,
+    allowedParticipantTypes: ['student'],
+    eligibilityRules: { student: { classes: ['1','2','3','4'] } }
+  },
+  {
+    key: 'Junior',
+    label: 'Junior',
+    eligibleClasses: ['5','6','7'],
+    color: '#16a34a',
+    system: true,
+    hidden: false,
+    allowedParticipantTypes: ['student'],
+    eligibilityRules: { student: { classes: ['5','6','7'] } }
+  },
+  {
+    key: 'Senior',
+    label: 'Senior',
+    eligibleClasses: ['8','9','10'],
+    color: '#9333ea',
+    system: true,
+    hidden: false,
+    allowedParticipantTypes: ['student'],
+    eligibilityRules: { student: { classes: ['8','9','10'] } }
+  },
+  {
+    key: 'General',
+    label: 'General / Open',
+    eligibleClasses: ['1','2','3','4','5','6','7','8','9','10','+1','+2'],
+    color: '#d97706',
+    system: true,
+    hidden: false,
+    allowedParticipantTypes: ['student'],
+    eligibilityRules: { student: { classes: ['1','2','3','4','5','6','7','8','9','10','+1','+2'] } }
+  }
 ]);
 
 export const DEFAULT_GROUP_REGULATIONS = Object.freeze({
@@ -210,15 +246,47 @@ export function normalizeDomains(raw = {}) {
 }
 
 export function normalizeCategoryDefinitions(raw) {
+  const isDefaultKey = k => ['sub-junior', 'junior', 'senior', 'general'].includes(String(k || '').toLowerCase());
   if (Array.isArray(raw) && raw.length) {
-    return raw.map((c, idx) => ({
-      key: String(c.key || c.label || `category_${idx + 1}`).trim(),
-      label: String(c.label || c.key || `Category ${idx + 1}`).trim().slice(0, 60),
-      eligibleClasses: Array.isArray(c.eligibleClasses) ? [...new Set(c.eligibleClasses.map(String).map(s => s.trim()).filter(Boolean))] : [],
-      color: /^#[0-9a-f]{6}$/i.test(c.color || '') ? c.color : '#4f46e5'
-    })).filter(c => c.key);
+    return raw.map((c, idx) => {
+      const key = String(c.key || c.label || `category_${idx + 1}`).trim();
+      const system = c.system !== undefined ? !!c.system : isDefaultKey(key);
+      const hidden = !!c.hidden;
+      const allowedParticipantTypes = Array.isArray(c.allowedParticipantTypes) && c.allowedParticipantTypes.length
+        ? [...new Set(c.allowedParticipantTypes.map(String).map(s => s.trim()).filter(Boolean))]
+        : ['student'];
+
+      const rawRules = (c.eligibilityRules && typeof c.eligibilityRules === 'object') ? c.eligibilityRules : {};
+      const studentClasses = Array.isArray(rawRules?.student?.classes)
+        ? rawRules.student.classes.map(String).map(s => s.trim()).filter(Boolean)
+        : (Array.isArray(c.eligibleClasses) ? c.eligibleClasses.map(String).map(s => s.trim()).filter(Boolean) : []);
+
+      const eligibilityRules = {
+        ...rawRules,
+        student: {
+          ...(rawRules.student || {}),
+          classes: [...new Set(studentClasses)]
+        }
+      };
+
+      return {
+        key,
+        label: String(c.label || c.key || `Category ${idx + 1}`).trim().slice(0, 60),
+        color: /^#[0-9a-f]{6}$/i.test(c.color || '') ? c.color : '#4f46e5',
+        system,
+        hidden,
+        allowedParticipantTypes,
+        eligibilityRules,
+        eligibleClasses: [...new Set(studentClasses)]
+      };
+    }).filter(c => c.key);
   }
-  return [...DEFAULT_CATEGORY_DEFINITIONS];
+  return DEFAULT_CATEGORY_DEFINITIONS.map(c => ({
+    ...c,
+    allowedParticipantTypes: [...c.allowedParticipantTypes],
+    eligibilityRules: JSON.parse(JSON.stringify(c.eligibilityRules)),
+    eligibleClasses: [...c.eligibleClasses]
+  }));
 }
 
 export function normalizeGroupRegulations(raw = {}) {

@@ -596,9 +596,15 @@ document.addEventListener('click', (event) => {
         'set-gender-preset': () => window.setMasterGenderPreset(d.preset),
         'add-custom-gender': () => window.addMasterCustomGender(),
         'remove-custom-gender': () => window.removeMasterCustomGender(d.gender),
-        'add-category-definition-modal': () => window.addCategoryDefinition(),
+        'add-category-definition-modal': () => window.openCategoryDefinitionModal(),
+        'edit-category-definition': () => window.openCategoryDefinitionModal(d.categoryKey),
+        'toggle-category-visibility': () => window.toggleCategoryVisibility(d.categoryKey),
         'remove-category-definition': () => window.removeCategoryDefinition(d.categoryKey),
-        'edit-category-classes': () => window.editCategoryClasses(d.categoryKey),
+        'close-category-definition-modal': () => window.closeCategoryDefinitionModal(),
+        'save-category-definition-modal': () => window.saveCategoryDefinitionModal(),
+        'modal-delete-category': () => window.modalDeleteCategory(),
+        'modal-select-all-classes': () => window.modalSelectAllClasses(d.select === 'all'),
+        'edit-category-classes': () => window.openCategoryDefinitionModal(d.categoryKey),
         'show-master-info': () => window.showMasterInfo(d.info, btn),
         'close-master-info': () => window.closeMasterInfo(),
         'clear-master-info': () => window.clearMasterInfo(),
@@ -978,17 +984,22 @@ bindStaticTabNavigation();
 window.renderDropdowns = () => {
     window.populateParticipantTypes?.();
     window.renderStudentCustomFields?.();
-    const studentCategories = categories.filter(c => c !== 'General');
+    const activeCats = (festSetup?.categoryDefinitions?.length
+        ? festSetup.categoryDefinitions.filter(c => !c.hidden).map(c => c.key)
+        : categories
+    ).filter(Boolean);
+    const hasGeneral = activeCats.includes('General');
+    const studentCategories = activeCats.filter(c => c !== 'General');
     const studentCatOpts = studentCategories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(categoryLabel(c))} (${escapeHtml(c)})</option>`).join('');
-    const eventCatOpts = categories.filter(c => c !== 'General').map(c => `<option value="${escapeHtml(c)}">${escapeHtml(categoryLabel(c))} (${escapeHtml(c)})</option>`).join('');
+    const eventCatOpts = activeCats.filter(c => c !== 'General').map(c => `<option value="${escapeHtml(c)}">${escapeHtml(categoryLabel(c))} (${escapeHtml(c)})</option>`).join('');
     const teamOpts = teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(teamLabel(t))} (${escapeHtml(t)})</option>`).join('');
     const updateSelect = (selector, html) => { document.querySelectorAll(selector).forEach(s => { const old = s.value; s.innerHTML = html; if(old && Array.from(s.options).some(o => o.value === old)) s.value = old; }); };
     updateSelect('.select-cat', '<option value="">Select Category</option>' + studentCatOpts);
     updateSelect('.select-team', '<option value="">Select Team</option>' + teamOpts);
-    updateSelect('.select-cat-filter', '<option value="">All Categories</option><option value="General" class="font-bold text-indigo-600">General</option>' + eventCatOpts);
+    updateSelect('.select-cat-filter', '<option value="">All Categories</option>' + (hasGeneral ? '<option value="General" class="font-bold text-indigo-600">General</option>' : '') + eventCatOpts);
     updateSelect('.select-cat-filter-directory', '<option value="">All Categories</option>' + studentCatOpts);
     updateSelect('.select-team-filter', '<option value="">All Teams</option>' + teamOpts);
-    updateSelect('.select-cat-create', '<option value="General" class="font-bold text-indigo-600">General</option>' + eventCatOpts);
+    updateSelect('.select-cat-create', (hasGeneral ? '<option value="General" class="font-bold text-indigo-600">General</option>' : '') + eventCatOpts);
     const studentClasses = [...new Set(students.map(s => s.details?.class || s.class).filter(Boolean))].sort((a,b) => String(a).localeCompare(String(b), undefined, {numeric:true}));
     const classOpts = studentClasses.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
     updateSelect('.select-class-filter-directory', '<option value="">All Classes</option>' + classOpts);
@@ -7668,29 +7679,83 @@ window.renderMasterDomains = (setup = festSetup) => {
 window.renderMasterCategoryArchitecture = (setup = festSetup) => {
     const container = document.getElementById('master-category-architecture');
     if (!container) return;
-    const categoriesList = setup.categoryDefinitions || DEFAULT_CATEGORY_DEFINITIONS;
+    const categoriesList = normalizeCategoryDefinitions(setup.categoryDefinitions || DEFAULT_CATEGORY_DEFINITIONS);
 
-    container.innerHTML = categoriesList.map(c => `
-        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs relative flex flex-col justify-between" data-category-key="${escapeHtml(c.key)}">
+    container.innerHTML = categoriesList.map(c => {
+        const isSystem = !!c.system;
+        const isHidden = !!c.hidden;
+        const types = Array.isArray(c.allowedParticipantTypes) && c.allowedParticipantTypes.length ? c.allowedParticipantTypes : ['student'];
+        const rules = c.eligibilityRules || {};
+        const studentClasses = rules?.student?.classes || c.eligibleClasses || [];
+
+        return `
+        <div class="rounded-2xl border ${isHidden ? 'border-rose-200 bg-rose-50/25 opacity-80' : 'border-slate-200 bg-white'} p-4 shadow-2xs relative flex flex-col justify-between transition hover:shadow-xs" data-category-key="${escapeHtml(c.key)}">
             <div>
-                <div class="flex items-center justify-between">
-                    <span class="inline-block h-3 w-3 rounded-full" style="background-color: ${escapeHtml(c.color || '#4f46e5')}"></span>
-                    <button type="button" data-admin-action="remove-category-definition" data-category-key="${escapeHtml(c.key)}" class="text-slate-400 hover:text-rose-600 p-1 rounded-lg" title="Delete Category"><i data-lucide="trash-2" class="h-3.5 w-3.5"></i></button>
-                </div>
-                <h5 class="mt-2 text-sm font-black text-slate-800">${escapeHtml(c.label || c.key)}</h5>
-                <p class="text-[10px] font-bold text-slate-400 font-mono">${escapeHtml(c.key)}</p>
-                <div class="mt-3">
-                    <span class="text-[10px] font-black uppercase text-slate-400 block mb-1">Eligible Classes:</span>
-                    <div class="flex flex-wrap gap-1">
-                        ${(c.eligibleClasses || []).map(cls => `<span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-700">${escapeHtml(cls)}</span>`).join('') || '<span class="text-[10px] italic text-slate-400">Open to all</span>'}
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-block h-3.5 w-3.5 rounded-full ring-2 ring-white shadow-xs" style="background-color: ${escapeHtml(c.color || '#4f46e5')}"></span>
+                        <span class="text-xs font-black uppercase tracking-wider ${isSystem ? 'text-indigo-600' : 'text-slate-500'}">${isSystem ? 'Built-in' : 'Custom'}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        ${isHidden
+                            ? `<span class="rounded-md bg-rose-100 text-rose-700 px-1.5 py-0.5 text-[10px] font-black uppercase">Hidden</span>`
+                            : `<span class="rounded-md bg-emerald-100 text-emerald-700 px-1.5 py-0.5 text-[10px] font-black uppercase">Active</span>`
+                        }
+                        ${!isSystem ? `
+                            <button type="button" data-admin-action="remove-category-definition" data-category-key="${escapeHtml(c.key)}" class="text-slate-400 hover:text-rose-600 p-1 rounded-lg transition" title="Delete Custom Category"><i data-lucide="trash-2" class="h-3.5 w-3.5"></i></button>
+                        ` : ''}
                     </div>
                 </div>
+
+                <h5 class="mt-2.5 text-sm font-black text-slate-800 leading-tight">${escapeHtml(c.label || c.key)}</h5>
+                <p class="text-[10px] font-bold text-slate-400 font-mono mt-0.5">${escapeHtml(c.key)}</p>
+
+                <div class="mt-3">
+                    <span class="text-[9px] font-black uppercase text-slate-400 block mb-1">Allowed Participant Types:</span>
+                    <div class="flex flex-wrap gap-1">
+                        ${types.map(t => `<span class="rounded-md bg-indigo-50 border border-indigo-200/60 px-1.5 py-0.5 text-[10px] font-bold text-indigo-700 capitalize">${escapeHtml(t)}</span>`).join('')}
+                    </div>
+                </div>
+
+                <div class="mt-2.5 pt-2 border-t border-slate-100">
+                    <span class="text-[9px] font-black uppercase text-slate-400 block mb-1">Sub-Eligibility:</span>
+                    ${types.includes('student') ? `
+                        <div class="mb-1">
+                            <span class="text-[10px] font-bold text-slate-600">Student Classes: </span>
+                            <div class="flex flex-wrap gap-1 mt-0.5">
+                                ${studentClasses.length
+                                    ? studentClasses.map(cls => `<span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-700">${escapeHtml(cls)}</span>`).join('')
+                                    : '<span class="text-[10px] italic text-slate-400">All classes eligible</span>'
+                                }
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${types.filter(t => t !== 'student').map(t => {
+                        const tr = rules[t] || {};
+                        const opts = tr.options || tr.relation || [];
+                        const gends = tr.genders || [];
+                        const summary = [...opts, ...gends].join(', ');
+                        return `
+                        <div class="text-[10px] text-slate-500 font-medium">
+                            <b class="capitalize text-slate-700">${escapeHtml(t)}:</b> ${summary ? escapeHtml(summary) : 'Open / All eligible'}
+                        </div>
+                        `;
+                    }).join('')}
+                </div>
             </div>
-            <div class="mt-3 pt-2 border-t flex items-center justify-between text-[11px]">
-                <button type="button" data-admin-action="edit-category-classes" data-category-key="${escapeHtml(c.key)}" class="text-indigo-600 font-bold hover:underline">Edit Classes</button>
+
+            <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                <button type="button" data-admin-action="edit-category-definition" data-category-key="${escapeHtml(c.key)}" class="text-indigo-600 font-bold hover:underline flex items-center gap-1">
+                    <i data-lucide="settings-2" class="h-3 w-3"></i> Edit
+                </button>
+                <button type="button" data-admin-action="toggle-category-visibility" data-category-key="${escapeHtml(c.key)}" class="${isHidden ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-500 hover:text-slate-800'} font-bold flex items-center gap-1 transition" title="${isHidden ? 'Unhide category' : 'Hide category'}">
+                    <i data-lucide="${isHidden ? 'eye' : 'eye-off'}" class="h-3 w-3"></i>
+                    <span>${isHidden ? 'Unhide' : 'Hide'}</span>
+                </button>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
     window.lucide?.createIcons?.();
 };
 
@@ -7902,49 +7967,345 @@ window.removeMasterCustomGender = async (gender) => {
     window.showToast(`Gender '${gender}' removed`);
 };
 
-window.addCategoryDefinition = async () => {
-    const name = await window.promptAction('Enter New Category Name (e.g. Sub-Junior, Under-14, Primary):', '');
-    if (!name || !name.trim()) return;
-    const clean = name.trim();
-    const categoriesList = festSetup.categoryDefinitions || [];
-    if (categoriesList.some(c => c.key.toLowerCase() === clean.toLowerCase())) return window.showToast('Category already exists', 'error');
-    const colors = ['#0284c7', '#16a34a', '#9333ea', '#d97706', '#dc2626', '#0d9488'];
-    const newCat = {
-        key: clean,
-        label: clean,
-        eligibleClasses: ['1','2','3','4','5','6','7','8','9','10','+1','+2'],
-        color: colors[categoriesList.length % colors.length]
-    };
-    festSetup.categoryDefinitions = [...categoriesList, newCat];
-    masterDirtySections.add('people-registration');
+window.openCategoryDefinitionModal = (categoryKey = null) => {
+    const modal = document.getElementById('category-definition-modal');
+    if (!modal) return;
+
+    const list = normalizeCategoryDefinitions(festSetup.categoryDefinitions || DEFAULT_CATEGORY_DEFINITIONS);
+    const existing = categoryKey ? list.find(c => c.key === categoryKey) : null;
+    const isEdit = !!existing;
+    const isSystem = existing ? !!existing.system : false;
+    const isHidden = existing ? !!existing.hidden : false;
+
+    const titleEl = document.getElementById('cat-modal-title');
+    if (titleEl) {
+        titleEl.innerHTML = `<i data-lucide="tags" class="w-5 h-5 text-indigo-600"></i> <span>${isEdit ? 'Edit Competition Category' : 'Add Competition Category'}</span>`;
+    }
+
+    const keyInput = document.getElementById('cat-modal-key');
+    if (keyInput) keyInput.value = isEdit ? existing.key : '';
+
+    const systemInput = document.getElementById('cat-modal-is-system');
+    if (systemInput) systemInput.value = isSystem ? 'true' : 'false';
+
+    const labelInput = document.getElementById('cat-modal-label');
+    if (labelInput) labelInput.value = isEdit ? (existing.label || existing.key) : '';
+
+    const colorInput = document.getElementById('cat-modal-color');
+    if (colorInput) {
+        const colors = ['#0284c7', '#16a34a', '#9333ea', '#d97706', '#dc2626', '#0d9488'];
+        colorInput.value = isEdit ? (existing.color || '#4f46e5') : colors[list.length % colors.length];
+    }
+
+    const activeToggle = document.getElementById('cat-modal-active-toggle');
+    const statusBadge = document.getElementById('cat-modal-status-badge');
+    if (activeToggle) {
+        activeToggle.checked = !isHidden;
+        if (statusBadge) {
+            statusBadge.textContent = !isHidden ? 'Active' : 'Hidden';
+            statusBadge.className = !isHidden
+                ? 'rounded-md bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-black uppercase'
+                : 'rounded-md bg-rose-100 text-rose-800 px-2 py-0.5 text-[10px] font-black uppercase';
+        }
+        activeToggle.onchange = () => {
+            const active = activeToggle.checked;
+            if (statusBadge) {
+                statusBadge.textContent = active ? 'Active' : 'Hidden';
+                statusBadge.className = active
+                    ? 'rounded-md bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-black uppercase'
+                    : 'rounded-md bg-rose-100 text-rose-800 px-2 py-0.5 text-[10px] font-black uppercase';
+            }
+        };
+    }
+
+    const deleteBtn = document.getElementById('cat-modal-delete-btn');
+    const systemNotice = document.getElementById('cat-modal-system-notice');
+    if (isSystem) {
+        deleteBtn?.classList.add('hidden');
+        systemNotice?.classList.remove('hidden');
+    } else if (isEdit) {
+        deleteBtn?.classList.remove('hidden');
+        systemNotice?.classList.add('hidden');
+    } else {
+        deleteBtn?.classList.add('hidden');
+        systemNotice?.classList.add('hidden');
+    }
+
+    const ptContainer = document.getElementById('cat-modal-pt-list');
+    const activeTypes = festSetup.participantTypes || ['student'];
+    const allDefs = normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions);
+    const selectedTypes = existing?.allowedParticipantTypes?.length ? existing.allowedParticipantTypes : ['student'];
+
+    if (ptContainer) {
+        const availableDefs = allDefs.filter(d => activeTypes.includes(d.key));
+        ptContainer.innerHTML = availableDefs.map(d => {
+            const isChecked = selectedTypes.includes(d.key);
+            return `
+            <label class="group flex items-center justify-between rounded-xl bg-slate-50/80 p-2.5 text-xs font-bold border border-slate-200 transition hover:border-indigo-300 hover:bg-white has-[:checked]:border-indigo-400 has-[:checked]:bg-indigo-50/30 cursor-pointer">
+                <span class="flex items-center gap-2">
+                    <input type="checkbox" name="cat-modal-pt" value="${escapeHtml(d.key)}" ${isChecked ? 'checked' : ''} class="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500">
+                    <span class="text-slate-800">${escapeHtml(d.label)}</span>
+                </span>
+                <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${d.system ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-700'}">${d.system ? 'Built-in' : 'Custom'}</span>
+            </label>
+            `;
+        }).join('') || '<div class="col-span-full text-xs text-slate-400 font-bold">No participant types active in Master Setup.</div>';
+
+        ptContainer.querySelectorAll('input[name="cat-modal-pt"]').forEach(input => {
+            input.onchange = () => {
+                const currentChecked = [...document.querySelectorAll('input[name="cat-modal-pt"]:checked')].map(i => i.value);
+                window.renderModalEligibilityRules(currentChecked);
+            };
+        });
+    }
+
+    const selectAllBtn = document.getElementById('cat-modal-pt-select-all');
+    if (selectAllBtn) {
+        selectAllBtn.onclick = () => {
+            const inputs = document.querySelectorAll('input[name="cat-modal-pt"]');
+            const allChecked = [...inputs].every(i => i.checked);
+            inputs.forEach(i => i.checked = !allChecked);
+            const currentChecked = [...document.querySelectorAll('input[name="cat-modal-pt"]:checked')].map(i => i.value);
+            window.renderModalEligibilityRules(currentChecked);
+        };
+    }
+
+    window.renderModalEligibilityRules(selectedTypes, existing?.eligibilityRules || { student: { classes: existing?.eligibleClasses || [] } });
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    window.lucide?.createIcons?.();
+};
+
+window.closeCategoryDefinitionModal = () => {
+    const modal = document.getElementById('category-definition-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+};
+
+window.modalSelectAllClasses = (selectAll = true) => {
+    document.querySelectorAll('input[name="cat-rule-student-class"]').forEach(input => {
+        input.checked = selectAll;
+    });
+};
+
+window.renderModalEligibilityRules = (selectedTypes = [], existingRules = null) => {
+    const container = document.getElementById('cat-modal-eligibility-rules');
+    if (!container) return;
+
+    if (!selectedTypes.length) {
+        container.innerHTML = `
+            <div class="rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 text-xs text-amber-900 font-bold flex items-center gap-2">
+                <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600 shrink-0"></i>
+                <span>Please select at least one participant type above to configure eligibility criteria.</span>
+            </div>
+        `;
+        window.lucide?.createIcons?.();
+        return;
+    }
+
+    const allDefs = normalizeParticipantTypeDefinitions(festSetup.participantTypeDefinitions);
+    const availableClasses = festSetup.eligibleClasses && festSetup.eligibleClasses.length
+        ? festSetup.eligibleClasses
+        : (festSetup.studentFields?.find?.(f => f.key === 'class')?.options || ['1','2','3','4','5','6','7','8','9','10','+1','+2']);
+
+    container.innerHTML = selectedTypes.map(typeKey => {
+        const typeDef = allDefs.find(d => d.key === typeKey) || { key: typeKey, label: typeKey };
+        const savedRule = existingRules?.[typeKey] || {};
+
+        if (typeKey === 'student') {
+            const savedClasses = Array.isArray(savedRule.classes) ? savedRule.classes : (Array.isArray(existingRules?.studentClasses) ? existingRules.studentClasses : []);
+            return `
+            <div class="rounded-xl border border-indigo-200/80 bg-indigo-50/20 p-3.5 space-y-2">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="h-2 w-2 rounded-full bg-indigo-600"></span>
+                        <b class="text-xs font-black text-indigo-950">Student Class Eligibility</b>
+                    </div>
+                    <div class="flex items-center gap-2 text-[10px] font-bold">
+                        <button type="button" data-admin-action="modal-select-all-classes" data-select="all" class="text-indigo-600 hover:underline">Select All</button>
+                        <span class="text-slate-300">|</span>
+                        <button type="button" data-admin-action="modal-select-all-classes" data-select="none" class="text-slate-500 hover:underline">Clear</button>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-1.5 pt-1">
+                    ${availableClasses.map(cls => {
+                        const isChecked = savedClasses.length ? savedClasses.includes(cls) : true;
+                        return `
+                        <label class="cursor-pointer select-none">
+                            <input type="checkbox" name="cat-rule-student-class" value="${escapeHtml(cls)}" ${isChecked ? 'checked' : ''} class="sr-only peer">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-white text-slate-700 transition peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white shadow-2xs">${escapeHtml(cls)}</span>
+                        </label>
+                        `;
+                    }).join('')}
+                </div>
+                <p class="text-[10px] font-semibold text-slate-400">Selected classes will be eligible for student competitions in this category.</p>
+            </div>
+            `;
+        }
+
+        if (typeKey === 'parent') {
+            const parentOpts = ['Father', 'Mother', 'Guardian'];
+            const savedOpts = Array.isArray(savedRule.options) ? savedRule.options : (Array.isArray(savedRule.relation) ? savedRule.relation : []);
+            return `
+            <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 space-y-2">
+                <div class="flex items-center gap-2">
+                    <span class="h-2 w-2 rounded-full bg-indigo-600"></span>
+                    <b class="text-xs font-black text-slate-800">Parent Eligibility (Relationship)</b>
+                </div>
+                <div class="flex flex-wrap gap-2 pt-1">
+                    ${parentOpts.map(opt => {
+                        const isChecked = savedOpts.includes(opt);
+                        return `
+                        <label class="cursor-pointer select-none">
+                            <input type="checkbox" data-rule-type="parent" value="${escapeHtml(opt)}" ${isChecked ? 'checked' : ''} class="sr-only peer">
+                            <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-white text-slate-700 transition peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white shadow-2xs">${escapeHtml(opt)}</span>
+                        </label>
+                        `;
+                    }).join('')}
+                </div>
+                <p class="text-[10px] font-semibold text-slate-400">Select specific roles, or leave unselected to allow all parent participants.</p>
+            </div>
+            `;
+        }
+
+        return `
+        <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                <div>
+                    <b class="text-xs font-bold text-slate-800 capitalize">${escapeHtml(typeDef.label)}</b>
+                    <p class="text-[10px] font-semibold text-slate-400">All registered ${escapeHtml(typeDef.label)} participants will be eligible for this category.</p>
+                </div>
+            </div>
+            <span class="text-[10px] font-black uppercase rounded bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5">Open to all ${escapeHtml(typeDef.label)}</span>
+        </div>
+        `;
+    }).join('');
+
+    window.lucide?.createIcons?.();
+};
+
+window.saveCategoryDefinitionModal = () => {
+    const keyInput = document.getElementById('cat-modal-key');
+    const labelInput = document.getElementById('cat-modal-label');
+    const colorInput = document.getElementById('cat-modal-color');
+    const activeToggle = document.getElementById('cat-modal-active-toggle');
+    const isSystemInput = document.getElementById('cat-modal-is-system');
+
+    const cleanLabel = (labelInput?.value || '').trim();
+    if (!cleanLabel) {
+        window.showToast('Please enter a Category Name', 'error');
+        return;
+    }
+
+    const selectedTypes = [...document.querySelectorAll('input[name="cat-modal-pt"]:checked')].map(i => i.value);
+    if (!selectedTypes.length) {
+        window.showToast('Please select at least one allowed participant type', 'error');
+        return;
+    }
+
+    const existingKey = keyInput?.value?.trim();
+    const isEdit = !!existingKey;
+    const isSystem = isSystemInput?.value === 'true';
+    const isHidden = !(activeToggle?.checked ?? true);
+    const color = colorInput?.value || '#4f46e5';
+
+    const rules = {};
+    let eligibleClasses = [];
+
+    if (selectedTypes.includes('student')) {
+        const studentClasses = [...document.querySelectorAll('input[name="cat-rule-student-class"]:checked')].map(i => i.value);
+        rules.student = { classes: studentClasses };
+        eligibleClasses = studentClasses;
+    }
+
+    selectedTypes.forEach(t => {
+        if (t === 'student') return;
+        const opts = [...document.querySelectorAll(`input[data-rule-type="${t}"]:checked`)].map(i => i.value);
+        rules[t] = { options: opts };
+    });
+
+    const categoriesList = normalizeCategoryDefinitions(festSetup.categoryDefinitions || DEFAULT_CATEGORY_DEFINITIONS);
+
+    if (isEdit) {
+        const idx = categoriesList.findIndex(c => c.key === existingKey);
+        if (idx !== -1) {
+            categoriesList[idx] = {
+                ...categoriesList[idx],
+                label: cleanLabel,
+                color,
+                hidden: isHidden,
+                allowedParticipantTypes: selectedTypes,
+                eligibilityRules: rules,
+                eligibleClasses
+            };
+        }
+    } else {
+        if (categoriesList.some(c => c.key.toLowerCase() === cleanLabel.toLowerCase())) {
+            window.showToast('A category with this name already exists', 'error');
+            return;
+        }
+        const newCat = {
+            key: cleanLabel,
+            label: cleanLabel,
+            color,
+            system: false,
+            hidden: isHidden,
+            allowedParticipantTypes: selectedTypes,
+            eligibilityRules: rules,
+            eligibleClasses
+        };
+        categoriesList.push(newCat);
+    }
+
+    festSetup.categoryDefinitions = categoriesList;
+    masterDirtySections.add('events-schedule');
     updateMasterSubnavStatus();
     window.renderMasterCategoryArchitecture(festSetup);
-    window.showToast(`Category '${clean}' added`);
+    window.renderDropdowns?.();
+    window.closeCategoryDefinitionModal();
+    window.showToast(`Category '${cleanLabel}' saved`);
+};
+
+window.toggleCategoryVisibility = (key) => {
+    const list = normalizeCategoryDefinitions(festSetup.categoryDefinitions || DEFAULT_CATEGORY_DEFINITIONS);
+    const cat = list.find(c => c.key === key);
+    if (!cat) return;
+    cat.hidden = !cat.hidden;
+    festSetup.categoryDefinitions = list;
+    masterDirtySections.add('events-schedule');
+    updateMasterSubnavStatus();
+    window.renderMasterCategoryArchitecture(festSetup);
+    window.renderDropdowns?.();
+    window.showToast(cat.hidden ? `Category '${cat.label || cat.key}' is now hidden` : `Category '${cat.label || cat.key}' is now active`);
 };
 
 window.removeCategoryDefinition = async (key) => {
-    const categoriesList = festSetup.categoryDefinitions || [];
-    if (categoriesList.length <= 1) return window.showToast('At least one category is required', 'error');
-    if (!await window.confirmAction(`Delete category '${key}'?`)) return;
-    festSetup.categoryDefinitions = categoriesList.filter(c => c.key !== key);
-    masterDirtySections.add('people-registration');
+    const list = normalizeCategoryDefinitions(festSetup.categoryDefinitions || DEFAULT_CATEGORY_DEFINITIONS);
+    const cat = list.find(c => c.key === key);
+    if (!cat) return;
+    if (cat.system || ['sub-junior', 'junior', 'senior', 'general'].includes(key.toLowerCase())) {
+        window.showToast('Default category cannot be deleted. You can Hide it instead.', 'error');
+        return;
+    }
+    if (list.length <= 1) return window.showToast('At least one category is required', 'error');
+    if (!await window.confirmAction(`Delete category '${cat.label || key}' permanently?`)) return;
+
+    festSetup.categoryDefinitions = list.filter(c => c.key !== key);
+    masterDirtySections.add('events-schedule');
     updateMasterSubnavStatus();
     window.renderMasterCategoryArchitecture(festSetup);
-    window.showToast(`Category '${key}' removed`);
+    window.renderDropdowns?.();
+    window.showToast(`Category '${cat.label || key}' deleted`);
 };
 
-window.editCategoryClasses = async (key) => {
-    const categoriesList = festSetup.categoryDefinitions || [];
-    const cat = categoriesList.find(c => c.key === key);
-    if (!cat) return;
-    const currentClasses = (cat.eligibleClasses || []).join(', ');
-    const classesInput = await window.promptAction(`Eligible classes for ${cat.label} (comma separated):`, currentClasses);
-    if (classesInput === null) return;
-    cat.eligibleClasses = classesInput.split(',').map(s => s.trim()).filter(Boolean);
-    masterDirtySections.add('people-registration');
-    updateMasterSubnavStatus();
-    window.renderMasterCategoryArchitecture(festSetup);
-    window.showToast(`Updated classes for ${cat.label}`);
+window.modalDeleteCategory = async () => {
+    const key = document.getElementById('cat-modal-key')?.value;
+    if (!key) return;
+    await window.removeCategoryDefinition(key);
+    window.closeCategoryDefinitionModal();
 };
 
 window.renderMasterSetup = () => {
@@ -8717,7 +9078,7 @@ window.saveMasterSetup = async () => {
     const currentScoring=readScoringConfigFromDom();
     currentScoring.policies={gradeCalculationMaximumMark:Math.max(1,Number(document.getElementById('policy-grade-maximum')?.value||100)),directRankGradeMode:next.competitionPolicies.directRankGradeMode,minimumPositionPolicy:next.competitionPolicies.minimumPositionPolicy,minimumPositionPercentage:next.competitionPolicies.minimumPositionPercentage,jointPositionMethod:next.competitionPolicies.jointPositionMethod,multipleJudgeMethod:next.competitionPolicies.multipleJudgeMethod,trimMinimumJudges:next.competitionPolicies.trimMinimumJudges,generalGenderMode:next.competitionPolicies.generalGenderMode,publishedCorrectionMode:next.competitionPolicies.publishedCorrectionMode};
     const scoringIssue=scoringValidationIssue(currentScoring);if(scoringIssue)return window.showToast(scoringIssue,'error');
-    const newCategoryKeys = next.categoryDefinitions.map(c => c.key);
+    const newCategoryKeys = next.categoryDefinitions.filter(c => !c.hidden).map(c => c.key);
     festSetup=next;savedFestSetup=normalizeFestSetup(next);
     await Promise.all([
         setDoc(doc(db,'settings','general'),{festSetup:next, categories:newCategoryKeys},{merge:true}),
