@@ -5,7 +5,7 @@ import { ensureAdminSharedState } from './admin-dashboard.js';
 import { studentGender, chestKey, legacyChestKey } from './admin-students.js';
 import { genderLabel } from './admin-events.js';
 import { EVENT_IMPORT_COLUMNS, RESULT_METHODS, eventDuplicateKey, eventToFirestore, isEventHeadingRow, normalizeEventRow, parseCriteria, suggestEventColumn, validateEvent } from './event-utils.js';
-import { collection, onSnapshot, doc, setDoc, addDoc, deleteDoc, deleteField, updateDoc, getDoc, getDocs, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { collection, getCountFromServer, onSnapshot, doc, setDoc, addDoc, deleteDoc, deleteField, updateDoc, getDoc, getDocs, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { initAdminAuth } from './admin-auth.js';
 import { DEFAULT_FEST_SETUP, DEFAULT_CATEGORY_DEFINITIONS, DEFAULT_PARTICIPANT_FIELDS, DEFAULT_DOMAINS, DEFAULT_TIER_STRUCTURE, DEFAULT_GROUP_REGULATIONS, FEST_PRESET_GUIDES, normalizeFestSetup, normalizeCategoryDefinitions, normalizeStudentFields, normalizeParticipantTypeDefinitions, normalizeCompetitionPolicies, incompleteCompetitionPolicies, eventFieldRulesForMode, readableTextColor, scheduleEnabled, judgingEnabled, setupForPreset, teamModeEnabled } from './fest-config.js';
 import { deleteApp, initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
@@ -203,6 +203,23 @@ try { applyAdminLoaderBranding(JSON.parse(localStorage.getItem('fest_home_config
 let adminListenersStarted = false;
 const pendingTabListeners = new Map();
 
+let dashboardTotals = {};
+const directoryTabs = ['students', 'events', 'registrations', 'schedule', 'schedule-review',
+    'config', 'id-studio', 'master-setup', 'access', 'scoring', 'judge', 'poster-certificate',
+    'danger', 'downloads'];
+
+async function readDashboardTotal(name, totals) {
+    try {
+        const snapshot = await getCountFromServer(collection(db, name));
+        if (totals === dashboardTotals && !totals[name + 'Live']) {
+            totals[name] = snapshot.data().count;
+            window.updateStats();
+        }
+    } catch (error) {
+        console.warn('Unable to read dashboard count', name, error);
+    }
+}
+
 function startTabListeners(tab) {
     for (const [start, tabs] of pendingTabListeners) {
         if (tabs.includes(tab)) {
@@ -219,6 +236,9 @@ function listenOnTabs(tabs, start) {
 async function startAdminSession() {
     if (adminListenersStarted) return;
     adminListenersStarted = true;
+    dashboardTotals = {};
+    readDashboardTotal('students', dashboardTotals);
+    readDashboardTotal('registrations', dashboardTotals);
 
     // Immediately reveal admin layout using cached branding without blocking network delay
     document.getElementById('app-loader')?.classList.add('hide');
@@ -264,7 +284,9 @@ async function startAdminSession() {
             window.ensureStableMasterIdentities?.(data);
         }
     }));
-    window.adminUnsubscribers.push(onSnapshot(collection(db, "students"), (snap) => {
+    listenOnTabs(directoryTabs, () => onSnapshot(collection(db, "students"), (snap) => {
+        dashboardTotals.studentsLive = true;
+        dashboardTotals.students = snap.size;
         students = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         window.adminSharedState.update({ students });
         window.renderDropdowns?.();
@@ -290,7 +312,9 @@ async function startAdminSession() {
         }
         window.updateStats();
     }));
-    window.adminUnsubscribers.push(onSnapshot(collection(db, "registrations"), (snap) => {
+    listenOnTabs(directoryTabs, () => onSnapshot(collection(db, "registrations"), (snap) => {
+        dashboardTotals.registrationsLive = true;
+        dashboardTotals.registrations = snap.size;
         registrations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         window.updateStats();
         if (isTabActive('registrations')) window.renderRegList();
@@ -803,13 +827,22 @@ document.addEventListener('click', (event) => {
 
 window.copyPageLink = async (path) => {const url=new URL(path,window.location.href).href;try{await navigator.clipboard.writeText(url);}catch(_){const input=document.createElement('textarea');input.value=url;input.style.position='fixed';input.style.opacity='0';document.body.append(input);input.select();document.execCommand('copy');input.remove();}window.showToast?.('Page link copied');};
 
+let dashboardRenderFrame;
 window.updateStats = () => {
-    if(document.getElementById('stat-students')) document.getElementById('stat-students').innerText = students.length;
-    if(document.getElementById('stat-events')) document.getElementById('stat-events').innerText = events.length;
-    if(document.getElementById('stat-regs')) document.getElementById('stat-regs').innerText = registrations.length;
-    if(document.getElementById('stat-results')) document.getElementById('stat-results').innerText = results.length;
-    window.renderAdminReadiness?.();
+    if (dashboardRenderFrame || !document.getElementById('view-dashboard')?.classList.contains('active')) return;
+    dashboardRenderFrame = requestAnimationFrame(() => {
+        dashboardRenderFrame = 0;
+        renderDashboardStats();
+    });
 };
+
+function renderDashboardStats() {
+    if(document.getElementById('stat-students')) document.getElementById('stat-students').innerText = dashboardTotals.students ?? '…';
+    if(document.getElementById('stat-events')) document.getElementById('stat-events').innerText = events.length;
+    if(document.getElementById('stat-regs')) document.getElementById('stat-regs').innerText = dashboardTotals.registrations ?? '…';
+    if(document.getElementById('stat-results')) document.getElementById('stat-results').innerText = results.length;
+    if (document.getElementById("view-dashboard")?.classList.contains("active")) window.renderAdminReadiness?.();
+}
 
 window.navigateToReadinessQueue = (key) => {
     if (key === 'pending-requests') {
@@ -863,7 +896,7 @@ window.renderAdminReadiness = () => {
         { key:'events-without-judges', label:'Events without judges', count:activeEvents.filter(item => !assignedEventIds.has(item.id) && item.resultWorkflow !== 'direct').length, tab:'judge', icon:'scale', ready:activeEvents.length > 0 && activeEvents.every(item => assignedEventIds.has(item.id) || item.resultWorkflow === 'direct') },
         { key:'submitted-to-publish', label:'Submitted to publish', count:[...judgedEventIds].filter(id => !publishedEventIds.has(id)).length, tab:'judge', icon:'send', ready:[...judgedEventIds].every(id => publishedEventIds.has(id)) }
     ];
-    const foundation = [teams.length > 0, categories.length > 0, students.length > 0, activeEvents.length > 0];
+    const foundation = [teams.length > 0, categories.length > 0, dashboardTotals.students > 0, activeEvents.length > 0];
     const score = [...foundation, ...checks.map(item => item.ready)].filter(Boolean).length;
     const percent = Math.round(score / (foundation.length + checks.length) * 100);
     document.getElementById('admin-readiness-percent').textContent = `${percent}%`;
@@ -948,6 +981,14 @@ window.switchTab = (tab) => {
     if(btn) {
         if(tab === 'danger') { btn.classList.remove('bg-red-50', 'text-red-600'); btn.classList.add('bg-red-100', 'text-red-700'); }
         else { btn.classList.add('bg-indigo-50', 'text-indigo-600'); btn.classList.remove('text-slate-600'); }
+    }
+    if (tab === 'dashboard') {
+        window.updateStats();
+        if (adminListenersStarted) {
+            for (const name of ['students', 'registrations']) {
+                if (!dashboardTotals[name + 'Live']) readDashboardTotal(name, dashboardTotals);
+            }
+        }
     }
     setMasterSubnavExpanded(tab==='master-setup');
     if(tab==='master-setup')window.switchMasterSection(new URL(location.href).searchParams.get('section')||activeMasterSection,{scroll:false});
