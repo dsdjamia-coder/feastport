@@ -12,7 +12,7 @@ const readDataUrl=file=>new Promise((resolve,reject)=>{const reader=new FileRead
 const blobToDataUrl=blob=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(new Error('Unable to read compressed image'));reader.readAsDataURL(blob);});
 const decodeImage=file=>{if('createImageBitmap'in window)return createImageBitmap(file);return new Promise((resolve,reject)=>{const image=new Image(),url=URL.createObjectURL(file);image.onload=()=>{URL.revokeObjectURL(url);resolve(image)};image.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('The selected image could not be read.'))};image.src=url})};
 const canvasToBlob=(canvas,quality)=>new Promise(resolve=>canvas.toBlob(resolve,OUTPUT_TYPE,quality));
-async function compressImageFile(file) {
+export async function compressImageFile(file) {
   if(file.size<=MAX_IMAGE_BYTES)return readDataUrl(file);
   const source=await decodeImage(file);let scale=Math.min(1,1600/Math.max(source.width,source.height)),width=Math.max(1,Math.round(source.width*scale)),height=Math.max(1,Math.round(source.height*scale)),quality=.88,blob;
   for(let pass=0;pass<14;pass++){

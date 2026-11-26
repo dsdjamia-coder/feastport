@@ -12,7 +12,7 @@ import { deleteApp, initializeApp } from "https://www.gstatic.com/firebasejs/11.
 import { createUserWithEmailAndPassword, getAuth as getSecondaryAuth, signOut as signOutSecondary } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { DEFAULT_BRANDING, normalizeBranding, brandingName, applyLogo, clearBrandingCache } from './branding-config.js';
-import { initImageUploads, assertPayloadSize, normalizeGallerySlots } from './image-upload.js';
+import { compressImageFile, validateImageFile, initImageUploads, assertPayloadSize, normalizeGallerySlots } from './image-upload.js';
 import { normalizeRegistrationConfig, capacityState, participationUsage, participationLimitDecision, eventCategoryEligible } from './registration-utils.js';
 window.ensureDep = async (...names) => {
     if (window.ensureAdminDependencies) {
@@ -266,7 +266,7 @@ async function startAdminSession() {
                 studioTemplatesMap = { ...data.idCardTemplates };
             }
             if (data.teamIdCardTemplate && typeof data.teamIdCardTemplate === 'object') {
-                window.applyRemoteTeamIdTemplate?.(data.teamIdCardTemplate);
+                if (!studioHistories.has(studioTemplateTarget)) window.applyRemoteTeamIdTemplate?.(data.teamIdCardTemplate);
                 if (!studioTemplatesMap['student']) {
                     studioTemplatesMap['student'] = { ...data.teamIdCardTemplate };
                 }
@@ -4123,7 +4123,7 @@ window.saveTeamIdTemplate = async () => {
         window.showToast('ID card template saved permanently for all teams!');
     } catch (e) {
         console.warn('Could not save template to Firestore:', e);
-        window.showToast('Template saved locally (offline)', 'warning');
+        window.showToast('Cloud save failed. Keep this editor open and retry.', 'error');
     }
 };
 
@@ -4300,7 +4300,7 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
     const cardW = Number(tmpl.cardW || opts.cardW || 90);
     const cardH = Number(tmpl.cardH || opts.cardH || 130);
     const svgW = 600;
-    const svgH = Math.max(760, Math.round(svgW * (cardH / cardW)));
+    const svgH = Math.max(1, Math.round(svgW * (cardH / cardW)));
     const dimScale = Math.min(cardW / 90, cardH / 130);
 
     // 1. Header Banner
@@ -4461,7 +4461,6 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
             `);
         });
 
-        curY += valSize + 2;
 
         if (visibleDemoKeys.length > 3) {
             const row2Keys = visibleDemoKeys.slice(3);
@@ -4485,7 +4484,6 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
                         <text x="${posX}" y="${posY + itemValSize + 2}" font-family="Arial, sans-serif" font-size="${itemValSize}" font-weight="900" fill="${xmlEscape(valColor)}">${xmlEscape(itemDef.val)}</text>
                     </g>
                 `);
-                curY = Math.max(curY, posY + itemValSize + 2);
             });
         }
 
@@ -4655,11 +4653,13 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
             const op = el.opacity !== undefined ? el.opacity : 1;
 
             if (el.type === 'text') {
+                const values = { name: member.name, chest: member.chestNo, team: details[0][1], category: member.category, festival: brandingName(homeConfig) };
+                const content = el.field ? String(values[el.field] ?? '') : String(el.text ?? 'Text');
                 const fSize = Math.max(8, Math.round((el.fontSize || 16) * dimScale));
                 const transform = angle ? `transform="rotate(${angle} ${x} ${y})"` : '';
                 return `
-                    <g data-card-layer="${el.id}" class="card-layer-group cursor-pointer select-none" ${transform} ondblclick="window.promptEditCustomText('${el.id}')" title="Double click to edit text">
-                        <text x="${x}" y="${y}" font-family="Arial, sans-serif" font-size="${fSize}" font-weight="${el.fontWeight || 'bold'}" fill="${xmlEscape(el.color || '#0f172a')}" opacity="${op}">${xmlEscape(el.text || 'Text')}</text>
+                    <g data-card-layer="${el.id}" class="card-layer-group cursor-pointer select-none" ${transform} title="Double click to edit text">
+                        <text x="${x}" y="${y}" font-family="${xmlEscape(el.fontFamily || 'Arial, sans-serif')}" font-size="${fSize}" font-weight="${el.fontWeight || 'bold'}" fill="${xmlEscape(el.color || '#0f172a')}" opacity="${op}">${xmlEscape(content)}</text>
                     </g>
                 `;
             }
@@ -4861,14 +4861,7 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
 </defs>
 <g clip-path="url(#cardClip_${safeUid})">
   <rect width="600" height="${svgH}" fill="${xmlEscape(cardBg)}"/>
-  ${headerGroupSvg}
-  ${watermarkSvg}
-  ${photoGroupSvg}
-  ${nameSvg}
-  ${chestSvg}
-  ${detailsSvg}
-  ${eventsSvg}
-  ${footerSvg}
+  ${tmpl.hideBase ? '' : [headerGroupSvg, watermarkSvg, photoGroupSvg, nameSvg, chestSvg, detailsSvg, eventsSvg, footerSvg].join('')}
   ${customElementsSvg}
   ${selectionOverlay}
 </g>
@@ -4908,6 +4901,113 @@ let studioTemplateTarget = 'student';
 let studioTemplatesMap = {};
 let studioPrintCurrentPage = 1;
 let studioFullscreenMode = false;
+
+const studioHistories = new Map();
+
+function syncStudioTools() {
+    const snapshot = JSON.stringify(currentTeamIdTemplate);
+    let history = studioHistories.get(studioTemplateTarget);
+    if (!history) {
+        history = { steps: [snapshot], index: 0 };
+        studioHistories.set(studioTemplateTarget, history);
+    } else if (history.steps[history.index] !== snapshot) {
+        history.steps.splice(history.index + 1, Infinity, snapshot);
+        if (history.steps.length > 30) history.steps.shift();
+        history.index = history.steps.length - 1;
+    }
+    const layers = currentTeamIdTemplate.customElements || [];
+    const index = layers.findIndex(layer => layer.id === activeCardLayer);
+    const locked = currentTeamIdTemplate.lockedLayers?.includes(activeCardLayer) || false;
+    const properties = document.getElementById('inspector-panel-props');
+    if (properties) properties.inert = locked;
+    const disabled = { lock: !activeCardLayer, undo: history.index === 0, redo: history.index === history.steps.length - 1,
+        duplicate: index < 0, lower: index < 1, raise: index < 0 || index === layers.length - 1 };
+    document.querySelectorAll('#studio-edit-tools button').forEach(button => {
+        button.disabled = Boolean(disabled[button.dataset.edit]);
+        if (button.dataset.edit === 'lock') {
+            button.textContent = locked ? 'Unlock layer' : 'Lock layer';
+            button.setAttribute('aria-pressed', String(locked));
+        }
+        if (button.dataset.edit === 'base') button.setAttribute('aria-pressed', String(!currentTeamIdTemplate.hideBase));
+    });
+}
+
+function studioRoleTemplate(role) {
+    if (role === studioTemplateTarget) return currentTeamIdTemplate;
+    const history = studioHistories.get(role);
+    return history ? JSON.parse(history.steps[history.index]) : studioTemplatesMap[role] || getRoleDefaultTemplate(role);
+}
+
+async function editStudioCard(action) {
+    const history = studioHistories.get(studioTemplateTarget);
+    if (!history) return;
+    const layers = currentTeamIdTemplate.customElements || [];
+    const index = layers.findIndex(layer => layer.id === activeCardLayer);
+    if (action === 'undo' || action === 'redo') {
+        const next = history.index + (action === 'undo' ? -1 : 1);
+        if (!history.steps[next]) return;
+        history.index = next;
+        currentTeamIdTemplate = JSON.parse(history.steps[next]);
+        activeCardLayer = null;
+    } else if (action === 'lock' && activeCardLayer) {
+        const locked = new Set(currentTeamIdTemplate.lockedLayers || []);
+        if (locked.has(activeCardLayer)) locked.delete(activeCardLayer);
+        else locked.add(activeCardLayer);
+        currentTeamIdTemplate.lockedLayers = [...locked];
+    } else if (action === 'base') {
+        currentTeamIdTemplate.hideBase = !currentTeamIdTemplate.hideBase;
+        activeCardLayer = null;
+    } else if (action === 'png') {
+        const members = window.getFilteredStudioMembers();
+        const member = studioStressTestMode ? getStressTestPersona() : members[studioSingleMemberIndex] || { name: 'Sample Member' };
+        const team = member.team || teams[0] || 'Team A';
+        try {
+            const svg = teamIdSvg(member, team, teamColors[team] || '#4f46e5', teamIdCardHeaders[team] || '', teamLogos[team] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '', currentTeamIdTemplate, currentTeamIdTemplate);
+            const link = document.createElement('a');
+            link.href = await svgToPng(svg);
+            link.download = (member.name || 'ID Card') + '.png';
+            link.click();
+        } catch { window.showToast('Unable to export this card', 'error'); }
+        return;
+    } else if (index >= 0 && action === 'duplicate') {
+        const copy = { ...layers[index], id: crypto.randomUUID(), x: Number(layers[index].x || 0) + 12, y: Number(layers[index].y || 0) + 12 };
+        layers.splice(index + 1, 0, copy);
+        activeCardLayer = copy.id;
+    } else if (index >= 0 && ['lower', 'raise'].includes(action)) {
+        const next = index + (action === 'lower' ? -1 : 1);
+        if (!layers[next]) return;
+        [layers[index], layers[next]] = [layers[next], layers[index]];
+    } else return;
+    saveTeamIdTemplate(currentTeamIdTemplate);
+    window.syncStudioInspectorUI();
+    window.setStudioActiveLayer(activeCardLayer);
+}
+
+document.getElementById('studio-edit-tools')?.addEventListener('click', event => {
+    const button = event.target.closest('[data-edit]');
+    if (button) editStudioCard(button.dataset.edit);
+});
+document.addEventListener('keydown', event => {
+    if (!document.getElementById('view-id-studio')?.classList.contains('active') || studioViewMode !== 'designer') return;
+    if (event.target.closest('input,textarea,select,[contenteditable=true]')) return;
+    const offsets = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    if (activeCardLayer && offsets[event.key] && !currentTeamIdTemplate.lockedLayers?.includes(activeCardLayer)) {
+        const custom = currentTeamIdTemplate.customElements?.find(layer => layer.id === activeCardLayer);
+        const demo = activeCardLayer.startsWith('demo_');
+        const target = custom || (demo ? ((currentTeamIdTemplate.demographics ||= {})[activeCardLayer.slice(5)] ||= {}) : currentTeamIdTemplate);
+        const keys = custom || demo ? ['x', 'y'] : [activeCardLayer + 'X', activeCardLayer + 'Y'];
+        const step = event.shiftKey ? 10 : 1;
+        keys.forEach((key, index) => { target[key] = Number(target[key] || 0) + step * offsets[event.key][index]; });
+        event.preventDefault();
+        saveTeamIdTemplate(currentTeamIdTemplate);
+        window.setStudioActiveLayer(activeCardLayer);
+        return;
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+        event.preventDefault();
+        editStudioCard(event.shiftKey ? 'redo' : 'undo');
+    }
+});
 
 window.getRoleDefaultTemplate = (roleKey) => {
     const key = String(roleKey || 'student').toLowerCase();
@@ -5015,8 +5115,8 @@ window.resetStudioRoleTemplate = async () => {
     window.renderStudioCanvas();
     try {
         await setDoc(doc(db, 'settings', 'general'), {
-            teamIdCardTemplate: currentTeamIdTemplate,
-            idCardTemplates: studioTemplatesMap
+            ...(target === 'student' ? { teamIdCardTemplate: currentTeamIdTemplate } : {}),
+            idCardTemplates: { [target]: currentTeamIdTemplate }
         }, { merge: true });
         window.showToast(`Reset ${target.toUpperCase()} template to clean default`);
     } catch (e) {
@@ -5139,6 +5239,7 @@ window.renderStudioCanvas = () => {
     const stage = document.getElementById('studio-canvas-stage');
     if (!stage) return;
 
+    syncStudioTools();
     const filtered = window.getFilteredStudioMembers();
     let previewMember = null;
 
@@ -5178,8 +5279,9 @@ window.renderStudioCanvas = () => {
     if (nextBtn) nextBtn.disabled = studioStressTestMode || filtered.length <= 1;
 
     if (!previewMember && !studioStressTestMode) {
-        stage.innerHTML = `<div class="rounded-xl border border-dashed border-slate-300 p-8 text-center text-xs font-bold text-slate-400">No members match the selected filters. Change team, category or type filters above.</div>`;
-        return;
+        previewMember = { name: 'Sample Member', participantType: studioTemplateTarget };
+        if (previewNameEl) previewNameEl.textContent = 'Sample Member';
+
     }
 
     const team = previewMember.team || teams[0] || 'Team A';
@@ -5213,6 +5315,12 @@ window.renderStudioCanvas = () => {
 };
 
 function bindStudioCanvasInteraction(svgEl) {
+    svgEl?.addEventListener('dblclick', event => {
+        const key = event.target.closest('[data-card-layer]')?.dataset.cardLayer;
+        if (!currentTeamIdTemplate.lockedLayers?.includes(key) && currentTeamIdTemplate.customElements?.some(layer => layer.id === key && layer.type === 'text' && !layer.field)) {
+            window.promptEditCustomText(key);
+        }
+    });
     if (!svgEl) return;
     let gestureMode = null; // 'move' | 'resize' | 'rotate'
     let startClientX = 0;
@@ -5358,13 +5466,7 @@ function bindStudioCanvasInteraction(svgEl) {
             gestureMode = 'move';
             activeLayerKey = clickedLayer;
             if (activeCardLayer !== clickedLayer) {
-                // Select new layer and render with new gizmo
-                window.setStudioActiveLayer(clickedLayer);
-                const newSvg = document.getElementById('team-id-card-svg');
-                if (newSvg) {
-                    try { newSvg.setPointerCapture(e.pointerId); } catch {}
-                }
-                return;
+                window.setStudioActiveLayer(clickedLayer, true);
             }
         } else if (isSelectionBox && activeCardLayer) {
             gestureMode = 'move';
@@ -5375,7 +5477,11 @@ function bindStudioCanvasInteraction(svgEl) {
             return;
         }
 
-        if (!activeLayerKey) return;
+        if (!activeLayerKey || currentTeamIdTemplate.lockedLayers?.includes(activeLayerKey)) {
+            gestureMode = null;
+            activeLayerKey = null;
+            return;
+        }
 
         startClientX = e.clientX;
         startClientY = e.clientY;
@@ -5557,6 +5663,7 @@ window.setStudioActiveLayer = (layerKey, skipRender = false) => {
 
     window.renderStudioPropertiesPanel();
     window.renderStudioLayersList();
+    if (skipRender) syncStudioTools();
     if (!skipRender) {
         window.renderStudioCanvas();
     }
@@ -5609,7 +5716,7 @@ window.studioAlignCenterV = () => {
     const customEl = (tmpl.customElements || []).find(el => el.id === activeCardLayer);
     const cardH = Number(tmpl.cardH || 130);
     const cardW = Number(tmpl.cardW || 90);
-    const svgH = Math.max(760, Math.round(600 * (cardH / cardW)));
+    const svgH = Math.max(1, Math.round(600 * (cardH / cardW)));
     if (customEl) {
         const h = customEl.height || (customEl.type === 'circle' ? (customEl.r || 30) * 2 : 60);
         customEl.y = Math.round((svgH - h) / 2);
@@ -5696,8 +5803,18 @@ window.renderStudioPropertiesPanel = () => {
         if (customEl.type === 'text') {
             extraFields = `
                 <div>
+                    <label>Content source
+                        <select id="studio-text-source" class="w-full rounded border p-1">
+                            ${Object.entries({ '':'Custom text', name:'Member name', chest:'Chest number', team:'Team', category:'Category', festival:'Festival name' }).map(([value,label]) => `<option value="${value}" ${value === (customEl.field || '') ? 'selected' : ''}>${label}</option>`).join('')}
+                        </select>
+                    </label>
+                    <label>Typeface
+                        <select id="studio-text-font" class="w-full rounded border p-1">
+                            ${['Arial, sans-serif','Georgia, serif','Courier New, monospace','Verdana, sans-serif'].map(font => `<option value="${font}" ${font === customEl.fontFamily ? 'selected' : ''}>${font.split(',')[0]}</option>`).join('')}
+                        </select>
+                    </label>
                     <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Text Content</label>
-                    <input id="inspector-text-val" type="text" value="${escapeHtml(customEl.text || '')}" class="w-full rounded-lg border border-slate-300 p-1.5 text-xs font-bold text-slate-800">
+                    <input id="inspector-text-val" ${customEl.field ? 'disabled' : ''} type="text" value="${escapeHtml(customEl.text || '')}" class="w-full rounded-lg border border-slate-300 p-1.5 text-xs font-bold text-slate-800">
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
@@ -5942,6 +6059,15 @@ window.renderStudioPropertiesPanel = () => {
             el.addEventListener('change', updateCoords);
         }
     });
+
+    for (const [id, prop] of [['studio-text-source', 'field'], ['studio-text-font', 'fontFamily']]) {
+        document.getElementById(id)?.addEventListener('change', event => {
+            customEl[prop] = event.target.value;
+            saveTeamIdTemplate(tmpl);
+            window.renderStudioCanvas();
+            window.renderStudioPropertiesPanel();
+        });
+    }
 
     // Custom text value live edit
     const textVal = document.getElementById('inspector-text-val');
@@ -6197,7 +6323,7 @@ window.renderStudioLayersList = () => {
         isCustom: true
     }));
 
-    const allLayers = [...baseLayers, ...customLayers];
+    const allLayers = [...customLayers.reverse(), ...(tmpl.hideBase ? [] : baseLayers)];
 
     const countBadge = document.getElementById('studio-layers-count-badge');
     if (countBadge) countBadge.textContent = allLayers.length;
@@ -6366,30 +6492,30 @@ window.addStudioShape = shape => {
     }
 };
 
-window.addStudioImage = file => {
+window.addStudioImage = async file => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-        const id = `el_img_${Date.now()}`;
-        const newEl = {
-            id,
-            type: 'image',
-            src: e.target.result,
-            x: 250,
-            y: 350,
-            width: 100,
-            height: 100,
-            angle: 0,
-            opacity: 1,
-            show: true
+    const error = validateImageFile(file);
+    if (error) return window.showToast(error, 'error');
+    const target = studioTemplateTarget;
+    try {
+        const src = await compressImageFile(file);
+        if (studioTemplateTarget !== target) return window.showToast('Select the original template to add this image.', 'warning');
+        const image = new Image();
+        image.src = src;
+        await image.decode();
+        if (studioTemplateTarget !== target) return;
+        const width = 160;
+        const layer = {
+            id: crypto.randomUUID(), type: 'image', src, x: 100, y: 100, width,
+            height: Math.max(1, Math.round(width * image.naturalHeight / image.naturalWidth)),
+            angle: 0, opacity: 1, show: true
         };
-        if (!currentTeamIdTemplate.customElements) currentTeamIdTemplate.customElements = [];
-        currentTeamIdTemplate.customElements.push(newEl);
+        (currentTeamIdTemplate.customElements ||= []).push(layer);
         saveTeamIdTemplate(currentTeamIdTemplate);
-        window.setStudioActiveLayer(id);
-        window.showToast('Image added to canvas');
-    };
-    reader.readAsDataURL(file);
+        window.setStudioActiveLayer(layer.id);
+    } catch (error) {
+        window.showToast(error.message || 'Unable to add this image.', 'error');
+    }
 };
 
 window.deleteStudioCustomElement = id => {
@@ -6571,7 +6697,7 @@ window.renderStudioPrintSheets = () => {
                         const mHeader = teamIdCardHeaders[mTeam] || '';
                         const mLogo = teamLogos[mTeam] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '';
                         const mRole = (m.participantType || m.source || 'student').toLowerCase();
-                        const mTemplate = { ...(studioTemplatesMap[mRole] || getRoleDefaultTemplate(mRole)), cardW, cardH };
+                        const mTemplate = { ...studioRoleTemplate(mRole), cardW, cardH };
                         return `<div style="width:${cardW}mm;height:${cardH}mm;border-radius:0px;" class="overflow-hidden bg-white shadow-xs border border-slate-200">${teamIdPreviewCard(m, mTeam, mColor, mHeader, mLogo, opts, mTemplate)}</div>`;
                     }).join('')}
                 </div>
@@ -6624,7 +6750,7 @@ window.downloadStudioBatchPdf = async () => {
         const mHeader = teamIdCardHeaders[mTeam] || '';
         const mLogo = teamLogos[mTeam] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '';
         const mRole = (m.participantType || m.source || 'student').toLowerCase();
-        const mTemplate = { ...(studioTemplatesMap[mRole] || getRoleDefaultTemplate(mRole)), cardW, cardH };
+        const mTemplate = { ...studioRoleTemplate(mRole), cardW, cardH };
 
         const png = await svgToPng(teamIdSvg(m, mTeam, mColor, mHeader, mLogo, opts, mTemplate, false));
         docPdf.addImage(png, 'PNG', x, y, cardW, cardH, undefined, 'FAST');
@@ -6642,12 +6768,12 @@ window.saveStudioTemplate = async () => {
     studioTemplatesMap[target] = { ...currentTeamIdTemplate };
     try {
         await setDoc(doc(db, 'settings', 'general'), {
-            teamIdCardTemplate: currentTeamIdTemplate,
-            idCardTemplates: studioTemplatesMap
+            ...(target === 'student' ? { teamIdCardTemplate: currentTeamIdTemplate } : {}),
+            idCardTemplates: { [target]: currentTeamIdTemplate }
         }, { merge: true });
         window.showToast(`Template saved permanently for target: ${target.toUpperCase()}!`);
     } catch (e) {
-        window.showToast('Template saved locally (offline)', 'warning');
+        window.showToast('Cloud save failed. Keep this editor open and retry.', 'error');
     }
 };
 
@@ -6703,7 +6829,7 @@ window.initStudioView = () => {
     // 6. Ensure active template matches target role
     const curTarget = studioTemplateTarget || 'student';
     if (!currentTeamIdTemplate || currentTeamIdTemplate._loadedRole !== curTarget) {
-        const saved = studioTemplatesMap[curTarget];
+        const saved = studioTemplatesMap[curTarget] || (curTarget === "student" ? currentTeamIdTemplate : null);
         currentTeamIdTemplate = saved ? { ...getRoleDefaultTemplate(curTarget), ...saved } : getRoleDefaultTemplate(curTarget);
         currentTeamIdTemplate._loadedRole = curTarget;
     }
@@ -6721,7 +6847,8 @@ window.initStudioView = () => {
     wireChange('studio-template-target', e => {
         const target = e.target.value;
         studioTemplateTarget = target;
-        const saved = studioTemplatesMap[target];
+        const history = studioHistories.get(target);
+        const saved = history ? JSON.parse(history.steps[history.index]) : studioTemplatesMap[target];
         currentTeamIdTemplate = saved ? { ...getRoleDefaultTemplate(target), ...saved } : getRoleDefaultTemplate(target);
         currentTeamIdTemplate._loadedRole = target;
         window.syncStudioInspectorUI();
