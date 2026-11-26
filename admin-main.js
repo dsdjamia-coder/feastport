@@ -201,6 +201,21 @@ try { applyAdminLoaderBranding(JSON.parse(localStorage.getItem('fest_home_config
 
 // Start auth immediately so direct /admin.html access redirects to login before optional tools finish loading.
 let adminListenersStarted = false;
+const pendingTabListeners = new Map();
+
+function startTabListeners(tab) {
+    for (const [start, tabs] of pendingTabListeners) {
+        if (tabs.includes(tab)) {
+            window.adminUnsubscribers.push(start());
+            pendingTabListeners.delete(start);
+        }
+    }
+}
+
+function listenOnTabs(tabs, start) {
+    pendingTabListeners.set(start, tabs);
+}
+
 async function startAdminSession() {
     if (adminListenersStarted) return;
     adminListenersStarted = true;
@@ -285,15 +300,15 @@ async function startAdminSession() {
         if (isTabActive('registrations')) window.renderRegistrationRequests?.();
         window.updateStats();
     }));
-    window.adminUnsubscribers.push(onSnapshot(collection(db, "registrationApplications"), (snap) => {
+    listenOnTabs(['registrations', 'config', 'master-setup', 'downloads', 'students', 'danger'], () => onSnapshot(collection(db, "registrationApplications"), (snap) => {
         registrationApplications = snap.docs.map(d => ({id:d.id,...d.data()}));
         if (isTabActive('registrations')) window.renderAdvancedRegistration?.();
     }));
-    window.adminUnsubscribers.push(onSnapshot(doc(db, "settings", "registration_config"), (d) => {
+    listenOnTabs(['registrations', 'master-setup', 'config'], () => onSnapshot(doc(db, "settings", "registration_config"), (d) => {
         registrationConfig = normalizeRegistrationConfig(d.exists()?d.data():{});
         if (isTabActive('registrations')) window.renderAdvancedRegistration?.();
     }));
-    window.adminUnsubscribers.push(onSnapshot(collection(db, "teamRegistrationPolicies"), (snap) => {
+    listenOnTabs(['registrations', 'config', 'master-setup'], () => onSnapshot(collection(db, "teamRegistrationPolicies"), (snap) => {
         teamRegistrationPolicies = snap.docs.map(d => ({id:d.id,...d.data()}));
         if (isTabActive('registrations')) window.renderAdvancedRegistration?.();
     }));
@@ -335,11 +350,11 @@ async function startAdminSession() {
         applyAdminLoaderBranding(homeConfig);
         if (isTabActive('public-content') || isTabActive('tv-display')) window.renderPublicContentForm?.();
     }));
-    window.adminUnsubscribers.push(onSnapshot(doc(db, "settings", "public_config"), (d) => {
+    listenOnTabs(['public-content', 'tv-display'], () => onSnapshot(doc(db, "settings", "public_config"), (d) => {
         publicConfig = d.exists() ? d.data() : {};
         if (isTabActive('public-content')) window.renderPublicContentForm?.();
     }));
-    window.adminUnsubscribers.push(onSnapshot(doc(db, "settings", "tv_config"), (d) => {
+    listenOnTabs(['tv-display', 'public-content'], () => onSnapshot(doc(db, "settings", "tv_config"), (d) => {
         tvConfig = d.exists() ? d.data() : {};
         if (isTabActive('tv-display')) window.renderPublicContentForm?.();
     }));
@@ -354,11 +369,11 @@ async function startAdminSession() {
             window.renderScheduleConfig?.();
         }
     }));
-    window.adminUnsubscribers.push(onSnapshot(collection(db, "scheduleBreaks"), (snap) => {
+    listenOnTabs(['schedule', 'schedule-review', 'master-setup', 'danger'], () => onSnapshot(collection(db, "scheduleBreaks"), (snap) => {
         scheduleBreaks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         if (isTabActive('schedule')) window.renderSchedule?.();
     }));
-    window.adminUnsubscribers.push(onSnapshot(collection(db, "scheduleVersions"), (snap) => {
+    listenOnTabs(['schedule', 'schedule-review'], () => onSnapshot(collection(db, "scheduleVersions"), (snap) => {
         scheduleVersions = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => Number(b.version || 0) - Number(a.version || 0));
         if (isTabActive('schedule-review')) window.renderScheduleReview?.();
     }));
@@ -370,6 +385,8 @@ async function startAdminSession() {
         teamLeaders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         if (isTabActive('access')) window.renderAccessManagement?.();
     }));
+    const activeView = document.querySelector(".tab-view.active");
+    startTabListeners(activeView?.id.slice(5));
     adminDependencyStatusPromise.then(() => window.lucide?.createIcons?.());
 }
 const generateHash = (data) => JSON.stringify(data).length;
@@ -387,7 +404,7 @@ window.adminSharedState = window.adminSharedState || (() => {
     };
 })();
 
-window.addEventListener('admin-auth-logout', () => { adminListenersStarted = false; });
+window.addEventListener('admin-auth-logout', () => { adminListenersStarted = false; pendingTabListeners.clear(); });
 initAdminAuth({ onReady: startAdminSession });
 
 const setLoading = (btnId, isLoading, text='Save') => {
@@ -922,6 +939,7 @@ window.switchMasterSection=(section,{scroll=true}={})=>{if(!MASTER_SETUP_SECTION
 
 window.switchTab = (tab) => {
     if(tab === 'participants') tab = 'registrations';
+    startTabListeners(tab);
     document.querySelectorAll('.tab-view').forEach(e => { e.classList.remove('active'); e.classList.add('hidden'); e.style.display = 'none'; });
     const target = document.getElementById('view-'+tab);
     if(target) { target.classList.remove('hidden'); target.classList.add('active'); target.style.display = 'block'; }
