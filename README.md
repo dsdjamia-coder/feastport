@@ -175,6 +175,26 @@ Operator panel to control the live Stage TV. Allows selecting specific published
 
 The application connects to Firebase directly from the browser using modern ES Module imports from Google's CDN (`https://www.gstatic.com/firebasejs/11.0.2/...`).
 
+### Local development with Firebase emulators
+
+From the repository root, install the app dependencies with `npm install` and the Cloud Functions dependencies with `npm --prefix functions install`. Use Node 20 for the Functions emulator and have Java 21 and the Firebase CLI available.
+
+In one terminal, start the local Firebase services from the repository root.
+
+```sh
+firebase emulators:start --project demo-feastport --only auth,firestore,storage,functions
+```
+
+In another terminal, start Vite.
+
+```sh
+VITE_FIREBASE_EMULATORS=1 npm run dev -- --host 127.0.0.1 --strictPort
+```
+
+Open the Vite address in a browser on the same machine. The browser SDK modules still load from Google's CDN. Auth, Firestore, Storage, and Functions requests go to the local demo project. To test an admin login, create a test user in the Emulator UI and add an `adminUsers/{uid}` Firestore document with `active: true` (boolean) and `role: "admin"` (string). Sign in using the test user's email and password. Keep test fixtures separate from the production project.
+
+`npm run build` builds the site for modern browsers. Emulator mode is available only in the Vite development server.
+
 ### Configuration File: `firebase-config.js`
 
 ```javascript

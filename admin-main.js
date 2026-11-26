@@ -1,4 +1,5 @@
-import { app, db, auth } from './firebase-config.js';
+import './dependency-loader.js';
+import { app, db, auth, functions, configureFirebaseAuth } from './firebase-config.js';
 import { escapeHtml, jsAttr, normalizeStageValue, printPage } from './admin-utils.js';
 import { ensureAdminSharedState } from './admin-dashboard.js';
 import { studentGender, chestKey, legacyChestKey } from './admin-students.js';
@@ -9,7 +10,7 @@ import { initAdminAuth } from './admin-auth.js';
 import { DEFAULT_FEST_SETUP, DEFAULT_CATEGORY_DEFINITIONS, DEFAULT_PARTICIPANT_FIELDS, DEFAULT_DOMAINS, DEFAULT_TIER_STRUCTURE, DEFAULT_GROUP_REGULATIONS, FEST_PRESET_GUIDES, normalizeFestSetup, normalizeCategoryDefinitions, normalizeStudentFields, normalizeParticipantTypeDefinitions, normalizeCompetitionPolicies, incompleteCompetitionPolicies, eventFieldRulesForMode, readableTextColor, scheduleEnabled, judgingEnabled, setupForPreset, teamModeEnabled } from './fest-config.js';
 import { deleteApp, initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import { createUserWithEmailAndPassword, getAuth as getSecondaryAuth, signOut as signOutSecondary } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { DEFAULT_BRANDING, normalizeBranding, brandingName, applyLogo, clearBrandingCache } from './branding-config.js';
 import { initImageUploads, assertPayloadSize, normalizeGallerySlots } from './image-upload.js';
 import { normalizeRegistrationConfig, capacityState, participationUsage, participationLimitDecision, eventCategoryEligible } from './registration-utils.js';
@@ -30,7 +31,7 @@ async function waitForAdminDependencies() {
 }
 const adminDependencyStatusPromise = waitForAdminDependencies();
 initImageUploads();
-const completeFactoryReset = httpsCallable(getFunctions(app), 'completeFactoryReset');
+const completeFactoryReset = httpsCallable(functions, 'completeFactoryReset');
 
 let students = [], participants = [], events = [], registrations = [], categories = [], teams = [], teamDisplayNames = {}, categoryDisplayNames = {}, teamColors = {}, teamLogos = {}, teamIdCardHeaders = {}, chestConfig = [], results = [], judgeAssignments = [], judges = [], judgeScores = [];
 let festSetup = normalizeFestSetup();
@@ -529,7 +530,6 @@ document.addEventListener('click', (event) => {
         },
         'navigate-readiness': () => window.navigateToReadinessQueue?.(d.readinessKey),
         'switch-master-section': () => window.switchMasterSection(d.section),
-        'set-guide-language': () => window.setGuideLanguage(d.language),
         'copy-page-link': () => window.copyPageLink(d.url),
         'toggle-bulk': () => window.toggleBulkMode(),
         'download-student-template': () => window.openStudentTemplate(),
@@ -786,33 +786,6 @@ document.addEventListener('click', (event) => {
 
 window.copyPageLink = async (path) => {const url=new URL(path,window.location.href).href;try{await navigator.clipboard.writeText(url);}catch(_){const input=document.createElement('textarea');input.value=url;input.style.position='fixed';input.style.opacity='0';document.body.append(input);input.select();document.execCommand('copy');input.remove();}window.showToast?.('Page link copied');};
 
-window.setGuideLanguage = (language = 'en') => {
-    const lang = (language === 'ml' || language === 'en') ? language : 'en';
-    sessionStorage.setItem('adminGuideLanguage', lang);
-    document.querySelectorAll('[data-guide-language]').forEach(section => {
-        section.classList.toggle('hidden', section.dataset.guideLanguage !== lang);
-    });
-    const title = document.querySelector('[data-guide-title]');
-    const subtitle = document.querySelector('[data-guide-subtitle]');
-    if (lang === 'ml') {
-        if (title) title.textContent = 'യൂസർ ഗൈഡ്';
-        if (subtitle) subtitle.textContent = 'ഫെസ്റ്റ് മാനേജ്‌മെന്റ് സിസ്റ്റത്തിന്റെ സമഗ്രമായ പ്രവർത്തന സഹായിയും യൂസർ ഗൈഡും.';
-    } else {
-        if (title) title.textContent = 'User Guide';
-        if (subtitle) subtitle.textContent = 'Learn every mode, role, and workspace in this application.';
-    }
-    document.querySelectorAll('[data-guide-lang-btn]').forEach(btn => {
-        const isActive = btn.dataset.guideLangBtn === lang;
-        btn.classList.toggle('bg-indigo-600', isActive);
-        btn.classList.toggle('text-white', isActive);
-        btn.classList.toggle('shadow-xs', isActive);
-        btn.classList.toggle('bg-white', !isActive);
-        btn.classList.toggle('text-slate-600', !isActive);
-        btn.classList.toggle('hover:bg-slate-50', !isActive);
-    });
-    window.lucide?.createIcons?.();
-};
-
 window.updateStats = () => {
     if(document.getElementById('stat-students')) document.getElementById('stat-students').innerText = students.length;
     if(document.getElementById('stat-events')) document.getElementById('stat-events').innerText = events.length;
@@ -964,7 +937,7 @@ window.switchTab = (tab) => {
 
     const titles = { 'dashboard': 'Dashboard', 'registrations': 'Registrations', 'students': 'Participants', 'events': 'Events Management', 'schedule': 'Time Schedule', 'config': 'Team Setup', 'id-studio': 'ID Cards Studio', 'master-setup': 'Master Setup', 'access': 'Access Management', 'scoring': 'Scoring Settings', 'judge': 'Judgement Desk', 'public-content': 'Public Page Control & Contents', 'poster-certificate':'Poster & Certificate', 'tv-display': 'TV Display Settings', 'danger': 'Data Reset', 'downloads': 'Downloads', 'guide': 'User Guide' };
     document.getElementById('page-title').innerText = titles[tab] || 'Admin Panel';const masterActive=tab==='master-setup';document.getElementById('master-header-actions')?.classList.toggle('hidden',!masterActive);document.getElementById('master-header-actions')?.classList.toggle('flex',masterActive);if(!masterActive){document.getElementById('page-context')?.classList.add('hidden');document.getElementById('page-status')?.classList.add('hidden');}
-    if(tab === 'id-studio') { window.initStudioView?.(); } if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].border-indigo-600')?.dataset?.downloadTab || document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') { window.populateParticipantTypes?.(); window.switchStudentsSubtab?.(activeStudentsSubtab); window.renderDropdowns?.(); renderStudentTable(); } if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.(); window.switchEventsSubtab?.(activeEventsSubtab); renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') { window.switchScheduleSubtab?.(activeScheduleSubtab); window.renderSchedule(); } if(tab === 'schedule-review') window.renderScheduleReview?.(); if(tab === 'registrations') renderRegList(); if(tab === 'config') { window.switchTeamConfigSubtab?.(activeTeamConfigSubtab); window.renderSetupLists?.(); window.renderChestGrid?.(); } if(tab === 'access') { window.switchAccessSubtab?.(activeAccessSubtab); window.renderAccessManagement?.(); } if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.(); if(tab === 'guide') window.setGuideLanguage(sessionStorage.getItem('adminGuideLanguage') || 'en');
+    if(tab === 'id-studio') { window.initStudioView?.(); } if(tab === 'downloads') { const activeSubtab = document.querySelector('[data-download-tab].border-indigo-600')?.dataset?.downloadTab || document.querySelector('[data-download-tab].bg-indigo-600')?.dataset?.downloadTab || 'student-summary'; window.switchDownloadSubtab?.(activeSubtab); } if(tab === 'students') { window.populateParticipantTypes?.(); window.switchStudentsSubtab?.(activeStudentsSubtab); window.renderDropdowns?.(); renderStudentTable(); } if(tab === 'events'){window.renderEventEligibilityCheckboxGroups?.(); window.switchEventsSubtab?.(activeEventsSubtab); renderEventTable();window.renderEventImportHistory?.();} if(tab === 'schedule') { window.switchScheduleSubtab?.(activeScheduleSubtab); window.renderSchedule(); } if(tab === 'schedule-review') window.renderScheduleReview?.(); if(tab === 'registrations') renderRegList(); if(tab === 'config') { window.switchTeamConfigSubtab?.(activeTeamConfigSubtab); window.renderSetupLists?.(); window.renderChestGrid?.(); } if(tab === 'access') { window.switchAccessSubtab?.(activeAccessSubtab); window.renderAccessManagement?.(); } if(tab === 'scoring') window.renderScoringRules?.(); if(tab === 'judge') window.renderJudgePanel?.(); if(tab === 'master-setup') window.renderMasterSetup?.(); if(tab === 'public-content' || tab === 'tv-display') window.renderPublicContentForm?.();
     resetAdminContentScroll();
 };
 
@@ -1750,7 +1723,7 @@ const accessUsernameFor = (identifier) => {
 
 const createAccessAuthUser = async (email, password) => {
     const secondaryApp = initializeApp(app.options, `access-user-${Date.now()}-${Math.random().toString(16).slice(2)}`);
-    const secondaryAuth = getSecondaryAuth(secondaryApp);
+    const secondaryAuth = configureFirebaseAuth(getSecondaryAuth(secondaryApp));
     try {
         const credential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
         await signOutSecondary(secondaryAuth).catch(() => {});

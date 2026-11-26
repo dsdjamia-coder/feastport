@@ -1,3 +1,4 @@
+import './dependency-loader.js';
 import { db, auth } from './firebase-config.js';
 import { escapeHtml } from './admin-utils.js';
 import { studentGender } from './admin-students.js';
@@ -33,7 +34,11 @@ function updatePageState() { const failed=requiredSources.filter(key=>loadState[
 const dataReady = () => requiredSources.every(key=>loadState[key]==='ready');
 async function redirectToLogin(message='Please login as a judge to continue.',includeNext=true){if(judgeAuthRedirecting)return;judgeAuthRedirecting=true;sessionStorage.removeItem('judge_user');sessionStorage.removeItem('judge_access_uid');sessionStorage.setItem('admin_login_message',message);await signOut(auth).catch(()=>{});location.replace(includeNext?`login.html?next=${encodeURIComponent('judge.html')}`:'login.html');}
 async function logoutJudge(){if(!canLeaveWorkspace())return;await redirectToLogin('Judge logged out. Please login again.',false);}
-function toggleMenu(open){document.getElementById('judge-sidebar')?.classList.toggle('open',open);document.getElementById('judge-overlay')?.classList.toggle('open',open);}
+function toggleMenu(open) {
+    document.getElementById('judge-sidebar')?.classList.toggle('open', open);
+    document.getElementById('judge-overlay')?.classList.toggle('open', open);
+    document.querySelector('[data-judge-action="toggle-menu"]')?.setAttribute('aria-expanded', String(open));
+}
 function assignmentDate(assignment){const date=assignment.date||'9999-12-31',match=String(assignment.time||'').trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);if(!match)return new Date(`${date}T23:59`).getTime();let hour=Number(match[1]);if(match[3]){hour%=12;if(match[3].toUpperCase()==='PM')hour+=12;}return new Date(`${date}T${String(hour).padStart(2,'0')}:${match[2]}`).getTime();}
 function isReopened(assignment){const score=scoreFor(assignment.id);return statusFor(assignment)==='draft'&&Number(score?.reopenedAt||0)>=Number(score?.submittedAt||0);}
 const currentJudgeIds=()=>unique([currentJudge?.id,currentJudge?.uid,currentJudge?.authUid,currentJudge?.accessDocId,currentJudge?.sourceAccessDocId]);

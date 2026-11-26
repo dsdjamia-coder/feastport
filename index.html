@@ -292,6 +292,41 @@
 
         .skeleton-text { color: transparent; background: #e2e8f0; border-radius: 4px; pointer-events: none; user-select: none; }
         .skeleton-block { background: #e2e8f0; border-radius: 8px; animation: skel-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .menu-btn { width: 44px; height: 44px; }
+        .menu-btn:focus-visible, #landing-hero a:focus-visible {
+            outline: 3px solid #9a79e6;
+            outline-offset: 4px;
+        }
+        #landing-hero {
+            margin-bottom: clamp(2.5rem, 7vw, 5rem);
+            padding: clamp(2.75rem, 9vw, 6rem) clamp(1rem, 5vw, 3rem);
+            border-radius: clamp(1.5rem, 4vw, 2.75rem);
+            color: white;
+            background:
+                radial-gradient(ellipse at 104% 101%, #bd5e65, transparent 48%),
+                radial-gradient(ellipse at 6% 3%, #51328f, transparent 61%),
+                #24143f;
+            box-shadow: 0 24px 60px #33235330;
+        }
+        #landing-hero h1 {
+            color: white;
+            font-size: clamp(2.5rem, 8vw, 5.25rem);
+            line-height: 1.02;
+            letter-spacing: -0.055em;
+            overflow-wrap: anywhere;
+        }
+        #landing-hero #hero-title-2 { color: #ffd1be; }
+        #landing-hero #hero-tagline {
+            margin-top: 0.8rem;
+            color: #f3e6ff;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+        #landing-hero .quick-nav-btn { min-height: 44px; }
+        #landing-hero #hero-target-box:has(img.hidden) { visibility: hidden; height: 0; margin: 0; border: 0; }
+        @media (prefers-reduced-motion: reduce) {
+            #landing-hero .animate-float { animation: none; }
+        }
     </style>
 </head>
 <body class="pt-24 flex flex-col min-h-screen">
@@ -316,7 +351,7 @@
                 <span class="font-bold text-base text-slate-800 tracking-tight font-['Saira'] leading-tight skeleton-text transition-colors duration-300" id="header-fest-name">Fest Name</span>
             </div>
             <div class="relative">
-                <div class="menu-btn" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+                <button type="button" class="menu-btn" aria-label="Festival navigation" aria-expanded="false" aria-controls="dropdownMenu" onclick="toggleMenu()"><span></span><span></span><span></span></button>
                 <div class="dropdown-menu" id="dropdownMenu">
                     <div class="flex flex-col gap-1">
                         <a href="#" data-landing-menu-item="home" class="nav-link active"><i data-lucide="home"></i> Home</a>
@@ -342,10 +377,10 @@
             </div>
 
             <h1 class="text-4xl md:text-5xl font-black text-slate-900 mb-2 font-['Saira'] tracking-tight min-h-[48px]">
-                <span id="hero-title-1" class="skeleton-text transition-colors duration-300">Title Line 1</span> <span class="text-blue-600 skeleton-text transition-colors duration-300" id="hero-title-2">Year</span>
+                <span id="hero-title-1" class="skeleton-text transition-colors duration-300">Festival</span> <span class="text-blue-600 skeleton-text transition-colors duration-300" id="hero-title-2"></span>
             </h1>
             <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-8 min-h-[20px]" id="hero-tagline">
-                <span class="skeleton-text transition-colors duration-300">The Tagline Goes Here</span>
+                <span class="skeleton-text transition-colors duration-300"></span>
             </p>
 
             <div id="landing-quick-buttons" class="flex flex-col items-center justify-center gap-4">
@@ -524,16 +559,27 @@
         } catch(e) {}
 
         window.toggleMenu = () => {
-            document.querySelector('.menu-btn').classList.toggle('active');
+            const button = document.querySelector('.menu-btn');
+            const isOpen = button.classList.toggle('active');
+            button.setAttribute('aria-expanded', String(isOpen));
             document.getElementById('dropdownMenu').classList.toggle('open');
             document.getElementById('menuOverlay').classList.toggle('active');
         };
         window.closeMenu = () => {
-            document.querySelector('.menu-btn').classList.remove('active');
+            const button = document.querySelector('.menu-btn');
+            button.classList.remove('active');
+            button.setAttribute('aria-expanded', 'false');
             document.getElementById('dropdownMenu').classList.remove('open');
             document.getElementById('menuOverlay').classList.remove('active');
         }
 
+
+        document.addEventListener('keydown', event => {
+            const button = document.querySelector('.menu-btn');
+            if (event.key !== 'Escape' || button.getAttribute('aria-expanded') !== 'true') return;
+            window.closeMenu();
+            button.focus();
+        });
 
         const timeToMinutes = (value = '') => {
             const raw = String(value || '').trim();

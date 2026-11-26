@@ -8,7 +8,6 @@
   <title>Judge Desk</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@1.25.0" defer></script>
-  <script src="./dependency-loader.js"></script>
   <style>
     html, body { height: 100%; touch-action: pan-x pan-y pinch-zoom; overscroll-behavior: auto; }
     body { font-family: Inter, system-ui, sans-serif; background: #f2f3f7; }
@@ -19,7 +18,13 @@
     .judge-overlay.open { opacity: 1; pointer-events: auto; }
     .judge-menu-item { width: 100%; padding: 14px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 12px; color: #334155; background: #fff; font-size: 14px; font-weight: 600; text-align: left; transition: background .2s, color .2s; }
     .judge-menu-item:hover { background: #f8fafc; color: #2563eb; }
-    .judge-menu-item.active { background: #eff6ff; color: #2563eb; }
+    .judge-menu-item.active { background: #f1ebfc; color: #53309a; }
+    .judge-sidebar:not(.open) { visibility: hidden; }
+    .judge-topbar { border-top: 3px solid #6f47bd; }
+    body :focus-visible { outline: 3px solid #916dd8; outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) {
+      .judge-sidebar, .judge-overlay { transition: none; }
+    }
   </style>
 </head>
 <body class="min-h-screen text-slate-800">
@@ -36,9 +41,9 @@
   </aside>
 
   <header class="sticky top-0 z-30 p-4">
-    <div class="mx-auto flex max-w-6xl items-center justify-between rounded-[1.5rem] border border-white/70 bg-white/95 px-4 py-3 shadow-lg shadow-slate-200/70 backdrop-blur">
+    <div class="judge-topbar mx-auto flex max-w-6xl items-center justify-between rounded-[1.5rem] border border-white/70 bg-white/95 px-4 py-3 shadow-lg shadow-slate-200/70 backdrop-blur">
       <div class="flex items-center gap-3 min-w-0">
-        <button data-judge-action="toggle-menu" class="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-slate-700 active:scale-95" aria-label="Open judge menu"><i data-lucide="menu" class="w-5 h-5"></i></button>
+        <button data-judge-action="toggle-menu" class="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-slate-700 active:scale-95" aria-label="Judge menu" aria-expanded="false" aria-controls="judge-sidebar"><i data-lucide="menu" class="w-5 h-5"></i></button>
         <div class="min-w-0">
           <p class="text-[10px] font-black uppercase tracking-[0.28em] text-indigo-500" id="judge-fest-name" data-judge-fest-name>Fest Management</p>
           <h1 class="truncate text-lg md:text-2xl font-black text-slate-900" id="judge-title">Judge Desk</h1>
@@ -49,7 +54,7 @@
   </header>
 
   <main class="mx-auto max-w-6xl p-4 md:p-6 pt-2">
-    <div id="judge-page-state" class="mb-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm font-bold text-indigo-700">Loading judge workspace…</div>
+    <div id="judge-page-state" role="status" class="mb-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm font-bold text-indigo-700">Loading judge workspace…</div>
     <section id="desk-view">
       <div id="judge-summary" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5"></div>
       <div id="assigned-events" class="judge-panel hidden space-y-4"></div>

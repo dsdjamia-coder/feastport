@@ -119,7 +119,7 @@ function setBusy(isBusy) {
   btn.disabled = isBusy;
   btn.classList.toggle('opacity-70', isBusy);
   btn.classList.toggle('cursor-not-allowed', isBusy);
-  btn.querySelector('[data-login-label]').textContent = isBusy ? 'Checking...' : 'Login';
+  btn.querySelector('[data-login-label]').textContent = isBusy ? 'Checking…' : 'Sign in';
 }
 
 function loginError(error) {
@@ -150,6 +150,8 @@ byId('login-toggle-password')?.addEventListener('click', () => {
   const nextType = input?.type === 'password' ? 'text' : 'password';
   if (input) input.type = nextType;
   button?.setAttribute('aria-label', nextType === 'password' ? 'Show password' : 'Hide password');
+  const label = button?.querySelector('[data-password-label]');
+  if (label) label.textContent = nextType === 'password' ? 'Show' : 'Hide';
   button?.querySelector('[data-eye-icon]')?.setAttribute('data-lucide', nextType === 'password' ? 'eye' : 'eye-off');
   window.lucide?.createIcons?.();
 });
