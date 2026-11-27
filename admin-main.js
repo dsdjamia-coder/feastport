@@ -4930,7 +4930,8 @@ function syncStudioTools() {
     document.querySelectorAll('#studio-edit-tools button').forEach(button => {
         button.disabled = Boolean(disabled[button.dataset.edit]);
         if (button.dataset.edit === 'lock') {
-            button.textContent = locked ? 'Unlock layer' : 'Lock layer';
+            button.setAttribute('aria-label', locked ? 'Unlock layer' : 'Lock layer');
+            button.querySelector('use').setAttribute('href', locked ? '#studio-icon-lock-keyhole-open' : '#studio-icon-lock-keyhole');
             button.setAttribute('aria-pressed', String(locked));
         }
         if (button.dataset.edit === 'base') button.setAttribute('aria-pressed', String(!currentTeamIdTemplate.hideBase));
@@ -5123,10 +5124,9 @@ window.enterStudioFullscreen = () => {
     studioFullscreenMode = true;
     studioEl.classList.add('studio-fullscreen-active');
     document.body.classList.add('overflow-hidden');
-    const label = document.getElementById('label-studio-fullscreen');
-    const icon = document.getElementById('icon-studio-fullscreen');
-    if (label) label.textContent = 'Exit Fullscreen';
-    if (icon) icon.setAttribute('data-lucide', 'minimize-2');
+    const button = document.getElementById('btn-studio-toggle-fullscreen');
+    button.setAttribute('aria-label', 'Exit Fullscreen');
+    button.querySelector('use').setAttribute('href', '#studio-icon-minimize-2');
     window.lucide?.createIcons?.();
 };
 
@@ -5137,10 +5137,9 @@ window.exitStudioFullscreen = () => {
     studioFullscreenMode = false;
     studioEl.classList.remove('studio-fullscreen-active');
     document.body.classList.remove('overflow-hidden');
-    const label = document.getElementById('label-studio-fullscreen');
-    const icon = document.getElementById('icon-studio-fullscreen');
-    if (label) label.textContent = 'Fullscreen';
-    if (icon) icon.setAttribute('data-lucide', 'maximize-2');
+    const button = document.getElementById('btn-studio-toggle-fullscreen');
+    button.setAttribute('aria-label', 'Fullscreen');
+    button.querySelector('use').setAttribute('href', '#studio-icon-maximize-2');
     window.lucide?.createIcons?.();
 };
 
@@ -6029,22 +6028,14 @@ window.renderStudioPropertiesPanel = () => {
         <div class="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3 space-y-3">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-black text-indigo-950 uppercase tracking-wider">${escapeHtml(title)}</span>
-                ${customEl ? `<button type="button" data-admin-action="studio-delete-custom-element" data-id="${customEl.id}" class="text-rose-600 hover:text-rose-800 text-xs font-bold flex items-center gap-1"><i data-lucide="trash-2" class="h-3.5 w-3.5"></i><span>Delete</span></button>` : ''}
+                ${customEl ? `<button type="button" data-admin-action="studio-delete-custom-element" data-id="${customEl.id}" class="text-rose-600 hover:text-rose-800 text-xs font-bold flex items-center gap-1" aria-label="Delete layer" data-studio-icon><svg class="studio-glyph" aria-hidden="true"><use href="#studio-icon-trash-2"/></svg></button>` : ''}
             </div>
 
             <!-- Quick Alignment Bar -->
             <div class="flex items-center gap-1.5 pt-1 border-t border-indigo-100">
-                <button type="button" data-admin-action="studio-align-center-h" class="flex-1 rounded-lg border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-900 py-1 text-[11px] font-bold flex items-center justify-center gap-1 shadow-2xs transition active:scale-95" title="Center Horizontally">
-                    <i data-lucide="align-horizontal-justify-center" class="h-3.5 w-3.5 text-indigo-600"></i>
-                    <span>Center H</span>
-                </button>
-                <button type="button" data-admin-action="studio-align-center-v" class="flex-1 rounded-lg border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-900 py-1 text-[11px] font-bold flex items-center justify-center gap-1 shadow-2xs transition active:scale-95" title="Center Vertically">
-                    <i data-lucide="align-vertical-justify-center" class="h-3.5 w-3.5 text-indigo-600"></i>
-                    <span>Center V</span>
-                </button>
-                <button type="button" data-admin-action="studio-reset-transform" class="rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 p-1 text-[11px] font-bold flex items-center justify-center shadow-2xs transition active:scale-95" title="Reset X=0, Y=0, Angle=0">
-                    <i data-lucide="rotate-ccw" class="h-3.5 w-3.5 text-slate-500"></i>
-                </button>
+                <button type="button" data-admin-action="studio-align-center-h" class="flex-1 rounded-lg border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-900 py-1 text-[11px] font-bold flex items-center justify-center gap-1 shadow-2xs transition active:scale-95" aria-label="Center Horizontally" data-studio-icon><svg class="studio-glyph" aria-hidden="true"><use href="#studio-icon-align-horizontal-justify-center"/></svg></button>
+                <button type="button" data-admin-action="studio-align-center-v" class="flex-1 rounded-lg border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-900 py-1 text-[11px] font-bold flex items-center justify-center gap-1 shadow-2xs transition active:scale-95" aria-label="Center Vertically" data-studio-icon><svg class="studio-glyph" aria-hidden="true"><use href="#studio-icon-align-vertical-justify-center"/></svg></button>
+                <button type="button" data-admin-action="studio-reset-transform" class="rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 p-1 text-[11px] font-bold flex items-center justify-center shadow-2xs transition active:scale-95" aria-label="Reset X=0, Y=0, Angle=0" data-studio-icon><svg class="studio-glyph" aria-hidden="true"><use href="#studio-icon-rotate-ccw"/></svg></button>
             </div>
 
             <!-- Position & Geometry -->
@@ -6390,13 +6381,9 @@ window.renderStudioLayersList = () => {
                     <span class="text-xs font-bold ${isSelected ? 'text-indigo-950 font-black' : 'text-slate-700'}">${escapeHtml(layer.title)}</span>
                 </button>
                 <div class="flex items-center gap-1">
-                    <button type="button" data-layer-command="visibility" aria-pressed="${layer.show}" aria-label="${layer.show ? 'Hide' : 'Show'} ${escapeHtml(layer.title)}" class="rounded-lg p-1 text-slate-400 hover:text-indigo-600 transition" title="Toggle visibility">
-                        <i data-lucide="${layer.show ? 'eye' : 'eye-off'}" class="h-3.5 w-3.5"></i>
-                    </button>
+                    <button type="button" data-layer-command="visibility" aria-pressed="${layer.show}" aria-label="${layer.show ? 'Hide' : 'Show'} ${escapeHtml(layer.title)}" class="rounded-lg p-1 text-slate-400 hover:text-indigo-600 transition" data-studio-icon><svg class="studio-glyph" aria-hidden="true"><use href="#studio-icon-${layer.show ? 'eye' : 'eye-off'}"/></svg></button>
                     ${layer.isCustom ? `
-                        <button type="button" data-admin-action="studio-delete-custom-element" data-id="${layer.key}" class="rounded-lg p-1 text-slate-400 hover:text-rose-600 transition" title="Delete custom layer">
-                            <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
-                        </button>
+                        <button type="button" data-admin-action="studio-delete-custom-element" data-id="${layer.key}" class="rounded-lg p-1 text-slate-400 hover:text-rose-600 transition" aria-label="Delete layer" data-studio-icon><svg class="studio-glyph" aria-hidden="true"><use href="#studio-icon-trash-2"/></svg></button>
                     ` : ''}
                 </div>
             </div>
@@ -6405,6 +6392,23 @@ window.renderStudioLayersList = () => {
 
     window.lucide?.createIcons?.();
 };
+
+const studioWorkbench = document.querySelector('.studio-workbench-flex');
+const toolHint = document.createElement('div');
+toolHint.id = 'studio-tool-hint';
+toolHint.hidden = true;
+document.getElementById('view-id-studio').append(toolHint);
+function showStudioHint(event) {
+    const button = event.target.closest('[data-studio-icon]');
+    if (!button) return;
+    toolHint.textContent = button.getAttribute('aria-label');
+    toolHint.hidden = false;
+    const box = button.getBoundingClientRect();
+    toolHint.style.left = Math.max(4, Math.min(box.left, innerWidth - toolHint.offsetWidth - 4)) + 'px';
+    toolHint.style.top = (box.bottom + toolHint.offsetHeight + 6 < innerHeight ? box.bottom + 4 : box.top - toolHint.offsetHeight - 4) + 'px';
+}
+for (const type of ['pointerover','focusin']) studioWorkbench.addEventListener(type, showStudioHint);
+for (const type of ['pointerout','focusout','click','scroll']) studioWorkbench.addEventListener(type, () => { toolHint.hidden = true; }, true);
 
 const layerPanel = document.getElementById('inspector-panel-layers');
 layerPanel.addEventListener('click', event => {
@@ -6504,15 +6508,15 @@ window.setStudioViewMode = mode => {
 window.toggleStudioStressTest = () => {
     studioStressTestMode = !studioStressTestMode;
     const btn = document.getElementById('btn-studio-toggle-stresstest');
-    const label = document.getElementById('label-studio-stresstest');
+    btn?.setAttribute('aria-pressed', String(studioStressTestMode));
 
-    if (btn && label) {
+    if (btn) {
         if (studioStressTestMode) {
             btn.className = 'rounded-xl border border-amber-600 bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-1.5 text-xs font-black transition active:scale-95 flex items-center gap-1.5 shadow-md';
-            label.textContent = 'Stress-Test: ACTIVE (Worst-Case)';
+            btn.setAttribute('aria-label', 'Turn off stress test');
         } else {
             btn.className = 'rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-3.5 py-1.5 text-xs font-black transition active:scale-95 flex items-center gap-1.5 shadow-2xs';
-            label.textContent = 'Stress-Test: Normal';
+            btn.setAttribute('aria-label', 'Preview stress test');
         }
     }
 
