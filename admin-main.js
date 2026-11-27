@@ -409,6 +409,10 @@ async function startAdminSession() {
         teamLeaders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         if (isTabActive('access')) window.renderAccessManagement?.();
     }));
+    listenOnTabs(['id-studio'], () => onSnapshot(query(collection(db, 'settings'), where('recordType', '==', 'idCardDesign')), snapshot => {
+        namedStudioTemplates = Object.fromEntries(snapshot.docs.map(item => [item.id, item.data()]));
+        refreshStudioLibrary();
+    }));
     const activeView = document.querySelector(".tab-view.active");
     startTabListeners(activeView?.id.slice(5));
     adminDependencyStatusPromise.then(() => window.lucide?.createIcons?.());
@@ -4425,7 +4429,7 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
         return true;
     });
 
-    let detailsSvg = '';
+    const badgeLayers = [];
     const demoRenderedCoords = {};
     const detailsXShift = Math.round((tmpl.detailsX || 0) * dimScale);
     const detailsYShift = Math.round((tmpl.detailsY || 0) * dimScale);
@@ -4439,7 +4443,7 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
         const row1Keys = visibleDemoKeys.slice(0, row1Count);
         const baseXs1 = row1Count === 1 ? [300] : (row1Count === 2 ? [190, 410] : [125, 300, 475]);
 
-        const renderedBadges = [];
+
 
         row1Keys.forEach((key, i) => {
             const itemDef = fieldDefinitions[key];
@@ -4453,7 +4457,7 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
             const valColor = itemCfg.color || itemDef.color || '#1f2937';
             const transform = angle ? `transform="rotate(${angle} ${posX} ${posY})"` : '';
 
-            renderedBadges.push(`
+            badgeLayers.push(`
                 <g data-card-layer="demo_${key}" class="card-layer-group cursor-pointer" text-anchor="middle" ${transform}>
                     <text x="${posX}" y="${posY}" font-family="Arial, sans-serif" font-size="${itemLblSize}" font-weight="900" fill="#94a3b8" letter-spacing="2">${xmlEscape(itemDef.label)}</text>
                     <text x="${posX}" y="${posY + itemValSize + 2}" font-family="Arial, sans-serif" font-size="${itemValSize}" font-weight="900" fill="${xmlEscape(valColor)}">${xmlEscape(itemDef.val)}</text>
@@ -4478,7 +4482,7 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
                 const valColor = itemCfg.color || itemDef.color || '#1f2937';
                 const transform = angle ? `transform="rotate(${angle} ${posX} ${posY})"` : '';
 
-                renderedBadges.push(`
+                badgeLayers.push(`
                     <g data-card-layer="demo_${key}" class="card-layer-group cursor-pointer" text-anchor="middle" ${transform}>
                         <text x="${posX}" y="${posY}" font-family="Arial, sans-serif" font-size="${itemLblSize}" font-weight="900" fill="#94a3b8" letter-spacing="2">${xmlEscape(itemDef.label)}</text>
                         <text x="${posX}" y="${posY + itemValSize + 2}" font-family="Arial, sans-serif" font-size="${itemValSize}" font-weight="900" fill="${xmlEscape(valColor)}">${xmlEscape(itemDef.val)}</text>
@@ -4487,11 +4491,6 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
             });
         }
 
-        detailsSvg = `
-            <g data-card-layer="details" class="card-layer-group cursor-pointer">
-                ${renderedBadges.join('\n')}
-            </g>
-        `;
     }
 
     // 6. Footer & Fest Pill Badge
@@ -4643,9 +4642,9 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
     }
 
     // 10. Custom Elements (Shapes, Extra Texts, Logos, Badges)
-    let customElementsSvg = '';
+    let customLayers = [];
     if (Array.isArray(tmpl.customElements) && tmpl.customElements.length) {
-        customElementsSvg = tmpl.customElements.map(el => {
+        customLayers = tmpl.customElements.map(el => {
             if (!el || el.show === false) return '';
             const x = Math.round((el.x || 0) * dimScale);
             const y = Math.round((el.y || 0) * dimScale);
@@ -4735,7 +4734,7 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
                 `;
             }
             return '';
-        }).filter(Boolean).join('\n');
+        }).filter(Boolean);
     }
 
     // Card Base Canvas
@@ -4844,6 +4843,11 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
         }
     }
 
+    const base = tmpl.hideBase ? [] : [headerGroupSvg, watermarkSvg, photoGroupSvg, tmpl.showName === false ? '' : nameSvg, chestSvg, ...badgeLayers, eventsSvg, footerSvg];
+    const artwork = [...base, ...customLayers].filter(Boolean);
+    const rank = new Map((tmpl.layerOrder || []).map((key,index) => [key,index]));
+    const layerRank = svg => rank.get(svg.match(/data-card-layer="([^"]+)"/)?.[1]) ?? rank.size;
+    artwork.sort((a,b) => layerRank(a) - layerRank(b));
     const svgIdAttr = interactive ? 'id="team-id-card-svg"' : '';
 
     return `<svg xmlns="http://www.w3.org/2000/svg" ${svgIdAttr} width="600" height="${svgH}" viewBox="0 0 600 ${svgH}" style="width:100%;height:100%;display:block;touch-action:none;user-select:none;">
@@ -4861,8 +4865,7 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
 </defs>
 <g clip-path="url(#cardClip_${safeUid})">
   <rect width="600" height="${svgH}" fill="${xmlEscape(cardBg)}"/>
-  ${tmpl.hideBase ? '' : [headerGroupSvg, watermarkSvg, photoGroupSvg, nameSvg, chestSvg, detailsSvg, eventsSvg, footerSvg].join('')}
-  ${customElementsSvg}
+  ${artwork.join('')}
   ${selectionOverlay}
 </g>
 </svg>`;
@@ -4920,8 +4923,10 @@ function syncStudioTools() {
     const locked = currentTeamIdTemplate.lockedLayers?.includes(activeCardLayer) || false;
     const properties = document.getElementById('inspector-panel-props');
     if (properties) properties.inert = locked;
+    const stack = Array.from(document.querySelectorAll('#inspector-panel-layers [data-layer-key]'), row => row.dataset.layerKey).reverse();
+    const position = stack.indexOf(activeCardLayer);
     const disabled = { lock: !activeCardLayer, undo: history.index === 0, redo: history.index === history.steps.length - 1,
-        duplicate: index < 0, lower: index < 1, raise: index < 0 || index === layers.length - 1 };
+        duplicate: index < 0, lower: position < 1, raise: position < 0 || position === stack.length - 1 };
     document.querySelectorAll('#studio-edit-tools button').forEach(button => {
         button.disabled = Boolean(disabled[button.dataset.edit]);
         if (button.dataset.edit === 'lock') {
@@ -4930,12 +4935,6 @@ function syncStudioTools() {
         }
         if (button.dataset.edit === 'base') button.setAttribute('aria-pressed', String(!currentTeamIdTemplate.hideBase));
     });
-}
-
-function studioRoleTemplate(role) {
-    if (role === studioTemplateTarget) return currentTeamIdTemplate;
-    const history = studioHistories.get(role);
-    return history ? JSON.parse(history.steps[history.index]) : studioTemplatesMap[role] || getRoleDefaultTemplate(role);
 }
 
 async function editStudioCard(action) {
@@ -4973,10 +4972,13 @@ async function editStudioCard(action) {
         const copy = { ...layers[index], id: crypto.randomUUID(), x: Number(layers[index].x || 0) + 12, y: Number(layers[index].y || 0) + 12 };
         layers.splice(index + 1, 0, copy);
         activeCardLayer = copy.id;
-    } else if (index >= 0 && ['lower', 'raise'].includes(action)) {
-        const next = index + (action === 'lower' ? -1 : 1);
-        if (!layers[next]) return;
-        [layers[index], layers[next]] = [layers[next], layers[index]];
+    } else if (['raise', 'lower'].includes(action)) {
+        const stack = Array.from(layerPanel.children, row => row.dataset.layerKey).reverse();
+        const from = stack.indexOf(activeCardLayer);
+        const next = from + (action === 'raise' ? 1 : -1);
+        if (from < 0 || !stack[next]) return;
+        [stack[from], stack[next]] = [stack[next], stack[from]];
+        currentTeamIdTemplate.layerOrder = stack;
     } else return;
     saveTeamIdTemplate(currentTeamIdTemplate);
     window.syncStudioInspectorUI();
@@ -5063,9 +5065,61 @@ window.getRoleDefaultTemplate = (roleKey) => {
     };
 };
 
+const studioPresets = {
+    classic: { name: 'Classic portrait', design: {} },
+    midnight: { name: 'Midnight pass', design: { cardBg: '#141834', nameColor: '#ffffff', chestColor: '#c4b5fd', showWatermark: false, nameSize: 36, photoRadius: 74 } },
+    paper: { name: 'Paper badge', design: { cardBg: '#fff5df', nameColor: '#542516', chestColor: '#9b331e', showHeader: false, showWatermark: false, showFooter: false, photoRadius: 64, nameSize: 38 } }
+};
+let namedStudioTemplates = {};
+let studioLibraryKey = 'role';
+
+function libraryDesign(key) {
+    if (studioPresets[key]) return { ...getRoleDefaultTemplate(studioTemplateTarget), ...studioPresets[key].design };
+    return namedStudioTemplates[key]?.design;
+}
+function refreshStudioLibrary() {
+    const choices = [...Object.entries(studioPresets), ...Object.entries(namedStudioTemplates)]
+        .map(([key,item]) => new Option(item.name, key));
+    const library = document.getElementById('studio-library');
+    const output = document.getElementById('studio-output-template');
+    const previous = output.value || 'current';
+    library.replaceChildren(new Option('Role template', 'role'), ...choices);
+    library.value = studioLibraryKey;
+    output.replaceChildren(new Option('Current design','current'), ...choices.map(option => option.cloneNode(true)));
+    output.value = previous;
+    if (!output.value) output.value = 'current';
+}
+function selectedPrintDesign() {
+    return libraryDesign(document.getElementById('studio-output-template').value) || currentTeamIdTemplate;
+}
+document.getElementById('studio-output-template').addEventListener('change', () => window.renderStudioPrintSheets());
+document.getElementById('studio-library').addEventListener('change', event => {
+    studioLibraryKey = event.target.value;
+    const design = libraryDesign(studioLibraryKey) || studioTemplatesMap[studioTemplateTarget] || getRoleDefaultTemplate(studioTemplateTarget);
+    currentTeamIdTemplate = structuredClone(design);
+    currentTeamIdTemplate._loadedRole = studioTemplateTarget;
+    document.getElementById('studio-output-template').value = 'current';
+    window.syncStudioInspectorUI();
+    window.setStudioActiveLayer(null);
+});
+document.getElementById('studio-new-template').addEventListener('click', async () => {
+    const name = window.prompt('Name this template')?.trim();
+    if (!name) return;
+    const key = 'idCardDesign-' + crypto.randomUUID();
+    const record = { recordType: 'idCardDesign', name, design: structuredClone(currentTeamIdTemplate) };
+    try {
+        await setDoc(doc(db, 'settings', key), record);
+        namedStudioTemplates[key] = record;
+        studioLibraryKey = key;
+        refreshStudioLibrary();
+        window.showToast('Template created');
+    } catch { window.showToast('Could not create template. Retry saving.', 'error'); }
+});
+
 window.enterStudioFullscreen = () => {
     const studioEl = document.getElementById('view-id-studio');
     if (!studioEl) return;
+    studioEl.requestFullscreen?.().catch(() => {});
     studioFullscreenMode = true;
     studioEl.classList.add('studio-fullscreen-active');
     document.body.classList.add('overflow-hidden');
@@ -5079,6 +5133,7 @@ window.enterStudioFullscreen = () => {
 window.exitStudioFullscreen = () => {
     const studioEl = document.getElementById('view-id-studio');
     if (!studioEl) return;
+    if (document.fullscreenElement === studioEl) document.exitFullscreen().catch(() => {});
     studioFullscreenMode = false;
     studioEl.classList.remove('studio-fullscreen-active');
     document.body.classList.remove('overflow-hidden');
@@ -5089,6 +5144,9 @@ window.exitStudioFullscreen = () => {
     window.lucide?.createIcons?.();
 };
 
+document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && studioFullscreenMode) window.exitStudioFullscreen();
+});
 window.toggleStudioFullscreen = () => {
     if (studioFullscreenMode) {
         window.exitStudioFullscreen();
@@ -5106,22 +5164,13 @@ if (!window._studioEscWired) {
     });
 }
 
-window.resetStudioRoleTemplate = async () => {
-    const target = studioTemplateTarget || 'student';
-    currentTeamIdTemplate = getRoleDefaultTemplate(target);
-    studioTemplatesMap[target] = { ...currentTeamIdTemplate };
+window.resetStudioRoleTemplate = () => {
+    const original = libraryDesign(studioLibraryKey) || getRoleDefaultTemplate(studioTemplateTarget);
+    currentTeamIdTemplate = structuredClone(original);
+    currentTeamIdTemplate._loadedRole = studioTemplateTarget;
     saveTeamIdTemplate(currentTeamIdTemplate);
     window.syncStudioInspectorUI();
-    window.renderStudioCanvas();
-    try {
-        await setDoc(doc(db, 'settings', 'general'), {
-            ...(target === 'student' ? { teamIdCardTemplate: currentTeamIdTemplate } : {}),
-            idCardTemplates: { [target]: currentTeamIdTemplate }
-        }, { merge: true });
-        window.showToast(`Reset ${target.toUpperCase()} template to clean default`);
-    } catch (e) {
-        window.showToast(`Reset ${target.toUpperCase()} template locally`, 'warning');
-    }
+    window.setStudioActiveLayer(null);
 };
 
 window.updateStudioFilterTeamOptions = () => {
@@ -5296,6 +5345,8 @@ window.renderStudioCanvas = () => {
     const cardWrapper = document.getElementById('studio-canvas-card-wrapper');
     if (cardWrapper) {
         const zoomVal = document.getElementById('studio-zoom-select')?.value || 'fit';
+        cardWrapper.dataset.fit = String(zoomVal === 'fit');
+        cardWrapper.style.setProperty('--studio-ratio', String(opts.cardW / opts.cardH));
         let zoomClass = 'w-full max-w-[440px]';
         if (zoomVal === '75') zoomClass = 'w-[320px] shrink-0';
         else if (zoomVal === '100') zoomClass = 'w-[420px] shrink-0';
@@ -6304,7 +6355,7 @@ window.renderStudioLayersList = () => {
         { key: 'header', title: 'Header Banner', icon: 'image', show: tmpl.showHeader !== false },
         { key: 'watermark', title: 'Watermark Chest', icon: 'sparkles', show: tmpl.showWatermark !== false },
         { key: 'photo', title: 'Member Photo', icon: 'camera', show: tmpl.showPhoto !== false },
-        { key: 'name', title: 'Student Name', icon: 'type', show: true },
+        { key: 'name', title: 'Student Name', icon: 'type', show: tmpl.showName !== false },
         { key: 'chest', title: 'Chest Number', icon: 'hash', show: tmpl.showChest !== false },
         { key: 'demo_team', title: 'Demographic: Team', icon: 'flag', show: tmpl.demographics?.team ? tmpl.demographics.team.show !== false : tmpl.showTeam !== false },
         { key: 'demo_category', title: 'Demographic: Category', icon: 'tag', show: tmpl.demographics?.category ? tmpl.demographics.category.show !== false : tmpl.showCategory !== false },
@@ -6323,7 +6374,9 @@ window.renderStudioLayersList = () => {
         isCustom: true
     }));
 
-    const allLayers = [...customLayers.reverse(), ...(tmpl.hideBase ? [] : baseLayers)];
+    const rank = new Map((tmpl.layerOrder || []).map((key,index) => [key,index]));
+    const allLayers = [...(tmpl.hideBase ? [] : baseLayers), ...customLayers]
+        .sort((a,b) => (rank.get(a.key) ?? rank.size) - (rank.get(b.key) ?? rank.size)).reverse();
 
     const countBadge = document.getElementById('studio-layers-count-badge');
     if (countBadge) countBadge.textContent = allLayers.length;
@@ -6331,13 +6384,13 @@ window.renderStudioLayersList = () => {
     container.innerHTML = allLayers.map(layer => {
         const isSelected = activeCardLayer === layer.key;
         return `
-            <div class="flex items-center justify-between p-2 rounded-xl border transition ${isSelected ? 'border-indigo-500 bg-indigo-50/70 shadow-xs' : 'border-slate-200 bg-white hover:bg-slate-50'}">
-                <button type="button" onclick="window.setStudioActiveLayer('${layer.key}')" class="flex items-center gap-2 flex-1 text-left select-none">
+            <div draggable="true" data-layer-key="${escapeHtml(layer.key)}" class="flex items-center justify-between p-2 rounded-xl border transition ${isSelected ? 'border-indigo-500 bg-indigo-50/70 shadow-xs' : 'border-slate-200 bg-white hover:bg-slate-50'}">
+                <button type="button" data-layer-command="select" class="flex items-center gap-2 flex-1 text-left select-none">
                     <i data-lucide="${layer.icon}" class="h-4 w-4 ${isSelected ? 'text-indigo-600' : 'text-slate-400'}"></i>
                     <span class="text-xs font-bold ${isSelected ? 'text-indigo-950 font-black' : 'text-slate-700'}">${escapeHtml(layer.title)}</span>
                 </button>
                 <div class="flex items-center gap-1">
-                    <button type="button" onclick="window.toggleStudioLayerVisibility('${layer.key}')" class="rounded-lg p-1 text-slate-400 hover:text-indigo-600 transition" title="Toggle visibility">
+                    <button type="button" data-layer-command="visibility" aria-pressed="${layer.show}" aria-label="${layer.show ? 'Hide' : 'Show'} ${escapeHtml(layer.title)}" class="rounded-lg p-1 text-slate-400 hover:text-indigo-600 transition" title="Toggle visibility">
                         <i data-lucide="${layer.show ? 'eye' : 'eye-off'}" class="h-3.5 w-3.5"></i>
                     </button>
                     ${layer.isCustom ? `
@@ -6353,6 +6406,34 @@ window.renderStudioLayersList = () => {
     window.lucide?.createIcons?.();
 };
 
+const layerPanel = document.getElementById('inspector-panel-layers');
+layerPanel.addEventListener('click', event => {
+    const command = event.target.closest('[data-layer-command]')?.dataset.layerCommand;
+    const key = event.target.closest('[data-layer-key]')?.dataset.layerKey;
+    if (command === 'visibility') window.toggleStudioLayerVisibility(key);
+    if (command === 'select') window.setStudioActiveLayer(key);
+});
+layerPanel.addEventListener('dragstart', event => {
+    const key = event.target.closest('[data-layer-key]')?.dataset.layerKey;
+    if (key) event.dataTransfer.setData('application/x-studio-layer', key);
+});
+layerPanel.addEventListener('dragover', event => event.preventDefault());
+layerPanel.addEventListener('drop', event => {
+    event.preventDefault();
+    const key = event.dataTransfer.getData('application/x-studio-layer');
+    const row = event.target.closest('[data-layer-key]');
+    if (!row || row.dataset.layerKey === key) return;
+    const order = Array.from(layerPanel.children, item => item.dataset.layerKey);
+    if (!order.includes(key)) return;
+    order.splice(order.indexOf(key), 1);
+    const bounds = row.getBoundingClientRect();
+    const after = event.clientY >= bounds.top + bounds.height / 2;
+    order.splice(order.indexOf(row.dataset.layerKey) + Number(after), 0, key);
+    currentTeamIdTemplate.layerOrder = order.reverse();
+    saveTeamIdTemplate(currentTeamIdTemplate);
+    window.setStudioActiveLayer(key);
+});
+
 window.toggleStudioLayerVisibility = layerKey => {
     const tmpl = currentTeamIdTemplate;
     if (layerKey.startsWith('demo_')) {
@@ -6366,17 +6447,25 @@ window.toggleStudioLayerVisibility = layerKey => {
             customEl.show = customEl.show === false;
         } else {
             const map = {
-                header: 'showHeader', watermark: 'showWatermark', photo: 'showPhoto',
+                name: 'showName', header: 'showHeader', watermark: 'showWatermark', photo: 'showPhoto',
                 chest: 'showChest', events: 'showEvents', footer: 'showFooter'
             };
             if (map[layerKey]) tmpl[map[layerKey]] = tmpl[map[layerKey]] === false;
         }
     }
+    if (activeCardLayer === layerKey) window.setStudioActiveLayer(null, true);
     saveTeamIdTemplate(tmpl);
     window.renderStudioLayersList();
     window.renderStudioCanvas();
 };
 
+document.querySelector('.studio-mode-tabs').addEventListener('keydown', event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    const mode = event.key === 'Home' ? 'designer' : event.key === 'End' ? 'print' : studioViewMode === 'designer' ? 'print' : 'designer';
+    event.preventDefault();
+    window.setStudioViewMode(mode);
+    document.getElementById('btn-studio-mode-' + mode).focus();
+});
 window.setStudioViewMode = mode => {
     studioViewMode = mode === 'print' ? 'print' : 'designer';
     const designerCont = document.getElementById('studio-designer-container');
@@ -6385,6 +6474,10 @@ window.setStudioViewMode = mode => {
     const btnPrint = document.getElementById('btn-studio-mode-print');
 
     const isDesigner = studioViewMode === 'designer';
+    btnDesigner.setAttribute('aria-selected', String(isDesigner));
+    btnPrint.setAttribute('aria-selected', String(!isDesigner));
+    btnDesigner.tabIndex = isDesigner ? 0 : -1;
+    btnPrint.tabIndex = isDesigner ? -1 : 0;
     if (designerCont) designerCont.classList.toggle('hidden', !isDesigner);
     if (printCont) printCont.classList.toggle('hidden', isDesigner);
 
@@ -6655,13 +6748,13 @@ window.renderStudioPrintSheets = () => {
 
     const base = teamIdPageSizes[size] || teamIdPageSizes.A4;
     const page = orientation === 'landscape' ? { w: base.h, h: base.w } : { ...base };
-    const tmpl = currentTeamIdTemplate;
+    const tmpl = selectedPrintDesign();
     const cardW = Number(tmpl.cardW || 90);
     const cardH = Number(tmpl.cardH || 130);
 
     const opts = { size, orientation, page, cardW, cardH, gap, margin };
     const layout = teamIdLayout(opts);
-    const members = window.getFilteredStudioMembers();
+    const members = studioStressTestMode ? [getStressTestPersona()] : window.getFilteredStudioMembers();
 
     if (summaryEl) {
         summaryEl.innerHTML = `
@@ -6696,8 +6789,7 @@ window.renderStudioPrintSheets = () => {
                         const mColor = teamColors[mTeam] || '#4f46e5';
                         const mHeader = teamIdCardHeaders[mTeam] || '';
                         const mLogo = teamLogos[mTeam] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '';
-                        const mRole = (m.participantType || m.source || 'student').toLowerCase();
-                        const mTemplate = { ...studioRoleTemplate(mRole), cardW, cardH };
+                        const mTemplate = tmpl;
                         return `<div style="width:${cardW}mm;height:${cardH}mm;border-radius:0px;" class="overflow-hidden bg-white shadow-xs border border-slate-200">${teamIdPreviewCard(m, mTeam, mColor, mHeader, mLogo, opts, mTemplate)}</div>`;
                     }).join('')}
                 </div>
@@ -6718,7 +6810,7 @@ window.downloadStudioBatchPdf = async () => {
 
     const base = teamIdPageSizes[size] || teamIdPageSizes.A4;
     const page = orientation === 'landscape' ? { w: base.h, h: base.w } : { ...base };
-    const tmpl = currentTeamIdTemplate;
+    const tmpl = selectedPrintDesign();
     const cardW = Number(tmpl.cardW || 90);
     const cardH = Number(tmpl.cardH || 130);
 
@@ -6749,8 +6841,7 @@ window.downloadStudioBatchPdf = async () => {
         const mColor = teamColors[mTeam] || '#4f46e5';
         const mHeader = teamIdCardHeaders[mTeam] || '';
         const mLogo = teamLogos[mTeam] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '';
-        const mRole = (m.participantType || m.source || 'student').toLowerCase();
-        const mTemplate = { ...studioRoleTemplate(mRole), cardW, cardH };
+        const mTemplate = tmpl;
 
         const png = await svgToPng(teamIdSvg(m, mTeam, mColor, mHeader, mLogo, opts, mTemplate, false));
         docPdf.addImage(png, 'PNG', x, y, cardW, cardH, undefined, 'FAST');
@@ -6763,6 +6854,20 @@ window.downloadStudioBatchPdf = async () => {
 };
 
 window.saveStudioTemplate = async () => {
+    if (studioLibraryKey !== 'role') {
+        if (studioPresets[studioLibraryKey]) {
+            document.getElementById('studio-new-template').click();
+            return;
+        }
+        const key = studioLibraryKey;
+        try {
+            await setDoc(doc(db, 'settings', key), {
+                recordType: 'idCardDesign', name: namedStudioTemplates[key].name, design: currentTeamIdTemplate
+            });
+            window.showToast('Template saved');
+        } catch { window.showToast('Could not save template', 'error'); }
+        return;
+    }
     saveTeamIdTemplate(currentTeamIdTemplate);
     const target = studioTemplateTarget || 'student';
     studioTemplatesMap[target] = { ...currentTeamIdTemplate };
@@ -6778,6 +6883,9 @@ window.saveStudioTemplate = async () => {
 };
 
 window.initStudioView = () => {
+    refreshStudioLibrary();
+    document.getElementById('btn-studio-mode-designer').setAttribute('aria-selected', String(studioViewMode === 'designer'));
+    document.getElementById('btn-studio-mode-print').setAttribute('aria-selected', String(studioViewMode === 'print'));
     const pTypesRaw = festSetup?.participantTypes || ['student'];
     const pTypes = [...new Set(['student', ...pTypesRaw.map(p => String(p).toLowerCase())])];
     const defs = typeof normalizeParticipantTypeDefinitions === 'function'
@@ -6847,6 +6955,8 @@ window.initStudioView = () => {
     wireChange('studio-template-target', e => {
         const target = e.target.value;
         studioTemplateTarget = target;
+        studioLibraryKey = 'role';
+        refreshStudioLibrary();
         const history = studioHistories.get(target);
         const saved = history ? JSON.parse(history.steps[history.index]) : studioTemplatesMap[target];
         currentTeamIdTemplate = saved ? { ...getRoleDefaultTemplate(target), ...saved } : getRoleDefaultTemplate(target);
@@ -7087,6 +7197,8 @@ window.renderTeamIdPreview = () => {
         if (nextBtn) nextBtn.disabled = allMembers.length <= 1;
 
         const zoomVal = document.getElementById('team-id-canvas-zoom')?.value || 'fit';
+        cardWrapper.dataset.fit = String(zoomVal === 'fit');
+        cardWrapper.style.setProperty('--studio-ratio', String(opts.cardW / opts.cardH));
         let zoomClass = 'w-full max-w-[440px]';
         if (zoomVal === '100') zoomClass = 'w-[400px] shrink-0';
         else if (zoomVal === '125') zoomClass = 'w-[500px] shrink-0';

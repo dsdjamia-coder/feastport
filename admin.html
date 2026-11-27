@@ -224,6 +224,38 @@
         .studio-edit-tools button {padding:.45rem .65rem;border-radius:.45rem;font-size:.78rem;font-weight:650}
         .studio-edit-tools button:hover,.studio-edit-tools [aria-pressed=true] {background:#50486c}
         .studio-edit-tools button:disabled {opacity:.4;cursor:default}
+        .studio-mode-tabs { display:flex;gap:.25rem;border-bottom:1px solid #d8dbe4;background:white }
+        .studio-mode-tabs button { padding:.75rem 1rem;border-bottom:3px solid transparent;border-radius:0 }
+        .studio-mode-tabs [aria-selected=true] { border-color:#6851b5;color:#513890 }
+        #view-id-studio aside {min-width:0;overflow:auto}
+        #view-id-studio select {max-width:100%}
+        #studio-library,#studio-output-template {display:block;width:100%;border:1px solid #bcc3d0;padding:.45rem;border-radius:.4rem;background:white}
+        #studio-new-template {border:1px solid #bcc3d0;border-radius:.4rem;padding:.45rem}
+        #studio-canvas-viewport {min-height:0;align-items:safe center;justify-content:safe center}
+        @media(min-width:900px) {
+            #studio-canvas-viewport {container-type:size}
+            #studio-canvas-card-wrapper[data-fit=true] {width:min(100%, calc((100cqh - 3.5rem) * var(--studio-ratio) + 1.5rem));max-width:none}
+        }
+        .studio-workbench-flex main {min-width:0;min-height:0}
+        #view-id-studio:fullscreen {background:#f1f5f9}
+        @media(min-width:900px) {
+            #view-id-studio .studio-workbench-flex {display:grid;grid-template-columns:minmax(190px,22%) minmax(0,1fr) minmax(200px,24%);height:calc(100dvh - 11rem);min-height:340px}
+            #view-id-studio .studio-workbench-flex>aside {width:auto}
+            #view-id-studio.studio-fullscreen-active .studio-workbench-flex {height:calc(100dvh - 5rem)}
+            #studio-print-container:not(.hidden) {display:grid;grid-template-columns:minmax(210px,25%) minmax(0,1fr);gap:1rem}
+            #studio-print-container>div:first-child {grid-row:span 2;overflow:auto;max-height:82dvh}
+            #studio-print-container>div:first-child .grid {grid-template-columns:1fr}
+        }
+        @media(max-width:899px) {
+            .studio-workbench-flex main {order:-1}
+            #view-id-studio.studio-fullscreen-active .studio-workbench-flex {overflow:auto;display:block}
+            #view-id-studio.studio-fullscreen-active .studio-workbench-flex main {height:58dvh}
+            #view-id-studio.studio-fullscreen-active .studio-workbench-flex {display:flex;flex-direction:column}
+            #view-id-studio.studio-fullscreen-active .studio-workbench-flex>* {flex:none}
+        }
+        .studio-workbench-flex aside>* {flex-shrink:0}
+        #inspector-panel-layers {min-height:10rem}
+        #studio-canvas-card-wrapper {flex-shrink:0}
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden selection:bg-indigo-100 selection:text-indigo-700">
@@ -821,36 +853,24 @@
 
                 <!-- DEDICATED ID CARDS STUDIO TAB -->
                 <div id="view-id-studio" class="tab-view max-w-[1700px] mx-auto space-y-4 hidden">
-                    <!-- Studio Top Application Header Bar -->
-                    <header class="rounded-2xl border border-slate-200 bg-white p-3 md:p-4 shadow-xs space-y-3">
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div class="flex items-center gap-3">
-                                <div class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-indigo-600 text-white shadow-sm shadow-indigo-500/30">
-                                    <i data-lucide="contact" class="h-6 w-6"></i>
-                                </div>
-                                <div>
-                                    <h2 class="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
-                                        <span>ID Cards Studio</span>
-                                    </h2>
-                                </div>
-                            </div>
-
-                            <!-- Mode Subtabs Switcher -->
-                            <div class="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200 shadow-inner">
-                                <button type="button" data-admin-action="set-studio-view-mode" data-mode="designer" id="btn-studio-mode-designer" class="rounded-lg bg-white text-indigo-700 shadow-xs px-4 py-2 text-xs font-black transition active:scale-95 flex items-center gap-2">
+                    <nav class="studio-mode-tabs" role="tablist" aria-label="ID card studio">
+                                <button type="button" role="tab" aria-controls="studio-designer-container" data-admin-action="set-studio-view-mode" data-mode="designer" id="btn-studio-mode-designer" class="rounded-lg bg-white text-indigo-700 shadow-xs px-4 py-2 text-xs font-black transition active:scale-95 flex items-center gap-2">
                                     <i data-lucide="pen-tool" class="h-4 w-4"></i>
                                     <span>Studio Designer</span>
                                 </button>
-                                <button type="button" data-admin-action="set-studio-view-mode" data-mode="print" id="btn-studio-mode-print" class="rounded-lg text-slate-600 hover:text-slate-900 px-4 py-2 text-xs font-bold transition active:scale-95 flex items-center gap-2">
+                                <button type="button" role="tab" tabindex="-1" aria-controls="studio-print-container" data-admin-action="set-studio-view-mode" data-mode="print" id="btn-studio-mode-print" class="rounded-lg text-slate-600 hover:text-slate-900 px-4 py-2 text-xs font-bold transition active:scale-95 flex items-center gap-2">
                                     <i data-lucide="printer" class="h-4 w-4"></i>
                                     <span>Print Sheets &amp; Export</span>
                                 </button>
-                            </div>
-                        </div>
-                    </header>
-
+                    </nav>
                     <!-- WORKSPACE 1: STUDIO DESIGNER MODE -->
                     <div id="studio-designer-container" class="space-y-4">
+                        <!-- 3-Column Studio Workbench -->
+                        <div class="flex flex-col lg:flex-row gap-4 items-stretch studio-workbench-flex">
+                        <!-- LEFT COLUMN: CREATIVE TOOLS, PROPERTIES & CARD SETUP -->
+                        <aside class="w-full lg:w-80 xl:w-84 shrink-0 bg-white border border-slate-200 rounded-2xl p-3.5 flex flex-col space-y-3 shadow-xs">
+                            <label>Template library<select id="studio-library"></select></label>
+                            <button type="button" id="studio-new-template">New template from design</button>
                         <!-- Designer Top Control Sub-Bar -->
                         <div class="w-full rounded-2xl border border-slate-200 bg-white p-3 shadow-xs flex flex-wrap items-center justify-between gap-3">
                             <div class="flex flex-wrap items-center gap-3">
@@ -882,10 +902,6 @@
                             </div>
                         </div>
 
-                        <!-- 3-Column Studio Workbench -->
-                        <div class="flex flex-col lg:flex-row gap-4 items-stretch studio-workbench-flex">
-                        <!-- LEFT COLUMN: CREATIVE TOOLS, PROPERTIES & CARD SETUP -->
-                        <aside class="w-full lg:w-80 xl:w-84 shrink-0 bg-white border border-slate-200 rounded-2xl p-3.5 flex flex-col space-y-3 shadow-xs">
                             <!-- Left Subtabs Switcher -->
                             <div class="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200">
                                 <button type="button" data-admin-action="switch-inspector-tab" data-tab="tools" id="btn-inspect-tools" class="flex-1 rounded-lg bg-white text-indigo-700 shadow-xs py-1.5 text-xs font-black transition active:scale-95 text-center">Tools</button>
@@ -1046,6 +1062,34 @@
 
                         <!-- CENTER COLUMN: CANVAS STAGE -->
                         <main class="flex-1 bg-slate-100/90 rounded-2xl border border-slate-200 p-3 sm:p-4 flex flex-col items-center justify-start overflow-hidden relative shadow-inner min-h-[660px]">
+                            <!-- Canvas Stage Container -->
+                            <div class="w-full flex-1 flex items-center justify-center overflow-auto p-4 select-none studio-canvas-pattern rounded-2xl" id="studio-canvas-viewport">
+                                <div id="studio-canvas-card-wrapper" class="w-full max-w-[440px] rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10 overflow-hidden transition-all duration-200">
+                                    <div class="border-b border-slate-100 bg-slate-50/90 backdrop-blur px-4 py-2 flex items-center justify-between text-xs font-black text-slate-600">
+                                        <span id="studio-card-preview-name" class="truncate max-w-[240px] font-black">Member ID</span>
+                                        <span class="font-mono text-indigo-600 font-bold shrink-0" id="studio-card-preview-dims">90×130 mm</span>
+                                    </div>
+                                    <div class="p-3 bg-white flex items-center justify-center select-none" id="studio-canvas-stage">
+                                        <!-- teamIdSvg renders inline here with id="team-id-card-svg" -->
+                                    </div>
+                                </div>
+                            </div>
+                        </main>
+
+                        <!-- RIGHT COLUMN: DEDICATED LAYERS STACK -->
+                        <aside class="w-full lg:w-72 xl:w-80 shrink-0 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col space-y-3 shadow-xs">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="layers" class="h-4 w-4 text-indigo-600"></i>
+                                    <span class="text-xs font-black uppercase tracking-wider text-slate-800">Layers Stack</span>
+                                    <span id="studio-layers-count-badge" class="rounded-md bg-indigo-50 text-indigo-700 px-1.5 py-0.5 text-[10px] font-black">10</span>
+                                </div>
+                                <button type="button" data-admin-action="studio-add-text" class="rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-700 transition active:scale-95 flex items-center gap-1" title="Add new text layer">
+                                    <i data-lucide="type" class="h-3 w-3 text-indigo-600"></i>
+                                    <span>+ Text</span>
+                                </button>
+                            </div>
+
                             <div id="studio-edit-tools" role="toolbar" aria-label="Card editing tools" class="studio-edit-tools">
                                 <button type="button" data-edit="undo" title="Undo (Ctrl/Cmd Z)">Undo</button>
                                 <button type="button" data-edit="redo" title="Redo (Ctrl/Cmd Shift Z)">Redo</button>
@@ -1097,34 +1141,6 @@
                                 </div>
                             </div>
 
-                            <!-- Canvas Stage Container -->
-                            <div class="w-full flex-1 flex items-center justify-center overflow-auto p-4 select-none studio-canvas-pattern rounded-2xl" id="studio-canvas-viewport">
-                                <div id="studio-canvas-card-wrapper" class="w-full max-w-[440px] rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10 overflow-hidden transition-all duration-200">
-                                    <div class="border-b border-slate-100 bg-slate-50/90 backdrop-blur px-4 py-2 flex items-center justify-between text-xs font-black text-slate-600">
-                                        <span id="studio-card-preview-name" class="truncate max-w-[240px] font-black">Member ID</span>
-                                        <span class="font-mono text-indigo-600 font-bold shrink-0" id="studio-card-preview-dims">90×130 mm</span>
-                                    </div>
-                                    <div class="p-3 bg-white flex items-center justify-center select-none" id="studio-canvas-stage">
-                                        <!-- teamIdSvg renders inline here with id="team-id-card-svg" -->
-                                    </div>
-                                </div>
-                            </div>
-                        </main>
-
-                        <!-- RIGHT COLUMN: DEDICATED LAYERS STACK -->
-                        <aside class="w-full lg:w-72 xl:w-80 shrink-0 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col space-y-3 shadow-xs">
-                            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="layers" class="h-4 w-4 text-indigo-600"></i>
-                                    <span class="text-xs font-black uppercase tracking-wider text-slate-800">Layers Stack</span>
-                                    <span id="studio-layers-count-badge" class="rounded-md bg-indigo-50 text-indigo-700 px-1.5 py-0.5 text-[10px] font-black">10</span>
-                                </div>
-                                <button type="button" data-admin-action="studio-add-text" class="rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-700 transition active:scale-95 flex items-center gap-1" title="Add new text layer">
-                                    <i data-lucide="type" class="h-3 w-3 text-indigo-600"></i>
-                                    <span>+ Text</span>
-                                </button>
-                            </div>
-
                             <!-- Full-Height Reorderable Layers List -->
                             <div id="inspector-panel-layers" class="space-y-1.5 overflow-y-auto max-h-[640px] pr-1 flex-1">
                                 <!-- Populated dynamically with all layers, eye toggles, and delete buttons -->
@@ -1137,7 +1153,8 @@
                     <div id="studio-print-container" class="space-y-4 hidden">
                         <!-- Print Sheets Filter & Output Settings Toolbar -->
                         <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
-                            <!-- Row 1: Target Population Filters -->
+                            <label>Print template<select id="studio-output-template"></select></label>
+                        <!-- Row 1: Target Population Filters -->
                             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 items-center">
                                 <div>
                                     <label class="text-[10px] font-black uppercase text-indigo-700 block mb-1">Participant Type</label>
