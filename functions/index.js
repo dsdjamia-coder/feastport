@@ -1,4 +1,5 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 const crypto = require('crypto');
@@ -7,6 +8,37 @@ initializeApp();
 
 const ADMIN_ROLES = new Set(['admin', 'superAdmin']);
 const PROTECTED_COLLECTIONS = new Set(['adminUsers', 'adminUsernames']);
+
+function createCardPass(collectionName) {
+  return onDocumentWritten(`${collectionName}/{memberId}`, async event => {
+    const member = event.data?.after?.data();
+    if (!member) return;
+    const db = getFirestore();
+    const memberId = event.params.memberId;
+    const indexId = encodeURIComponent(JSON.stringify([collectionName, memberId]));
+    const indexRef = db.doc(`cardPassIndex/${indexId}`);
+    await db.runTransaction(async transaction => {
+      const current = await transaction.get(indexRef);
+      const token = member.cardPassToken || (current.exists ? current.data().token : crypto.randomUUID());
+      transaction.set(indexRef, { token, memberId, memberCollection: collectionName }, { merge: true });
+      transaction.set(db.doc(`cardPasses/${token}`), {
+        memberId,
+        memberCollection: collectionName,
+        name: member.name || 'Member',
+        chest: String(member.chestNo || ''),
+        team: member.team || '',
+        category: member.category || '',
+        events: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      }, { merge: true });
+      if (!member.cardPassToken) transaction.update(event.data.after.ref, { cardPassToken: token });
+    });
+  });
+}
+
+exports.createStudentCardPass = createCardPass('students');
+exports.createParticipantCardPass = createCardPass('participants');
 
 exports.completeFactoryReset = onCall({ timeoutSeconds: 540, memory: '1GiB' }, async request => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Admin authentication is required.');

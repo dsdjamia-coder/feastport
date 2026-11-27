@@ -1,9 +1,12 @@
 import { db } from './firebase-config.js';
-import { doc, runTransaction } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+import { doc, runTransaction, updateDoc } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+import qrcode from './vendor/qrcode-generator.mjs';
 
 const codes = new Map();
 export function passArtwork(member) {
-    return codes.get(memberKey(member)) || '';
+    const key = memberKey(member);
+    if (!codes.has(key) && member.cardPassToken) cacheArtwork(key, member.cardPassToken);
+    return codes.get(key) || '';
 }
 function memberKey(member) {
     return JSON.stringify([member.cardCollection || 'students', member.id]);
@@ -11,16 +14,31 @@ function memberKey(member) {
 
 export async function issueCardPass(member, details) {
     if (!member.id || member.id === 'stress_test_worst_case') return;
-    const { default: qrcode } = await import('./vendor/qrcode-generator.mjs');
     const key = memberKey(member);
     const index = doc(db, 'cardPassIndex', encodeURIComponent(key));
     const token = await runTransaction(db, async transaction => {
         const existing = await transaction.get(index);
-        const token = existing.exists() ? existing.data().token : crypto.randomUUID();
+        const token = member.cardPassToken || (existing.exists() ? existing.data().token : crypto.randomUUID());
         if (!existing.exists()) transaction.set(index, { token });
-        transaction.set(doc(db, 'cardPasses', token), details);
+        transaction.set(doc(db, 'cardPasses', token), {
+            ...details,
+            memberId: member.id,
+            memberCollection: member.cardCollection || 'students',
+            updatedAt: Date.now()
+        }, { merge: true });
         return token;
     });
+    member.cardPassToken = token;
+    cacheArtwork(key, token);
+    return token;
+}
+
+export async function saveCardPassArtwork(member, artwork) {
+    if (!member?.cardPassToken || !artwork || artwork.length > 850000) return;
+    await updateDoc(doc(db, 'cardPasses', member.cardPassToken), { artwork, artworkUpdatedAt: Date.now() });
+}
+
+function cacheArtwork(key, token) {
     const url = new URL('card.html', location.href);
     url.hash = token;
     const qr = qrcode(0, 'M');

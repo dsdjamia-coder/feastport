@@ -1,5 +1,5 @@
 import './dependency-loader.js';
-import { issueCardPass, passArtwork } from './card-pass.js';
+import { issueCardPass, passArtwork, saveCardPassArtwork } from './card-pass.js';
 import { app, db, auth, functions, configureFirebaseAuth } from './firebase-config.js';
 import { escapeHtml, jsAttr, normalizeStageValue, printPage } from './admin-utils.js';
 import { ensureAdminSharedState } from './admin-dashboard.js';
@@ -40,6 +40,8 @@ let homeConfig = {}, publicConfig = {}, tvConfig = {}, scoringRules = {}, schedu
 let basicOrderDraft = [];
 let accessUsers = [], teamLeaders = [], scheduleBreaks = [], registrationRequests = [], registrationApplications = [], registrationConfig = normalizeRegistrationConfig(), teamRegistrationPolicies = [];
 let selectedAccessListFilter = 'teamLeader';
+let cardDataLoadPromise = null;
+let cardArtworkSaveTimer = 0;
 const selectedRegistrationApplicationKeys = new Set();
 let visibleRegistrationApplicationKeys = [];
 let expandedRegistrationEventId = "";
@@ -3614,12 +3616,32 @@ const teamIdMemberEvents = member => {
 
 async function preparePass(member) {
     if (!member.id || member.id === 'stress_test_worst_case') return;
-    if (!dashboardTotals.eventsLive || !dashboardTotals.registrationsLive) throw new Error("Event registrations are still loading");
+    if (!dashboardTotals.eventsLive || !dashboardTotals.registrationsLive) {
+        cardDataLoadPromise ||= Promise.all([
+            getDocs(collection(db, 'events')),
+            getDocs(collection(db, 'registrations'))
+        ]).then(([eventSnapshot, registrationSnapshot]) => {
+            events = eventSnapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+            registrations = registrationSnapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+            dashboardTotals.eventsLive = true;
+            dashboardTotals.registrationsLive = true;
+        }).finally(() => { cardDataLoadPromise = null; });
+        await cardDataLoadPromise;
+    }
     await issueCardPass(member, {
         name: member.name || 'Member', chest: String(member.chestNo || ''),
         team: teamLabel(member.team || '') || '', category: member.category || '',
         festival: brandingName(homeConfig), events: teamIdMemberEvents(member)
     });
+}
+
+function scheduleCardArtworkSave(member, team, color, header, logo, opts, template) {
+    if (!member?.cardPassToken) return;
+    window.clearTimeout(cardArtworkSaveTimer);
+    cardArtworkSaveTimer = window.setTimeout(() => {
+        const artwork = teamIdSvg(member, team, color, header, logo, opts, template, false);
+        saveCardPassArtwork(member, artwork).catch(error => console.warn('Unable to save card artwork', error));
+    }, 900);
 }
 
 const TEAM_ID_TEMPLATE_KEY = 'fest_team_id_template_config';
@@ -4979,7 +5001,8 @@ async function editStudioCard(action) {
         const team = member.team || teams[0] || 'Team A';
         try {
             await preparePass(member);
-            const svg = teamIdSvg(member, team, teamColors[team] || '#4f46e5', teamIdCardHeaders[team] || '', teamLogos[team] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '', currentTeamIdTemplate, currentTeamIdTemplate);
+            const svg = teamIdSvg(member, team, teamColors[team] || '#4f46e5', teamIdCardHeaders[team] || '', teamLogos[team] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '', currentTeamIdTemplate, false);
+            await saveCardPassArtwork(member, svg).catch(() => {});
             const link = document.createElement('a');
             link.href = await svgToPng(svg);
             link.download = (member.name || 'ID Card') + '.png';
@@ -5422,6 +5445,14 @@ window.renderStudioCanvas = () => {
 
     bindStudioCanvasInteraction(document.getElementById('team-id-card-svg'));
     window.updateStudioHeaderThumbnail();
+    scheduleCardArtworkSave(previewMember, team, color, header, logo, opts, currentTeamIdTemplate);
+    if (previewMember.id && !previewMember.cardPassToken && !previewMember._cardPassLoading) {
+        previewMember._cardPassLoading = true;
+        preparePass(previewMember)
+            .then(() => window.renderStudioCanvas())
+            .catch(error => console.error('Unable to prepare card QR', error))
+            .finally(() => { previewMember._cardPassLoading = false; });
+    }
 };
 
 function bindStudioCanvasInteraction(svgEl) {
@@ -6798,7 +6829,7 @@ window.removeStudioHeader = async () => {
     }
 };
 
-window.renderStudioPrintSheets = () => {
+window.renderStudioPrintSheets = async () => {
     const grid = document.getElementById('studio-print-sheets-grid');
     const summaryEl = document.getElementById('studio-print-summary');
     if (!grid) return;
@@ -6837,6 +6868,11 @@ window.renderStudioPrintSheets = () => {
     }
 
     const previewMembers = limit === Infinity ? members : members.slice(0, limit);
+    if (!studioStressTestMode) {
+        grid.innerHTML = '<div class="p-8 text-center text-xs font-bold text-indigo-600">Preparing unique card QR codes…</div>';
+        try { await Promise.all(previewMembers.map(preparePass)); }
+        catch (error) { console.error(error); grid.innerHTML = '<div class="p-8 text-center text-xs font-bold text-rose-600">Unable to prepare card QR codes. Check the connection and retry.</div>'; return; }
+    }
     const totalSheets = layout.perPage > 0 ? Math.max(1, Math.ceil(previewMembers.length / layout.perPage)) : 1;
 
     grid.innerHTML = Array.from({ length: totalSheets }, (_, sheetIdx) => {
@@ -6854,7 +6890,9 @@ window.renderStudioPrintSheets = () => {
                         const mHeader = teamIdCardHeaders[mTeam] || '';
                         const mLogo = teamLogos[mTeam] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '';
                         const mTemplate = tmpl;
-                        return `<div style="width:${cardW}mm;height:${cardH}mm;border-radius:0px;" class="overflow-hidden bg-white shadow-xs border border-slate-200">${teamIdPreviewCard(m, mTeam, mColor, mHeader, mLogo, opts, mTemplate)}</div>`;
+                        const cardSvg = teamIdSvg(m, mTeam, mColor, mHeader, mLogo, opts, mTemplate, false);
+                        saveCardPassArtwork(m, cardSvg).catch(() => {});
+                        return `<div style="width:${cardW}mm;height:${cardH}mm;border-radius:0px;" class="overflow-hidden bg-white shadow-xs border border-slate-200"><img src="${dataUrlForSvg(cardSvg)}" class="block shadow-md" style="width:100%;height:100%;object-fit:contain" alt="${escapeHtml(m.name || 'ID card')}"></div>`;
                     }).join('')}
                 </div>
             </section>
@@ -6909,7 +6947,9 @@ window.downloadStudioBatchPdf = async () => {
 
         try { await preparePass(m); }
         catch { window.showToast('Could not issue card QR. Check your connection and card permissions.', 'error'); return; }
-        const png = await svgToPng(teamIdSvg(m, mTeam, mColor, mHeader, mLogo, opts, mTemplate, false));
+        const cardSvg = teamIdSvg(m, mTeam, mColor, mHeader, mLogo, opts, mTemplate, false);
+        await saveCardPassArtwork(m, cardSvg).catch(() => {});
+        const png = await svgToPng(cardSvg);
         docPdf.addImage(png, 'PNG', x, y, cardW, cardH, undefined, 'FAST');
     }
 
@@ -7381,7 +7421,9 @@ window.downloadTeamIdCards = async () => {
               y = opts.margin + row * (opts.cardH + opts.gap);
         try { await preparePass(members[i]); }
         catch { return window.showToast("Unable to prepare the card QR. Please retry.", "error"); }
-        const png = await svgToPng(teamIdSvg(members[i], teamIdCardTeam, color, header, logo, opts, tmpl, false));
+        const cardSvg = teamIdSvg(members[i], teamIdCardTeam, color, header, logo, opts, tmpl, false);
+        await saveCardPassArtwork(members[i], cardSvg).catch(() => {});
+        const png = await svgToPng(cardSvg);
         docPdf.addImage(png, 'PNG', x, y, opts.cardW, opts.cardH, undefined, 'FAST');
     }
     const filterSuffix = teamIdParticipationFilter === 'all' ? '' : `-${teamIdParticipationFilter}`;
