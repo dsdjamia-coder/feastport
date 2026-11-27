@@ -1,4 +1,5 @@
 import './dependency-loader.js';
+import { issueCardPass, passArtwork } from './card-pass.js';
 import { app, db, auth, functions, configureFirebaseAuth } from './firebase-config.js';
 import { escapeHtml, jsAttr, normalizeStageValue, printPage } from './admin-utils.js';
 import { ensureAdminSharedState } from './admin-dashboard.js';
@@ -302,6 +303,7 @@ async function startAdminSession() {
     }));
     window.adminUnsubscribers.push(onSnapshot(collection(db, "events"), (snap) => {
         events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        dashboardTotals.eventsLive = true;
         window.adminSharedState.update({ events });
         if (isTabActive('events')) window.renderEventTable();
         if (isTabActive('registrations')) {
@@ -3572,7 +3574,7 @@ window.saveTeamIdHeader = async (team) => {
 const teamIdPageSizes={A4:{w:210,h:297},A3:{w:297,h:420},IN12X18:{w:304.8,h:457.2}};
 let teamIdCardTeam='';
 let teamIdCurrentPage=1;
-const teamIdMembers=team=>[...students.filter(item=>item.team===team).map(item=>({...item,source:'Student',photo:item.photoData||''})),...participants.filter(item=>item.team===team&&!item.studentId).map(item=>({...item,source:item.participantType||'Participant',chestNo:item.chestNo||item.id?.slice(0,6)||'',photo:item.photo||item.photoData||''}))].sort((a,b)=>String(a.chestNo||'').localeCompare(String(b.chestNo||''),undefined,{numeric:true})||String(a.name||'').localeCompare(String(b.name||'')));
+const teamIdMembers=team=>[...students.filter(item=>item.team===team).map(item=>({...item,source:'Student',cardCollection:'students',photo:item.photoData||''})),...participants.filter(item=>item.team===team&&!item.studentId).map(item=>({...item,source:item.participantType||'Participant',cardCollection:'participants',chestNo:item.chestNo||item.id?.slice(0,6)||'',photo:item.photo||item.photoData||''}))].sort((a,b)=>String(a.chestNo||'').localeCompare(String(b.chestNo||''),undefined,{numeric:true})||String(a.name||'').localeCompare(String(b.name||'')));
 
 const teamIdMemberEvents = member => {
     if (!member) return [];
@@ -3580,16 +3582,18 @@ const teamIdMemberEvents = member => {
     const chestNo = member.chestNo ? String(member.chestNo).trim() : '';
     const memberRegs = registrations.filter(r => {
         if (!r) return false;
-        if (memberId && ((r.studentIds && r.studentIds.includes(memberId)) || 
-                         (r.participantIds && r.participantIds.includes(memberId)) || 
-                         r.studentId === memberId || 
-                         r.participantId === memberId)) {
+        const participant = member.cardCollection === 'participants';
+        const ids = participant ? r.participantIds : r.studentIds;
+        const id = participant ? r.participantId : r.studentId;
+        if (memberId && (ids?.includes(memberId) || id === memberId)) {
             return true;
         }
-        if (chestNo && r.chestNo && String(r.chestNo).trim() === chestNo) {
-            return true;
-        }
-        return false;
+        if (r.studentId || r.participantId || r.studentIds?.length || r.participantIds?.length) return false;
+        if (!chestNo || String(r.chestNo || '').trim() !== chestNo || (r.team && r.team !== member.team)) return false;
+        // Legacy entries may identify someone only by chest number. Skip ambiguous matches.
+        const matches = [...students, ...participants.filter(p => !p.studentId)].filter(person =>
+            String(person.chestNo || '').trim() === chestNo && (!r.team || person.team === r.team));
+        return matches.length === 1 && matches[0].id === memberId;
     });
     const map = new Map();
     memberRegs.forEach(r => {
@@ -3607,6 +3611,16 @@ const teamIdMemberEvents = member => {
     });
     return Array.from(map.values());
 };
+
+async function preparePass(member) {
+    if (!member.id || member.id === 'stress_test_worst_case') return;
+    if (!dashboardTotals.eventsLive || !dashboardTotals.registrationsLive) throw new Error("Event registrations are still loading");
+    await issueCardPass(member, {
+        name: member.name || 'Member', chest: String(member.chestNo || ''),
+        team: teamLabel(member.team || '') || '', category: member.category || '',
+        festival: brandingName(homeConfig), events: teamIdMemberEvents(member)
+    });
+}
 
 const TEAM_ID_TEMPLATE_KEY = 'fest_team_id_template_config';
 const TEAM_ID_TEMPLATE_DEFAULTS = {
@@ -3727,7 +3741,8 @@ const DEMOGRAPHIC_FIELD_LABELS = {
 function getStressTestPersona() {
     let longestName = 'Sayyid Muhammad Abdurrahman Al-Bukhari Al-Hasani';
     let maxLen = 0;
-    const allPeople = [...(students || []), ...(participants || [])];
+    const allPeople = [...students.map(person => ({ ...person, cardCollection: 'students' })),
+        ...participants.map(person => ({ ...person, cardCollection: 'participants' }))];
     allPeople.forEach(p => {
         const n = (p.name || '').trim();
         if (n.length > maxLen) {
@@ -4531,7 +4546,7 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
     let evBoxY = baseEventsY + eventsYShift;
     let evBoxH = 70;
     if (tmpl.showEvents !== false) {
-        evBoxH = Math.max(70, (footerY - 12) - evBoxY);
+        evBoxH = Math.max(70, Math.min(footerY - 12, svgH - 130) - baseEventsY);
         const titleSize = Math.max(8, Math.round((tmpl.eventsTitleSize || 11) * dimScale));
         const evNameSize = Math.max(8, Math.round((tmpl.eventNameSize || 12) * dimScale));
         const evMetaSize = Math.max(7, Math.round((tmpl.eventMetaSize || 10) * dimScale));
@@ -4864,8 +4879,9 @@ const teamIdSvg = (member, team, color, header, logo, opts, tmpl, interactive = 
   </style>
 </defs>
 <g clip-path="url(#cardClip_${safeUid})">
-  <rect width="600" height="${svgH}" fill="${xmlEscape(cardBg)}"/>
+  <rect data-studio-background="true" width="600" height="${svgH}" fill="${xmlEscape(cardBg)}"/>
   ${artwork.join('')}
+  <g transform="translate(478,${Math.max(0,svgH-123)})">${passArtwork(member) || '<rect width="112" height="112" fill="white" stroke="#cbd5e1"/><text x="56" y="62" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#475569">Card QR</text>'}</g>
   ${selectionOverlay}
 </g>
 </svg>`;
@@ -4962,6 +4978,7 @@ async function editStudioCard(action) {
         const member = studioStressTestMode ? getStressTestPersona() : members[studioSingleMemberIndex] || { name: 'Sample Member' };
         const team = member.team || teams[0] || 'Team A';
         try {
+            await preparePass(member);
             const svg = teamIdSvg(member, team, teamColors[team] || '#4f46e5', teamIdCardHeaders[team] || '', teamLogos[team] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '', currentTeamIdTemplate, currentTeamIdTemplate);
             const link = document.createElement('a');
             link.href = await svgToPng(svg);
@@ -5066,10 +5083,51 @@ window.getRoleDefaultTemplate = (roleKey) => {
     };
 };
 
+// Keep the native color picker and the current SVG mounted during live previews.
+document.getElementById('view-id-studio').addEventListener('input', event => {
+    const input = event.target;
+    if (input.type !== 'color') return;
+    const canvas = document.getElementById('team-id-card-svg');
+    if (input.id === 'studio-card-bg') {
+        canvas?.querySelector('[data-studio-background]')?.setAttribute('fill', input.value);
+        return;
+    }
+    const selectors = {
+        'inspector-name-color': 'text', 'inspector-chest-color': 'text',
+        'inspector-demo-color': 'text:last-of-type', 'inspector-prop-color': 'text',
+        'inspector-prop-fill': ':scope > *', 'inspector-prop-stroke': ':scope > *'
+    };
+    if (!activeCardLayer || !selectors[input.id]) return;
+    const layer = canvas?.querySelector('[data-card-layer="' + CSS.escape(activeCardLayer) + '"]');
+    const attribute = input.id === 'inspector-prop-stroke' ? 'stroke' : 'fill';
+    layer?.querySelectorAll(selectors[input.id]).forEach(node => node.setAttribute(attribute, input.value));
+});
+
 const studioPresets = {
-    classic: { name: 'Classic portrait', design: {} },
-    midnight: { name: 'Midnight pass', design: { cardBg: '#141834', nameColor: '#ffffff', chestColor: '#c4b5fd', showWatermark: false, nameSize: 36, photoRadius: 74 } },
-    paper: { name: 'Paper badge', design: { cardBg: '#fff5df', nameColor: '#542516', chestColor: '#9b331e', showHeader: false, showWatermark: false, showFooter: false, photoRadius: 64, nameSize: 38 } }
+    classic: { name: 'Gallery portrait', design: {
+        cardBg: '#f3faf7', showHeader: false, showWatermark: false, photoRadius: 98,
+        photoY: 20, nameSize: 36, nameColor: '#144e42', chestSize: 30, chestColor: '#37635b',
+        footerBg: '#144e42', customElements: [
+            { id: 'gallery-rule', type: 'rect', x: 22, y: 28, width: 6, height: 284, fill: '#42a38a' }
+        ]
+    } },
+    midnight: { name: 'Midnight number', design: {
+        cardBg: '#f0f2fc', headerHeight: 205, showWatermark: false, photoRadius: 59,
+        photoX: -169, photoY: -72, chestX: 80, chestY: -197, chestSize: 78, chestColor: '#d8ff66',
+        nameColor: '#252450', nameSize: 35, footerBg: '#24203f', customElements: [
+            { id: 'midnight-stripe', type: 'rect', x: 0, y: 201, width: 600, height: 6, fill: '#acda43' }
+        ]
+    } },
+    paper: { name: 'Programme ticket', design: {
+        cardBg: '#fff6e5', nameColor: '#472b18', chestColor: '#a34226', showHeader: false,
+        showWatermark: false, showFooter: false, photoRadius: 56, photoX: -176, photoY: 27,
+        chestX: 95, chestY: -223, nameY: -67, nameSize: 32, detailsY: -65,
+        eventsY: -50, eventsTitleSize: 17, eventNameSize: 15, eventsLayout: 'single_column',
+        customElements: [
+            { id: 'ticket-top', type: 'rect', x: 0, y: 0, width: 600, height: 13, fill: '#ad4b2d' },
+            { id: 'ticket-rule', type: 'rect', x: 48, y: 395, width: 504, height: 3, fill: '#ad4b2d' }
+        ]
+    } }
 };
 let namedStudioTemplates = {};
 let studioLibraryKey = 'role';
@@ -5207,6 +5265,7 @@ window.getFilteredStudioMembers = () => {
     const studentList = (students || []).map(s => ({
         ...s,
         source: 'student',
+        cardCollection: 'students',
         participantType: s.participantType || 'student',
         photo: s.photoData || s.photo || ''
     }));
@@ -5214,6 +5273,7 @@ window.getFilteredStudioMembers = () => {
     const nonStudentList = (participants || []).filter(p => !p.studentId).map(p => ({
         ...p,
         source: p.participantType || 'participant',
+        cardCollection: 'participants',
         participantType: p.participantType || 'participant',
         chestNo: p.chestNo || p.id?.slice(0, 6) || '',
         photo: p.photo || p.photoData || ''
@@ -6134,7 +6194,7 @@ window.renderStudioPropertiesPanel = () => {
         });
     }
     if (customTextColor && customEl) {
-        customTextColor.addEventListener('input', () => {
+        customTextColor.addEventListener('change', () => {
             customEl.color = customTextColor.value;
             saveTeamIdTemplate(tmpl);
             window.renderStudioCanvas();
@@ -6171,14 +6231,14 @@ window.renderStudioPropertiesPanel = () => {
     const propFill = document.getElementById('inspector-prop-fill');
     const propStroke = document.getElementById('inspector-prop-stroke');
     if (propFill && customEl) {
-        propFill.addEventListener('input', () => {
+        propFill.addEventListener('change', () => {
             customEl.fill = propFill.value;
             saveTeamIdTemplate(tmpl);
             window.renderStudioCanvas();
         });
     }
     if (propStroke && customEl) {
-        propStroke.addEventListener('input', () => {
+        propStroke.addEventListener('change', () => {
             customEl.stroke = propStroke.value;
             saveTeamIdTemplate(tmpl);
             window.renderStudioCanvas();
@@ -6244,7 +6304,7 @@ window.renderStudioPropertiesPanel = () => {
         });
     }
     if (nColor) {
-        nColor.addEventListener('input', () => {
+        nColor.addEventListener('change', () => {
             tmpl.nameColor = nColor.value;
             saveTeamIdTemplate(tmpl);
             window.renderStudioCanvas();
@@ -6270,7 +6330,7 @@ window.renderStudioPropertiesPanel = () => {
         });
     }
     if (cColor) {
-        cColor.addEventListener('input', () => {
+        cColor.addEventListener('change', () => {
             tmpl.chestColor = cColor.value;
             saveTeamIdTemplate(tmpl);
             window.renderStudioCanvas();
@@ -6326,7 +6386,7 @@ window.renderStudioPropertiesPanel = () => {
         });
     }
     if (dCol && isDemo) {
-        dCol.addEventListener('input', () => {
+        dCol.addEventListener('change', () => {
             if (!tmpl.demographics[demoKey]) tmpl.demographics[demoKey] = {};
             tmpl.demographics[demoKey].color = dCol.value;
             saveTeamIdTemplate(tmpl);
@@ -6377,7 +6437,7 @@ window.renderStudioLayersList = () => {
         return `
             <div draggable="true" data-layer-key="${escapeHtml(layer.key)}" class="flex items-center justify-between p-2 rounded-xl border transition ${isSelected ? 'border-indigo-500 bg-indigo-50/70 shadow-xs' : 'border-slate-200 bg-white hover:bg-slate-50'}">
                 <button type="button" data-layer-command="select" class="flex items-center gap-2 flex-1 text-left select-none">
-                    <i data-lucide="${layer.icon}" class="h-4 w-4 ${isSelected ? 'text-indigo-600' : 'text-slate-400'}"></i>
+                    ${tmpl.lockedLayers?.includes(layer.key) ? '<svg class="studio-glyph" role="img" aria-label="Locked"><use href="#studio-icon-lock-keyhole"/></svg>' : ''}
                     <span class="text-xs font-bold ${isSelected ? 'text-indigo-950 font-black' : 'text-slate-700'}">${escapeHtml(layer.title)}</span>
                 </button>
                 <div class="flex items-center gap-1">
@@ -6847,6 +6907,8 @@ window.downloadStudioBatchPdf = async () => {
         const mLogo = teamLogos[mTeam] || homeConfig.logoUrl || homeConfig.logo || homeConfig.festLogo || '';
         const mTemplate = tmpl;
 
+        try { await preparePass(m); }
+        catch { window.showToast('Could not issue card QR. Check your connection and card permissions.', 'error'); return; }
         const png = await svgToPng(teamIdSvg(m, mTeam, mColor, mHeader, mLogo, opts, mTemplate, false));
         docPdf.addImage(png, 'PNG', x, y, cardW, cardH, undefined, 'FAST');
     }
@@ -6952,7 +7014,7 @@ window.initStudioView = () => {
         if (el && !el._studioWired) {
             el._studioWired = true;
             el.addEventListener('change', fn);
-            el.addEventListener('input', fn);
+            if (el.type !== 'color' && el.tagName !== 'SELECT') el.addEventListener('input', fn);
         }
     };
 
@@ -7316,8 +7378,10 @@ window.downloadTeamIdCards = async () => {
               col = pageIndex % layout.cols,
               row = Math.floor(pageIndex / layout.cols),
               x = opts.margin + col * (opts.cardW + opts.gap),
-              y = opts.margin + row * (opts.cardH + opts.gap),
-              png = await svgToPng(teamIdSvg(members[i], teamIdCardTeam, color, header, logo, opts, tmpl, false));
+              y = opts.margin + row * (opts.cardH + opts.gap);
+        try { await preparePass(members[i]); }
+        catch { return window.showToast("Unable to prepare the card QR. Please retry.", "error"); }
+        const png = await svgToPng(teamIdSvg(members[i], teamIdCardTeam, color, header, logo, opts, tmpl, false));
         docPdf.addImage(png, 'PNG', x, y, opts.cardW, opts.cardH, undefined, 'FAST');
     }
     const filterSuffix = teamIdParticipationFilter === 'all' ? '' : `-${teamIdParticipationFilter}`;

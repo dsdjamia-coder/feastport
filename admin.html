@@ -270,6 +270,17 @@
         .studio-workbench-flex aside>* {flex-shrink:0}
         #inspector-panel-layers {min-height:10rem}
         #studio-canvas-card-wrapper {flex-shrink:0}
+        .studio-template-field {display:grid;gap:2px;min-width:0;width:100%;font-size:11px;font-weight:700;color:#475569}
+        #view-id-studio :is(#studio-library,#studio-template-target) {width:100%;height:26px;min-height:0;padding:1px 5px;font-size:12px;text-overflow:ellipsis}
+        #view-id-studio div:has(> div > .studio-template-field) {padding:5px;gap:4px}
+        #view-id-studio div:has(> .studio-template-field) {min-width:0;max-width:100%;gap:4px}
+        #view-id-studio div:has(> label > #studio-zoom-select) {flex-wrap:wrap;gap:3px}
+        #view-id-studio #studio-zoom-select {width:6.5ch;min-width:4.4rem;height:23px;min-height:0;padding:0 3px}
+        #view-id-studio #inspector-panel-layers [data-layer-key] {min-height:0;margin:0;padding:0 3px;border-radius:4px}
+        #view-id-studio #inspector-panel-layers button {height:20px;min-height:0;padding:0;line-height:1}
+        #view-id-studio #inspector-panel-layers [data-studio-icon] {width:22px;min-width:22px;flex-basis:22px}
+        #inspector-panel-layers .studio-glyph {width:13px;height:13px;flex-shrink:0}
+        #inspector-panel-layers [data-layer-command=select] span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden selection:bg-indigo-100 selection:text-indigo-700">
@@ -1053,14 +1064,14 @@
 </symbol></defs></svg>
 <!-- LEFT COLUMN: CREATIVE TOOLS, PROPERTIES & CARD SETUP -->
                         <aside class="w-full lg:w-80 xl:w-84 shrink-0 bg-white border border-slate-200 rounded-2xl p-3.5 flex flex-col space-y-3 shadow-xs">
-                            <label>Template library<select id="studio-library"></select></label>
+                            <label class="studio-template-field">Template library<select id="studio-library"></select></label>
                             <button type="button" id="studio-new-template" data-studio-icon aria-label="New template from design"><svg class="studio-glyph" aria-hidden="true"><use href="#studio-icon-file-plus-2"/></svg></button>
                         <!-- Designer Top Control Sub-Bar -->
                         <div class="w-full rounded-2xl border border-slate-200 bg-white p-3 shadow-xs flex flex-wrap items-center justify-between gap-3">
                             <div class="flex flex-wrap items-center gap-3">
-                                <div class="flex items-center gap-2">
-                                    <label class="text-xs font-black uppercase text-indigo-700 tracking-wider">Template For:</label>
-                                    <select id="studio-template-target" class="rounded-xl border border-indigo-300 bg-indigo-50/70 px-3 py-1.5 text-xs font-black text-indigo-950 focus:ring-2 focus:ring-indigo-500 min-w-[180px]">
+                                <div class="studio-template-field">
+                                    <label for="studio-template-target">Template for</label>
+                                    <select id="studio-template-target" class="rounded-xl border border-indigo-300 bg-indigo-50/70 px-3 py-1.5 text-xs font-black text-indigo-950 focus:ring-2 focus:ring-indigo-500">
                                         <!-- Populated dynamically from Master Setup Participant Types -->
                                     </select>
                                 </div>

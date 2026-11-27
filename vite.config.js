@@ -30,6 +30,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
+        card: resolve(__dirname, 'card.html'),
         admin: resolve(__dirname, 'admin.html'),
         login: resolve(__dirname, 'login.html'),
         register: resolve(__dirname, 'register.html'),

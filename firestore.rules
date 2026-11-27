@@ -494,6 +494,14 @@ service cloud.firestore {
         && request.resource.data.layers is list;
     }
 
+    match /cardPassIndex/{key} {
+      allow read, write: if isAdmin();
+    }
+    match /cardPasses/{token} {
+      allow get: if true;
+      allow write: if isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
